@@ -1,0 +1,18 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+
+# 데이터·캐시·결과 (용량 큼, git 제외)
+cache/
+data/*.parquet
+results/**/*.png
+results/**/*.ckpt
+*.npy
+
+# nuScenes 데이터 자체는 저장소 밖(/home/avg/CBNU/data)에 위치
+
+# 에디터/OS 부산물
+.vscode/
+*:Zone.Identifier

@@ -5,12 +5,17 @@
 #   python3 -m venv .venv && source .venv/bin/activate
 #   pip install -r requirements.txt
 #
-# torch/torchvision은 CUDA 버전에 맞는 휠을 받아야 한다.
-# (이 환경: RTX 4070, CUDA 12.x → 기본 PyPI 휠이 CUDA 포함)
+# ⚠️ torch/torchvision은 시스템 CUDA 드라이버에 맞는 휠을 받아야 한다.
+#    기본 `pip install torch`는 최신(cu130) 휠을 받는데, 이 환경의 드라이버는
+#    CUDA 12.6이라 GPU 인식이 안 된다(torch.cuda.is_available()==False).
+#    반드시 cu124 인덱스에서 설치할 것:
+#
+#      pip install --index-url https://download.pytorch.org/whl/cu124 torch torchvision
+#
+#    (검증: RTX 4070 + 드라이버 560/CUDA12.6 → torch 2.6.0+cu124 로 CUDA=True)
+#    정확한 버전 고정은 requirements-lock.txt 참조.
 
-# --- 딥러닝 ---
-torch
-torchvision
+# --- 딥러닝 (위 주의사항대로 cu124 인덱스에서 설치) ---
 timm                      # MobileNetV3-small 백본 (특징 캐시용)
 
 # --- nuScenes ---

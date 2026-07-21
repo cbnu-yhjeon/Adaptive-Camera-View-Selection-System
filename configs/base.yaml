@@ -1,0 +1,27 @@
+# 공통 기본 설정 (CLAUDE.md B.3). 다른 config가 이 파일을 상속·오버라이드한다.
+
+# --- 데이터 경로 ---
+# nuScenes 데이터 루트. 아래 구조로 압축 해제되어 있어야 한다:
+#   {dataroot}/
+#   ├── maps/  samples/  sweeps/  v1.0-mini/
+#   └── can_bus/
+dataroot: /home/avg/CBNU/data/nuscenes
+version: v1.0-mini          # v1.0-mini | v1.0-trainval
+
+# 이미지 파일이 존재하는 scene만 사용 (trainval 부분집합 대응)
+require_image_files: true
+
+# --- 재현성 ---
+seed: 42
+results_dir: results
+cache_dir: cache
+splits_file: splits/scene_split_v1.json
+
+# --- 채널 (constants.py와 반드시 일치, 참조용) ---
+num_cameras: 6
+
+# --- 하드웨어 (GPU 메모리에 맞춰 조정) ---
+device: cuda
+batch_size: 16
+img_size: 224
+num_workers: 4
