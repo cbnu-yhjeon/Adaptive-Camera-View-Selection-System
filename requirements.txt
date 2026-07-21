@@ -1,0 +1,34 @@
+# 원격주행 적응형 카메라 뷰 선택 시스템 — 의존성
+# CLAUDE.md B.1 기준. 최초 설치 후 `pip freeze`로 버전을 고정하여 재커밋한다.
+#
+# 설치:
+#   python3 -m venv .venv && source .venv/bin/activate
+#   pip install -r requirements.txt
+#
+# torch/torchvision은 CUDA 버전에 맞는 휠을 받아야 한다.
+# (이 환경: RTX 4070, CUDA 12.x → 기본 PyPI 휠이 CUDA 포함)
+
+# --- 딥러닝 ---
+torch
+torchvision
+timm                      # MobileNetV3-small 백본 (특징 캐시용)
+
+# --- nuScenes ---
+nuscenes-devkit           # scene/sample/CAN/GT 박스 접근
+pyquaternion              # 3D 회전(쿼터니언) — devkit 의존, 좌표 변환에 사용
+
+# --- 데이터 처리 ---
+numpy
+scipy
+pandas
+pyarrow                   # parquet 라벨 저장/로드
+opencv-python-headless    # 이미지 I/O, 시각화(GUI 불필요 헤드리스)
+scikit-learn              # macro-F1 등 지표
+
+# --- 시각화 / 로깅 ---
+matplotlib                # 라벨 시각화, 강건성 곡선
+tensorboard               # 학습 곡선 로깅
+tqdm                      # 진행률 표시
+
+# --- 설정 ---
+pyyaml                    # configs/*.yaml 로드

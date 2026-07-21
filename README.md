@@ -131,6 +131,77 @@ pip install nuscenes-devkit timm opencv-python-headless pandas pyarrow \
 3. **M6** — 골드셋 300 keyframe 직접 라벨링
 4. **M7** — 강건성 결과가 기대와 다를 경우 대응 방향 상의
 
+## ✅ 개발 로드맵 (우선순위별 TODO)
+
+우선순위는 **의존성 순서**를 따른다 (앞 단계가 끝나야 뒤 단계 가능).
+🚦 표시는 **사용자 확인/작업이 필요한 게이트**다.
+
+| 등급 | 의미 | 마일스톤 |
+|---|---|---|
+| **P0** | 블로커·기반 — 없으면 아무것도 못 함 | M1~M2 |
+| **P1** | 핵심 학습 파이프라인 | M3~M4 |
+| **P2** | 평가 체계 | M5~M6 |
+| **P3** | 논문 검증·산출물 | M7~M8 |
+
+계층 구조:
+
+```
+[0] 환경·데이터 확보    ← P0 (게이트)
+[1] 데이터 접근 계층     ← P0   nusc_wrapper, constants
+[2] 라벨링 계층 ★        ← P0   geometry, ttc, maneuver, label_function
+[3] 특징·데이터 계층     ← P1   feature_cache, dataset, noise
+[4] 모델 계층            ← P1   proposed (Transformer+GRU)
+[5] 베이스라인 계층      ← P2   rule_based (B1~B4)
+[6] 평가 계층            ← P2   metrics, evaluate, goldset_ui
+[7] 검증·산출물 계층     ← P3   robustness, make_figures
+```
+
+### P0 — 블로커 & 기반 (M1~M2)
+
+- [ ] 🚦 **nuScenes v1.0-mini + can_bus 다운로드·배치** (사용자 조치 — 모든 작업의 선행 게이트)
+- [ ] 개발환경 세팅: `.venv` + requirements 설치·freeze 커밋 + GPU 확인
+- [ ] `utils/constants.py` — 채널 순서, 기동 클래스, 레이아웃 템플릿
+- [ ] `data/nusc_wrapper.py` — scene 순회, 이미지 경로, GT 박스(ego 변환), CAN, blacklist 처리
+- [ ] `scripts/01_explore_data.py` — mini 10 scene 무에러 실행 (✅ M1)
+- [ ] `utils/geometry.py` 투영 유틸 + 단위테스트 5케이스
+- [ ] `labeling/ttc.py` — radial TTC, box_velocity NaN 폴백
+- [ ] `labeling/maneuver.py` — 7개 기동 상태 규칙 추론
+- [ ] `labeling/label_function.py` — `s(c)` 계산 → main_view/soft/layout → parquet
+- [ ] `scripts/02_generate_labels.py` + `03_visualize_labels.py`
+- [ ] 🚦 **시각화 20장 사용자 검수 승인 + 라벨 분포 편중(전방>85%) 없을 것 (✅ M2)**
+
+### P1 — 학습 파이프라인 (M3~M4)
+
+- [ ] `splits/scene_split_v1.json` 생성·커밋 (70/15/15, **이후 변경 금지**)
+- [ ] `data/feature_cache.py` — MobileNetV3-small GAP → `.npy` memmap, 재실행 스킵
+- [ ] `data/noise.py` — 검출 오류 시뮬레이터 (miss/FP/pos-noise/blackout, light~heavy)
+- [ ] `data/dataset.py` — 시퀀스 조립, scene 경계 패딩, risk_source 분기, WeightedRandomSampler
+- [ ] `scripts/04_build_cache.py` + shape 검증 + 1 epoch <1분 (✅ M3)
+- [ ] `models/proposed.py` — 토큰화 → Transformer(2층) → 채널별 GRU → Head1/Head2 (ablation 플래그 공용)
+- [ ] 손실: focal + KL + layout CE + temporal consistency
+- [ ] `scripts/05_train.py` — config 로드, best ckpt, metrics.json, tensorboard
+- [ ] mini 과적합 sanity check (train Top-1 >95%)
+- [ ] 🚦 **trainval 확보범위 확인 후 본 학습 (✅ M4)**
+
+### P2 — 평가 체계 (M5~M6)
+
+- [ ] `baselines/rule_based.py` — B2 (label_function 재사용 + risk_source 입력)
+- [ ] B1 상수 예측기 + B3/B4 config (모델 플래그 재사용)
+- [ ] `eval/metrics.py` — Top-1/2, Macro-F1, flicker, 위험객체 가시화율 + 단위테스트 3케이스
+- [ ] `eval/evaluate.py` — 모든 모델 공통 평가 엔트리
+- [ ] 골드셋 300개 층화 추출 + `tools/goldset_ui/` 제작
+- [ ] 🚦 **사용자 직접 골드셋 라벨링** (Claude는 UI만 제작)
+- [ ] `scripts/06_evaluate.py --all` → `results/table1.md` (✅ M6)
+
+### P3 — 논문 검증·산출물 (M7~M8)
+
+- [ ] A1~A5 ablation config 실행 → `results/ablation.md`
+- [ ] `scripts/07_robustness.py` → 열화곡선 4종 + md 표
+- [ ] 🚦 **강건성 곡선에서 제안 모델 우위 확인 (✅ M7)** — 미확인 시 대응절차 후 상의
+- [ ] `scripts/08_make_figures.py` → `results/fig2/` (성공2+실패1 사례)
+- [ ] `results/paper_numbers.md` (표1+ablation+강건성 핵심수치)
+- [ ] 전체 재현 커맨드 목록 문서화 (✅ M8)
+
 ## 📚 참고문헌
 
 1. Caesar, H., et al. (2020). nuScenes: A multimodal dataset for autonomous driving. *CVPR 2020*.
