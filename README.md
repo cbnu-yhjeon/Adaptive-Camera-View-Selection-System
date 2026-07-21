@@ -4,226 +4,144 @@
 
 ## 📋 연구 개요
 
-원격 운전자의 상황 인지를 향상시키기 위해 주행 상황에 따라 자동으로 최적의 카메라 각도를 선택하는 AI 시스템 개발
+원격주행 관제에서는 6채널 카메라를 고정 레이아웃으로 모두 표시하기 때문에 오퍼레이터의
+인지 부하가 커진다. 본 연구는 **주행 컨텍스트(영상 + CAN + 객체 위험도 + 기동 상태)를
+융합**하여 "지금 가장 중요한 카메라 뷰"를 자동으로 선택하는 딥러닝 모델을 학습하고,
+오프라인 실험으로 검증한다.
 
-## 🎯 연구 목표
+공개 벤치마크가 없으므로 **nuScenes의 3D 객체 GT + CAN 신호로 '이상적 뷰' 의사 라벨을
+자동 생성(weak supervision)**하여 학습에 사용한다.
 
-- 주행 상황별 카메라 뷰 중요도 평가 딥러닝 모델 개발
-- 실시간 최적 카메라 뷰 선택 알고리즘 구현
-- 원격 운전자의 인지적 부하 감소 및 상황 인지 능력 향상
-- 실용 가능한 프로토타입 시스템 개발
+> **구현의 단일 진실 공급원(Single Source of Truth)은 [`CLAUDE.md`](CLAUDE.md)이다.**
+> 아키텍처·하이퍼파라미터·평가 프로토콜·마일스톤의 상세 명세는 모두 그 문서를 따른다.
+> 본 README는 요약본이며, 세부 규칙이 충돌할 경우 항상 `CLAUDE.md`가 우선한다.
 
-## 🗓️ 연구 일정 (6개월, 26주)
+## 🎯 핵심 주장 (구현이 반드시 뒷받침해야 함)
 
-| 단계 | 기간 | 주요 활동 |
-|------|------|-----------|
-| **문헌 조사** | 1-2주 | 관련 연구 서베이, 기술 스택 학습 |
-| **Phase 1** | 3-8주 (6주) | 데이터 수집, 전처리, 레이블 생성 |
-| **Phase 2** | 9-16주 (8주) | 중요도 평가 모델 개발 및 학습 |
-| **Phase 3** | 17-22주 (6주) | 뷰 선택 알고리즘 구현 |
-| **Phase 4** | 23-24주 (2주) | 시스템 평가 및 성능 분석 |
-| **버퍼** | 25-26주 (2주) | 논문 작성, 최종 점검 |
+1. **의사 라벨 자동 생성 방법이 동작한다** — TTC·기동 상태 기반 라벨 함수 (M2)
+2. **다중 신호 융합 + 시간 모델이 단일 신호/단일 프레임보다 낫다** — ablation (M4~M6)
+3. **불완전한 입력에서 학습 모델이 규칙 기반(B2)보다 강건하다** — 강건성 실험 (M7) ← 최중요
 
-## 📊 Phase 1: 데이터 수집 및 전처리 (6주)
+## 🔑 방법론 원칙
 
-### 데이터셋
-- **nuScenes Full Dataset** (350GB)
-  - 1,000+ 주행 시나리오
-  - 6방향 카메라 (전방, 전방좌/우, 후방, 후방좌/우)
-  - LiDAR, RADAR 센서 데이터
-  - 보스턴/싱가포르 도시 환경
+- **순환 평가 금지**: 의사 라벨을 만든 규칙(B2)을 그대로 추론에 쓰면 의사 라벨 시험셋에서
+  정의상 만점이 나온다. 따라서 표 1의 **주 지표는 사람이 검수한 골드셋 기준**이며,
+  의사 라벨 시험셋 수치는 보조 열로만 병기한다.
+- **학습 라벨과 추론 입력의 분리**: 라벨 생성에는 GT 박스를 쓰지만, 모델 추론 입력의
+  위험도 벡터는 `gt` / `noisy` / `none` 3가지 조건을 지원한다. 강건성 실험의 기본은 `noisy`.
+- **분할 누수 금지**: scene 단위 분할(70/15/15)을 `splits/scene_split_v1.json`으로 고정·커밋하고
+  이후 변경하지 않는다.
+- **재현성**: 모든 실험은 `configs/*.yaml` + `--seed`(기본 42)로 실행하고, 결과는
+  `results/{exp_name}/{timestamp}/`에 metrics.json + config 사본 + 체크포인트로 저장한다.
 
-### 전처리 작업
-1. 6개 방향 카메라 영상 추출 및 동기화
-2. 주행 상황 레이블링 (직진, 좌/우회전, 차선변경, 교차로, 정지 등)
-3. 영상 정규화 (해상도: 640×480)
-4. 중요 객체 어노테이션 활용 (차량, 보행자, 표지판 등)
+## 🗂️ 데이터셋
 
-### 중요도 레이블 생성 전략
-```python
-# 3가지 접근법 비교
-1. 휴리스틱 기반: 주행방향 + 객체거리 + 객체종류
-2. Saliency Map: 사전학습 모델의 어텐션 활용
-3. 객체 탐지 기반: YOLO 결과로 중요도 계산
+- **nuScenes** (CC BY-NC-SA 4.0, 학술 목적 무료 — 계정 등록 후 다운로드)
+  - `v1.0-mini` (~4GB, 10 scenes) — 파이프라인 스모크 테스트용 필수 선행
+  - `can_bus.zip` — CAN expansion (일부 scene 결손, `can_blacklist`로 관리)
+  - `v1.0-trainval` — 본 학습용. 스토리지 부족 시 카메라 keyframe blob 일부만 받아
+    "이미지가 존재하는 scene만" 필터링하여 부분집합으로 진행 가능
+- **채널 순서 (전 구간 고정)**: `CAM_FRONT, CAM_FRONT_RIGHT, CAM_BACK_RIGHT, CAM_BACK,
+  CAM_BACK_LEFT, CAM_FRONT_LEFT` (인덱스 0~5)
+
+## 🧠 모델 아키텍처
+
+시퀀스 T=4 keyframes(≈2초, 과거만)를 입력으로 받는 경량 융합 모델(~1M 파라미터).
+
+```
+img_feat (MobileNetV3-small GAP, D_f=576, 사전 캐시) ┐
+camera positional embedding (6채널)                  ├→ 채널 토큰 6개 (d=128)
+risk 벡터 (채널별 Σw(TTC))                            ┘
+CAN (speed, steering, accel_x, accel_y, yaw_rate)  → CAN 토큰 1개
+  → TransformerEncoder(layers=2, heads=4, d=128, ff=256)
+  → 채널별 GRU (시간축 처리)
+  → Head1: 메인 뷰 분포 (6-way softmax)
+  → Head2: 레이아웃 (K=5-way)
 ```
 
-## 🧠 Phase 2: 중요도 평가 모델 개발 (8주)
+- **손실**: `CE_focal(main) + α·KL(soft_label) + γ_l·CE(layout) + β·temporal_consistency`
+- **학습**: AdamW(lr=1e-4), cosine decay, focal loss + WeightedRandomSampler,
+  early stopping(val macro-F1). **`train.risk_noise: true`(검출 오류 증강)가 기본** — 강건성의 핵심.
 
-### 모델 아키텍처
+## 🏷️ 의사 라벨 생성 (weak supervision)
+
+각 keyframe에서 GT 박스를 카메라에 투영하여 채널에 귀속시키고, 위험도와 기동 적합도를
+결합해 채널 점수 `s(c)`를 계산한다.
+
 ```
-Input: 640×480 RGB 카메라 영상
-Backbone: ResNet-50 (ImageNet 사전학습)
-Output: 중요도 점수 (0~1, Sigmoid)
-```
-
-### 학습 설정
-- **손실 함수**: MSE Loss 또는 Focal Loss
-- **옵티마이저**: Adam (lr=0.001)
-- **데이터 분할**: Train 70% / Valid 15% / Test 15%
-- **Early Stopping**: Validation loss 기준
-
-### 실험 계획
-1. 베이스라인 모델 구축 (Week 1-2)
-2. 하이퍼파라미터 튜닝 (Week 3-4)
-3. 데이터 증강 및 개선 (Week 5-6)
-4. 최종 모델 검증 (Week 7-8)
-
-## 🎮 Phase 3: 뷰 선택 알고리즘 (6주)
-
-### 규칙 기반 접근법 (Week 1-2)
-```python
-if situation == "교차로":
-    views = [front, front_left, front_right]
-elif situation == "좌회전":
-    views = [front, front_left, rear_left]
-elif situation == "차선변경(좌)":
-    views = [front_left, rear_left]
+s(c) = Σ_{i∈c} w(TTC_i) + λ·m(c)      # w(TTC)=exp(-TTC/τ), 기동→채널 적합도 m(c)
+main_view = argmax_c s(c)
 ```
 
-### 학습 기반 접근법 (Week 3-6)
+- **TTC**: radial 정의 — 접근 속도 기반. 근접 객체(r<10m) 최소 가중 보정.
+- **기동 상태**: `{STRAIGHT, TURN_L/R, LANE_CHANGE_L/R, REVERSE, STOP}`
+  (ego pose 시퀀스 + CAN으로 규칙 추론, 라벨 생성 시에만 미래 pose 참조 허용)
+- **레이아웃**: 기동 클래스 → 사전 정의 템플릿(K=5) 결정적 매핑
+- 출력: `data/labels_{version}.parquet`
 
-#### Option 1: 분류 모델
-```
-Input: [주행상황, 6개 카메라 중요도]
-Output: 최적 카메라 조합 (Multi-label)
-```
+## 🧪 베이스라인 & Ablation
 
-#### Option 2: 강화학습 (도전 과제)
-- **알고리즘**: DQN 또는 PPO
-- **State**: 현재 상황 + 중요도 점수
-- **Action**: 표시할 카메라 조합
-- **Reward**: 중요 객체 포함률 - 뷰 전환 페널티
+| ID | 정의 |
+|---|---|
+| B1 | 고정 전방 (항상 CAM_FRONT) |
+| B2 | 규칙 기반 (라벨 함수를 추론 입력에 직접 적용) |
+| B3 | 영상 단일 (CAN·위험도 토큰 제거) |
+| B4 | 단일 프레임 (GRU 제거, T=1) |
 
-## 📈 Phase 4: 시스템 평가 (2주)
+Ablation: A1(−CAN) / A2(−위험도) / A3(−GRU) / A4(−cross-view attention) / A5(−temporal 항)
 
-### 정량적 평가 지표
+## 📈 평가 지표
 
-| 메트릭 | 설명 | 목표 |
-|--------|------|------|
-| **객체 포함률** | 중요 객체가 선택된 뷰에 포함된 비율 | >90% |
-| **처리 속도** | 실시간 처리 가능 여부 | >30 FPS |
-| **뷰 전환 빈도** | 불필요한 전환 최소화 | <5회/분 |
-| **지연 시간** | 상황 변화부터 뷰 선택까지 | <100ms |
+- **Top-1 / Top-2** (골드셋, 복수 정답 허용)
+- **Macro-F1** (6채널, 골드셋 + 의사 라벨 시험셋)
+- **Flicker rate** (전환 후 1.5초 내 재전환 비율)
+- **위험 객체 가시화율** (TTC<3s GT 객체가 선택 뷰 화각에 포함된 비율 — GT 기하로 직접 계산)
+- **강건성**: 노이즈 유형(miss / FP / pos-noise / 채널 드롭) × 강도(clean~heavy)별
+  제안 모델 vs B2 열화 곡선
 
-### 비교 기준선
-- Random 선택
-- 고정 전방 카메라
-- 수동 규칙 기반
-- 제안 방법 (규칙+학습)
+## 🛠️ 개발 환경
 
-### Ablation Study
-- 중요도 모델 유무
-- 규칙 vs 학습 vs 하이브리드
-- 백본 네트워크 비교
-
-## 🛠️ 기술 스택
-
-### 하드웨어
-- **GPU**: NVIDIA RTX 3090 24GB (또는 학교 서버)
-- **개발 환경**: 8코어 CPU, 32GB RAM
-
-### 소프트웨어
 ```bash
-# 핵심 라이브러리
-Python 3.8+
-PyTorch 2.0
-OpenCV 4.x
-NumPy, Pandas, Matplotlib
+python -m venv .venv && source .venv/bin/activate
+pip install torch torchvision   # CUDA 버전에 맞게
+pip install nuscenes-devkit timm opencv-python-headless pandas pyarrow \
+            numpy scipy scikit-learn matplotlib pyyaml tensorboard tqdm pyquaternion
 ```
 
-### 데이터
-- nuScenes Dataset (무료, 학술 목적)
-- 라이선스: CC BY-NC-SA 4.0
+- 백본 특징을 사전 캐시하여 학습하므로(원본 이미지 학습 아님) GPU 메모리 부담이 작다.
+  `configs`의 `batch_size` / `img_size`는 GPU 메모리에 맞춰 조정한다.
 
-## 💰 예산 계획
+## 🗺️ 마일스톤
 
-### Option 1: 학교 서버 활용 (권장)
-- 외장 SSD 2TB: 200,000원
-- **총 예산**: ~200,000원
+각 마일스톤의 완료 조건(✅)을 통과하기 전에는 다음 단계로 넘어가지 않는다.
 
-### Option 2: 클라우드 GPU
-- Google Colab Pro+: 50,000원/월 × 6 = 300,000원
-- 외장 SSD 2TB: 200,000원
-- **총 예산**: ~500,000원
+- [ ] **M1** — 데이터 접근·탐색 (`nusc_wrapper.py`, `01_explore_data.py`)
+- [ ] **M2** ★ — 의사 라벨 파이프라인 (`geometry/ttc/maneuver/label_function`) + 시각화 검수
+- [ ] **M3** — Dataset/로더 + 특징 캐시
+- [ ] **M4** — 모델 + 학습
+- [ ] **M5** — 베이스라인 (B1~B4)
+- [ ] **M6** — 평가 + 골드셋(사용자 직접 라벨링) → `results/table1.md`
+- [ ] **M7** — Ablation + 강건성 곡선
+- [ ] **M8** — 정성 결과(그림 2) + 논문 반영 수치
 
-## 📦 예상 결과물
+### 사용자 확인이 필요한 지점
 
-1. ✅ **프로토타입 시스템**
-   - 실시간 카메라 뷰 선택 데모
-   - 웹 또는 데스크톱 UI
-
-2. ✅ **학습된 모델**
-   - 중요도 평가 모델 (.pth)
-   - 뷰 선택 정책 모델
-
-3. ✅ **성능 평가 결과**
-   - 정량적 메트릭 분석
-   - 비교 실험 결과
-   - 그래프 및 시각화
-
-4. ✅ **데모 영상** (3-5분)
-   - 다양한 주행 시나리오
-   - 시스템 작동 과정
-
-5. ✅ **소스 코드 & 문서**
-   - GitHub 저장소
-   - README 및 사용 설명서
-
-6. ✅ **학술 논문**
-   - 졸업 논문 (학술 논문 형식)
-   - 학회 발표 가능 수준
+1. **M2 완료 시** — 라벨 시각화 20장 검수 승인
+2. **M4 본 학습 전** — trainval 데이터 확보 범위(전체/부분집합) 확인
+3. **M6** — 골드셋 300 keyframe 직접 라벨링
+4. **M7** — 강건성 결과가 기대와 다를 경우 대응 방향 상의
 
 ## 📚 참고문헌
 
 1. Caesar, H., et al. (2020). nuScenes: A multimodal dataset for autonomous driving. *CVPR 2020*.
 2. Neumeier, S., et al. (2019). Teleoperation: The holy grail to solve the autonomous driving dilemma. *IEEE/RSJ IROS*.
-3. He, K., et al. (2016). Deep residual learning for image recognition. *CVPR 2016*.
-4. Mnih, V., et al. (2015). Human-level control through deep reinforcement learning. *Nature*, 518(7540).
-
-## 🎓 기대 효과
-
-### 학술적 기여
-- 원격주행 HMI 최적화 새로운 접근법
-- CV + RL 융합 실용 사례
-- 국제 학회 논문 투고 가능 (ITSC, IV, ICRA)
-
-### 산업적 활용
-- 자율주행 원격 제어 시스템
-- 건설/농업 무인 장비
-- 다중 카메라 모니터링 시스템
-
-### 사회적 기여
-- 원격 운전자 안전성 향상
-- 자율주행 전환기 안전장치
-- 고령자/장애인 운전 보조
-
-## ⚠️ 리스크 관리
-
-| 리스크 | 대응 방안 |
-|--------|-----------|
-| GPU 리소스 부족 | 학교 서버 우선, Colab 백업 |
-| 레이블 생성 어려움 | 3가지 방법 병행, 비교 실험 |
-| 강화학습 실패 | 규칙+분류 모델로 폴백 |
-| 데이터 다운로드 지연 | Mini-nuScenes로 프로토타입 |
-| 평가 기준 모호 | Proxy metrics 다각화 |
-
-## 📝 마일스톤 체크리스트
-
-- [ ] Week 2: 문헌 조사 완료
-- [ ] Week 8: 데이터 전처리 완료
-- [ ] Week 12: 중요도 모델 1차 완성
-- [ ] Week 16: 중요도 모델 최종 완성
-- [ ] Week 20: 뷰 선택 알고리즘 구현
-- [ ] Week 24: 평가 완료
-- [ ] Week 26: 논문 초고 완성
+3. Howard, A., et al. (2019). Searching for MobileNetV3. *ICCV 2019*.
 
 ## 📧 Contact
 
-- **연구자**: [이름]
-- **이메일**: [이메일]
-- **지도교수**: [교수님 성함]
-- **소속**: [학교/학과]
+- **소속**: 충북대학교 (CBNU)
+- **이메일**: yhjeon@avgenius.kr
 
 ---
 
-**License**: MIT (코드) / CC BY-NC-SA 4.0 (문서)
+**License**: MIT (코드) / CC BY-NC-SA 4.0 (nuScenes 데이터)
