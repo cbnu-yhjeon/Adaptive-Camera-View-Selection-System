@@ -56,7 +56,8 @@ def main() -> int:
     df = pd.DataFrame(rows)
     # 컬럼 순서 정리
     cols = (["sample_token", "scene_token", "timestamp"]
-            + [f"s_{c}" for c in range(6)] + ["main_view"]
+            + [f"s_{c}" for c in range(6)]
+            + ["primary_view", "attention_view"]
             + [f"soft_{c}" for c in range(6)]
             + ["maneuver", "layout", "n_objects", "min_ttc"])
     df = df[cols]
@@ -68,20 +69,28 @@ def main() -> int:
     return 0
 
 
-def _report(df: pd.DataFrame):
-    """라벨 분포 리포트 (M2 ✅ 조건: 전방 편중 여부 확인)."""
+def _dist(df: pd.DataFrame, col: str, title: str):
     n = len(df)
-    print("=== 채널 분포 (main_view) ===")
-    vc = df["main_view"].value_counts().sort_index()
+    print(f"=== {title} ({col}) ===")
+    vc = df[col].value_counts().sort_index()
+    top_pct = 0.0
     for c in range(6):
         cnt = int(vc.get(c, 0))
         pct = 100 * cnt / n
-        bar = "#" * int(pct / 2)
-        flag = "  ← 전방" if c == 0 else ""
-        print(f"  [{c}] {CAMERAS[c]:<16} {cnt:>4} ({pct:4.1f}%) {bar}{flag}")
-    front_pct = 100 * int(vc.get(0, 0)) / n
-    print(f"\n  전방 비율: {front_pct:.1f}%  "
-          f"{'⚠️ 85% 초과 — tau↓/lambda↑ 재튜닝 필요' if front_pct > 85 else '✅ 편중 아님'}")
+        top_pct = max(top_pct, pct)
+        print(f"  [{c}] {CAMERAS[c]:<16} {cnt:>4} ({pct:4.1f}%) {'#' * int(pct / 2)}")
+    return top_pct
+
+
+def _report(df: pd.DataFrame):
+    """라벨 분포 리포트 (M2 ✅ 조건: 특정 채널 편중 여부 확인)."""
+    n = len(df)
+    # primary는 진행방향(결정적)이라 참고용, attention이 학습 타깃(적응형)
+    _dist(df, "primary_view", "진행방향 뷰 분포")
+    print()
+    top = _dist(df, "attention_view", "적응형 보조 뷰 분포")
+    print(f"\n  보조 뷰 최대 채널 비율: {top:.1f}%  "
+          f"{'⚠️ 85% 초과 — tau↓/lambda↑ 재튜닝 검토' if top > 85 else '✅ 편중 아님'}")
 
     print("\n=== 기동 분포 ===")
     mvc = df["maneuver"].value_counts()
@@ -99,10 +108,10 @@ def _report(df: pd.DataFrame):
 
 
 def _flicker_rate(df: pd.DataFrame) -> float:
-    """scene별 시간순 main_view 전환 후 3키프레임 내 재전환 비율."""
+    """scene별 시간순 attention_view 전환 후 3키프레임 내 재전환 비율."""
     transitions, flickers = 0, 0
     for _, g in df.groupby("scene_token"):
-        mv = g.sort_values("timestamp")["main_view"].tolist()
+        mv = g.sort_values("timestamp")["attention_view"].tolist()
         for i in range(1, len(mv)):
             if mv[i] != mv[i - 1]:
                 transitions += 1

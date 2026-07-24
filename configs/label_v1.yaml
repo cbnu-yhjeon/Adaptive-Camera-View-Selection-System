@@ -20,6 +20,10 @@ label:
   ema_alpha: 0.7           # scene 내 s(c) EMA 스무딩
   flicker_merge: true      # 1-keyframe 단발 전환 병합
 
+  # 뷰 정책 (primary=진행방향 고정, attention=적응형 보조)
+  stop_hold: true          # 정지 시 뷰 유지(극단 위험 제외)
+  extreme_ttc: 1.5         # min_TTC 이보다 짧으면 정지 중에도 위험 뷰로 전환
+
   # 기동 윈도우
   maneuver_window_s: 3.0   # ±3초 (미래 참조 허용 — 라벨 생성 오프라인)
   maneuver:

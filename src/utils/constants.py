@@ -91,6 +91,15 @@ def maneuver_to_layout_index(maneuver: str) -> int:
     return LAYOUT_INDEX[LAYOUT_MAP[maneuver]]
 
 
+def travel_direction_view(maneuver: str) -> int:
+    """진행 방향 뷰 인덱스 — 이동체는 진행 방향을 항상 주시해야 한다.
+
+    후진(REVERSE)이면 CAM_BACK, 그 외(정지 포함)는 CAM_FRONT.
+    이 뷰가 primary_view로 고정되어 UI 메인 위치에 상시 표시된다.
+    """
+    return CAMERA_INDEX["CAM_BACK"] if maneuver == "REVERSE" else CAMERA_INDEX["CAM_FRONT"]
+
+
 def maneuver_view_vector(maneuver: str) -> list[float]:
     """기동 클래스 → 채널 순서(CAMERAS)에 맞춘 적합도 벡터 m(c) 6개.
 

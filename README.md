@@ -55,7 +55,7 @@ risk 벡터 (채널별 Σw(TTC))                            ┘
 CAN (speed, steering, accel_x, accel_y, yaw_rate)  → CAN 토큰 1개
   → TransformerEncoder(layers=2, heads=4, d=128, ff=256)
   → 채널별 GRU (시간축 처리)
-  → Head1: 메인 뷰 분포 (6-way softmax)
+  → Head1: attention 뷰 분포 (6-way softmax) — 적응형 보조 뷰
   → Head2: 레이아웃 (K=5-way)
 ```
 
@@ -70,8 +70,13 @@ CAN (speed, steering, accel_x, accel_y, yaw_rate)  → CAN 토큰 1개
 
 ```
 s(c) = Σ_{i∈c} w(TTC_i) + λ·m(c)      # w(TTC)=exp(-TTC/τ), 기동→채널 적합도 m(c)
-main_view = argmax_c s(c)
+primary_view   = 진행방향 뷰 (전진 FRONT / 후진 BACK) — 상시 주시
+attention_view = argmax_{c≠primary} s(c)  — 위험/기동 기반 적응형 보조 뷰
 ```
+
+> **뷰 정책 (v1)**: 이동체는 진행 방향을 항상 주시해야 하므로 primary(진행방향)를 UI 메인에
+> 고정하고, 위험/기동으로 고른 attention 뷰를 보조로 강조한다. 정지(STOP) 시에는 극단 위험이
+> 아니면 뷰를 유지해 불필요한 전환을 억제한다.
 
 - **TTC**: radial 정의 — 접근 속도 기반. 근접 객체(r<10m) 최소 가중 보정.
 - **기동 상태**: `{STRAIGHT, TURN_L/R, LANE_CHANGE_L/R, REVERSE, STOP}`
@@ -166,7 +171,7 @@ pip install nuscenes-devkit timm opencv-python-headless pandas pyarrow \
 - [ ] `utils/geometry.py` 투영 유틸 + 단위테스트 5케이스
 - [ ] `labeling/ttc.py` — radial TTC, box_velocity NaN 폴백
 - [ ] `labeling/maneuver.py` — 7개 기동 상태 규칙 추론
-- [ ] `labeling/label_function.py` — `s(c)` 계산 → main_view/soft/layout → parquet
+- [ ] `labeling/label_function.py` — `s(c)` 계산 → primary/attention/soft/layout → parquet
 - [ ] `scripts/02_generate_labels.py` + `03_visualize_labels.py`
 - [ ] 🚦 **시각화 20장 사용자 검수 승인 + 라벨 분포 편중(전방>85%) 없을 것 (✅ M2)**
 

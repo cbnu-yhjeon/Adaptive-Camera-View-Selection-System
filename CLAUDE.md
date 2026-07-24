@@ -205,22 +205,28 @@ TTC = r / v_r        if v_r > 0.1 m/s
 | REVERSE | BACK(1.0), BACK_LEFT(0.5), BACK_RIGHT(0.5) |
 | STOP | FRONT(0.5) — 위험도 항이 지배하도록 낮게 |
 
-### (6) 최종 점수와 라벨
+### (6) 최종 점수와 라벨 — **v1 뷰 정책 (2026-07 설계 결정)**
 ```
 s(c) = Σ_{i∈c} w(TTC_i) + λ·m(c)          # λ 기본 1.0
-main_view  = argmax_c s(c)
-soft_label = softmax(s / T_soft)           # T_soft 기본 0.5, KL 손실용
-layout     = 기동 상태 → 템플릿 매핑 (constants.LAYOUT_MAP, K=5)
+primary_view   = 진행 방향 뷰             # 전진 CAM_FRONT / 후진(REVERSE) CAM_BACK
+attention_view = argmax_{c ≠ primary} s(c) # 위험/기동 기반 적응형 보조 뷰
+soft_label     = softmax(s / T_soft), primary 채널 마스킹  # T_soft 기본 0.5, KL 손실용
+layout         = 기동 상태 → 템플릿 매핑 (constants.LAYOUT_MAP, K=5)
 ```
+- **원칙(이동체 안전)**: 진행 방향(primary)은 UI 메인 위치에 **상시 표시**하고, 위험도·기동으로
+  고른 뷰(attention)를 보조 위치에 강조한다. 원래 명세의 단일 `main_view=argmax`를 대체.
+  → 논문 기여 프레임이 "단일 메인뷰 선택"에서 **"보조 주의뷰 선택"**으로 이동.
+- **정지(STOP) 뷰 유지**: STOP & 비-극단위험(min_TTC ≥ `extreme_ttc`=1.5s) & `stop_hold`이면
+  직전 primary/attention을 유지(전환 억제). 극단 위험 시엔 위험 뷰로 즉시 전환.
 - 레이아웃 템플릿 v1 (K=5): ①전방 중심 ②좌회전형 ③우회전형 ④후방형 ⑤차선변경형.
   기동 클래스에서 결정적으로 매핑 (v1은 단순화 — 논문 2.1의 "사전 정의 템플릿 분류"와 일치).
 - 출력: `data/labels_{version}.parquet`
-  컬럼: `sample_token, scene_token, timestamp, s_0..s_5, main_view, soft_0..soft_5,
-  maneuver, layout, n_objects, min_ttc`
+  컬럼: `sample_token, scene_token, timestamp, s_0..s_5, primary_view, attention_view,
+  soft_0..soft_5, maneuver, layout, n_objects, min_ttc`
 
 ### (7) 라벨 안정화 (라벨 자체의 flicker 방지)
-- scene 내 시간순으로 s(c)에 EMA 스무딩(α=0.7) 적용 후 argmax.
-- argmax가 1 keyframe(0.5s)만 유지되고 되돌아가는 단발 전환은 이전 뷰로 병합.
+- scene 내 시간순으로 s(c)에 EMA 스무딩(α=0.7) 적용 후 attention 결정.
+- attention_view가 1 keyframe(0.5s)만 유지되고 되돌아가는 단발 전환은 이전 뷰로 병합.
 
 ## B.5 모델 상세 명세 (M4)
 
@@ -239,14 +245,15 @@ can → Linear(d_can→d) → CAN 토큰 1개
 [6 채널 토큰 + 1 CAN 토큰] → TransformerEncoder(layers=2, heads=4, d=128, ff=256)
 → 채널 토큰 6개 추출 → 프레임 표현 (B, T, 6, d)
 → 채널별 GRU(d→d, 1층) 시간축 처리 → 마지막 스텝 (B, 6, d)
-→ Head1: 채널별 스칼라 스코어 → softmax = 메인 뷰 분포 (6-way)
+→ Head1: 채널별 스칼라 스코어 → softmax = attention_view 분포 (6-way, 학습 타깃)
 → Head2: 6채널 표현 mean-pool → MLP → 레이아웃 (K=5-way)
+  (primary_view는 진행방향으로 결정적 산출 — 예측 대상 아님)
 ```
 - 파라미터 규모 ~1M 내외 (백본 캐시 제외). 24GB GPU에서 여유.
 
 ### 손실
 ```
-L = CE_focal(main; γ=2) + α·KL(soft_label ‖ pred_dist)
+L = CE_focal(attention_view; γ=2) + α·KL(soft_label ‖ pred_dist)
   + γ_l·CE(layout) + β·Σ_t ‖p_t − p_{t−1}‖²   (temporal consistency)
 기본: α=0.5, γ_l=0.3, β=0.1 (config)
 ```
@@ -283,14 +290,15 @@ GT 객체 리스트에 다음을 적용해 위험도 벡터를 재계산:
 - **Macro-F1**: 6채널 기준 (골드셋 + 의사 라벨 시험셋 둘 다).
 - **Flicker rate**: 뷰 전환 후 1.5초(3 keyframes) 내 재전환된 전환의 비율.
   scene 단위로 시간순 추론 후 계산.
-- **위험 객체 가시화율**: TTC < 3s 인 GT 객체가 선택 메인 뷰 화각에 들어있는
-  keyframe 비율. (라벨이 아닌 GT 기하로 직접 계산 — 순환 없음)
+- **위험 객체 가시화율**: TTC < 3s 인 GT 객체가 선택 뷰(primary ∪ attention) 화각에
+  들어있는 keyframe 비율. (라벨이 아닌 GT 기하로 직접 계산 — 순환 없음)
 
 ### 골드셋 절차
 1. test 분할에서 기동 상태별 층화 추출로 300 keyframe 선정 (STRAIGHT 편중 방지:
    클래스당 최대 80개 캡).
-2. `tools/goldset_ui/`: 6채널 이미지를 격자로 보여주고 숫자키 1~6으로 메인 뷰 선택,
-   `0`=복수 정답(추가 선택 모드), 방향키로 이동. 로컬 HTML+JS 또는 간단한
+2. `tools/goldset_ui/`: 6채널 이미지를 격자로 보여주고 숫자키 1~6으로 주의(attention) 뷰 선택
+   (진행방향 primary는 상시 표시 전제), `0`=복수 정답(추가 선택 모드), 방향키로 이동.
+   로컬 HTML+JS 또는 간단한
    matplotlib/OpenCV 키 입력 루프로 구현 — **연구자(사용자)가 직접 라벨링**한다.
    Claude Code는 UI만 만들고 라벨링 작업은 사용자에게 요청할 것.
 3. 결과: `data/goldset_v1.json` — {sample_token: [정답 채널 인덱스 목록]}.

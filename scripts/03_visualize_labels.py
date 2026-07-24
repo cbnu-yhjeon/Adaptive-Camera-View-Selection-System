@@ -99,17 +99,20 @@ def visualize_one(wrapper, row, cfg, out_path):
             ax = fig.add_subplot(gs[r, c])
             _draw_boxes_on_cam(ax, wrapper, st, GRID[r][c], boxes, ego)
 
-    # 점수 막대
+    # 점수 막대: primary(진행방향)=초록 테두리, attention(보조)=빨강 막대
     axb = fig.add_subplot(gs[2, :])
     scores = [row[f"s_{i}"] for i in range(6)]
-    main = int(row["main_view"])
-    colors = ["crimson" if i == main else "steelblue" for i in range(6)]
-    axb.bar(range(6), scores, color=colors)
+    primary = int(row["primary_view"])
+    attn = int(row["attention_view"])
+    colors = ["crimson" if i == attn else "steelblue" for i in range(6)]
+    edgecolors = ["limegreen" if i == primary else "none" for i in range(6)]
+    axb.bar(range(6), scores, color=colors, edgecolor=edgecolors, linewidth=3)
     axb.set_xticks(range(6))
     axb.set_xticklabels([c.replace("CAM_", "") for c in CAMERAS], fontsize=8)
     axb.set_ylabel("s(c)")
     ttc_txt = f"{row['min_ttc']:.1f}s" if row["min_ttc"] >= 0 else "inf"
-    axb.set_title(f"main_view = [{main}] {CAMERAS[main]}  |  "
+    axb.set_title(f"primary(green) = [{primary}] {CAMERAS[primary]}   |   "
+                  f"attention(red) = [{attn}] {CAMERAS[attn]}   |   "
                   f"maneuver = {row['maneuver']}  |  layout = {int(row['layout'])}  |  "
                   f"n_obj = {int(row['n_objects'])}  |  min_TTC = {ttc_txt}",
                   fontsize=10)
@@ -147,7 +150,8 @@ def main() -> int:
         out = os.path.join(args.outdir, f"viz_{k:02d}_{row['maneuver']}.png")
         visualize_one(w, row, cfg, out)
         print(f"  [{k+1}/{len(idx)}] {os.path.basename(out)}  "
-              f"main={int(row['main_view'])} {row['maneuver']}")
+              f"primary={int(row['primary_view'])} attn={int(row['attention_view'])} "
+              f"{row['maneuver']}")
     print(f"\n✅ 완료 — {args.outdir}/ 의 PNG를 검수하세요 (M2 게이트)")
     return 0
 
