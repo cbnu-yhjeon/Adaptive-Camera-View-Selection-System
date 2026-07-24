@@ -1,0 +1,31 @@
+# 라벨 함수 하이퍼파라미터 (CLAUDE.md B.4). base.yaml 위에 얹어 사용.
+
+label:
+  # 객체 카테고리 필터 (prefix 매칭). vehicle + pedestrian + cyclist(자전거는 vehicle.bicycle)
+  categories: ["vehicle", "human.pedestrian"]
+  max_range: 50.0          # 이보다 먼 객체 무시(m)
+
+  # TTC / 위험 가중
+  tau: 4.0                 # w(TTC)=exp(-TTC/tau)
+  w_type: exp              # exp | inv
+  w_min_near: 0.3          # 근접(r<near_range) 최소 가중
+  near_range: 10.0
+  v_r_min: 0.1             # 접근속도 하한(이하이면 TTC=inf)
+
+  # 점수 결합
+  lambda_m: 1.0            # s(c)=Σw + lambda·m(c)
+  T_soft: 0.5              # soft_label = softmax(s / T_soft)
+
+  # 안정화
+  ema_alpha: 0.7           # scene 내 s(c) EMA 스무딩
+  flicker_merge: true      # 1-keyframe 단발 전환 병합
+
+  # 기동 윈도우
+  maneuver_window_s: 3.0   # ±3초 (미래 참조 허용 — 라벨 생성 오프라인)
+  maneuver:
+    stop_speed: 0.5
+    turn_deg: 25.0
+    lane_change_min_deg: 5.0
+    lane_change_max_deg: 25.0
+    lane_change_net_deg: 10.0
+    enable_lane_change: true
