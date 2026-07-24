@@ -43,6 +43,22 @@ MANEUVER_INDEX: dict[str, int] = {m: i for i, m in enumerate(MANEUVERS)}
 
 
 # =====================================================================
+# CAN 특징 정규화 상수 (모델 입력 can 토큰용)
+#   순서: [speed, steering, accel_x, accel_y, yaw_rate]
+#   대략적인 스케일로 나눠 대략 [-1,1]에 오도록 (정확할 필요는 없음).
+# =====================================================================
+CAN_FEATURES: list[str] = ["speed", "steering", "accel_x", "accel_y", "yaw_rate"]
+CAN_NORM: dict[str, float] = {
+    "speed": 30.0,      # m/s
+    "steering": 600.0,  # steeranglefeedback value
+    "accel_x": 10.0,    # m/s^2
+    "accel_y": 10.0,
+    "yaw_rate": 2.0,    # rad/s
+}
+D_CAN: int = len(CAN_FEATURES) + 1                    # +1 = CAN 결측 마스크
+
+
+# =====================================================================
 # 기동 → 채널 적합도 m(c) (CLAUDE.md B.4-(5))
 #   각 기동 상태에서 "봐야 할 카메라"에 부여하는 가중치.
 #   config(label.maneuver_view_map)로 오버라이드 가능하나, 기본값은 여기.

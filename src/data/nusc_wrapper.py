@@ -188,6 +188,43 @@ class NuscWrapper:
         except Exception:  # noqa: BLE001
             return []
 
+    def get_can_features(self, sample_token: str):
+        """모델 입력용 CAN 특징 (정규화) + 결측 마스크.
+
+        반환: (feat[5], mask) — feat=[speed, steering, accel_x, accel_y, yaw_rate],
+        mask=1이면 CAN 존재. CAN 없으면 speed만 ego_pose 차분으로 채우고 나머지 0.
+        """
+        from src.utils.constants import CAN_NORM
+
+        scene_token = self.sample_scene_token(sample_token)
+        speed_fallback = float(np.linalg.norm(self.get_ego_velocity(sample_token)))
+        if not self.has_can(scene_token):
+            feat = np.array([speed_fallback / CAN_NORM["speed"], 0, 0, 0, 0], dtype=np.float32)
+            return feat, 0.0
+
+        utime = int(self.nusc.get("sample", sample_token)["timestamp"])
+        pose = self._nearest_can(scene_token, "pose", utime)
+        steer = self._nearest_can(scene_token, "steeranglefeedback", utime)
+        speed = pose["vel"][0] if pose and "vel" in pose else speed_fallback
+        accel = pose["accel"] if pose and "accel" in pose else [0.0, 0.0, 0.0]
+        yaw_rate = pose["rotation_rate"][2] if pose and "rotation_rate" in pose else 0.0
+        steering = steer["value"] if steer and "value" in steer else 0.0
+        feat = np.array([
+            speed / CAN_NORM["speed"],
+            steering / CAN_NORM["steering"],
+            accel[0] / CAN_NORM["accel_x"],
+            accel[1] / CAN_NORM["accel_y"],
+            yaw_rate / CAN_NORM["yaw_rate"],
+        ], dtype=np.float32)
+        return feat, 1.0
+
+    def _nearest_can(self, scene_token: str, message: str, utime: int):
+        """utime(마이크로초)에 가장 가까운 CAN 메시지."""
+        msgs = self.get_can_messages(scene_token, message)
+        if not msgs:
+            return None
+        return min(msgs, key=lambda m: abs(m["utime"] - utime))
+
     # ------------------------------------------------------------------
     # 내부 헬퍼
     # ------------------------------------------------------------------

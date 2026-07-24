@@ -74,17 +74,16 @@ def _channel_visibility(wrapper, sample_token, box, ego) -> list[int]:
     return vis
 
 
-def compute_channel_scores(wrapper, sample_token, cfg: LabelConfig):
-    """한 keyframe의 위험도 채널 벡터(6) + n_objects + min_ttc.
+def channel_risk_contributors(wrapper, sample_token, cfg: LabelConfig) -> list[dict]:
+    """keyframe의 객체별 위험 기여 목록. 노이즈 시뮬레이터가 재계산에 쓴다.
 
-    반환: (risk_vec[6], n_objects, min_ttc)
+    각 항목: {vis: [채널 인덱스], r: 거리, ttc: float(inf 가능), w: 위험가중}.
     """
     ego = wrapper.get_ego_pose(sample_token)
     ego_vel = wrapper.get_ego_velocity(sample_token)
     boxes = wrapper.get_boxes(sample_token, cfg.categories, cfg.max_range)
 
-    risk = np.zeros(NUM_CAMERAS, dtype=np.float64)
-    min_ttc = TTC_INF
+    contribs = []
     for box in boxes:
         v_obj = box["global_velocity"]
         if not np.all(np.isfinite(v_obj)):     # box_velocity NaN 폴백: 정지 가정
@@ -94,16 +93,31 @@ def compute_channel_scores(wrapper, sample_token, cfg: LabelConfig):
         r = horizontal_range(box["global_center"], ego["translation"])
         w = risk_weight(ttc, r, tau=cfg.tau, w_type=cfg.w_type,
                         w_min_near=cfg.w_min_near, near_range=cfg.near_range)
-        if ttc < min_ttc:
-            min_ttc = ttc
-
         vis = _channel_visibility(wrapper, sample_token, box, ego)
+        contribs.append({"vis": vis, "r": float(r), "ttc": float(ttc), "w": float(w)})
+    return contribs
+
+
+def risk_vector_from_contribs(contribs: list[dict]) -> np.ndarray:
+    """기여 목록 → 채널 위험도 벡터(6). 2채널 겹치면 0.5씩 분배."""
+    risk = np.zeros(NUM_CAMERAS, dtype=np.float64)
+    for c in contribs:
+        vis = c["vis"]
         if not vis:
             continue
-        share = w / len(vis)                   # 2채널 겹치면 0.5씩
+        share = c["w"] / len(vis)
         for ci in vis:
             risk[ci] += share
-    return risk, len(boxes), min_ttc
+    return risk
+
+
+def compute_channel_scores(wrapper, sample_token, cfg: LabelConfig):
+    """한 keyframe의 위험도 채널 벡터(6) + n_objects + min_ttc."""
+    contribs = channel_risk_contributors(wrapper, sample_token, cfg)
+    risk = risk_vector_from_contribs(contribs)
+    ttcs = [c["ttc"] for c in contribs if np.isfinite(c["ttc"])]
+    min_ttc = min(ttcs) if ttcs else TTC_INF
+    return risk, len(contribs), min_ttc
 
 
 def infer_sample_maneuver(wrapper, sample_token, cfg: LabelConfig) -> str:
