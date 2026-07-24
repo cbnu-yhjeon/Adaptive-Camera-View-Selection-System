@@ -16,3 +16,4 @@ results/**/*.ckpt
 # 에디터/OS 부산물
 .vscode/
 *:Zone.Identifier
+results/*/20*/

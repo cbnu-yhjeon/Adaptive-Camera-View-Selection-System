@@ -1,0 +1,31 @@
+# 제안 모델 학습 설정 (CLAUDE.md B.5). base.yaml + label_v1.yaml 위에 얹음.
+exp_name: proposed
+
+model:
+  d: 128
+  heads: 4
+  ff: 256
+  tf_layers: 2
+  dropout: 0.1
+  use_can: true
+  use_risk: true
+  use_transformer: true
+  use_gru: true
+
+loss:
+  alpha: 0.5          # KL
+  gamma_layout: 0.3
+  beta: 0.1           # temporal consistency
+  focal_gamma: 2.0
+
+train:
+  seq_len: 4
+  epochs: 100
+  lr: 1.0e-4
+  weight_decay: 1.0e-4
+  batch_size: 16
+  patience: 10        # early stopping (val macro-F1)
+  risk_source: noisy  # 평가/학습 기본 입력
+  noise_preset: medium
+  risk_noise: true    # 학습 증강(noise.py) — 강건성의 핵심
+  balanced_sampler: true
