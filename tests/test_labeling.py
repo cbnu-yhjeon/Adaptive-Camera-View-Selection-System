@@ -218,6 +218,16 @@ def test_near_floor_off_when_stopped():
     assert near_floor([1.2, 0.0], [0, 0], [0.0, 0.0], r=1.2) == 0.3
 
 
+def test_is_hazard_needs_both_time_and_distance():
+    """'실제 위험'은 시간·거리 두 조건을 모두 만족해야 한다."""
+    from src.labeling.label_function import LabelConfig, is_hazard
+    cfg = LabelConfig(hazard_ttc=5.0, d_hazard=3.0)
+    assert is_hazard({"ttc": 2.0, "dca": 1.0}, cfg)          # 곧, 가까이
+    assert not is_hazard({"ttc": 0.2, "dca": 5.0}, cfg)      # 곧이지만 5m 옆으로 스쳐 감
+    assert not is_hazard({"ttc": 9.0, "dca": 1.0}, cfg)      # 가까워지지만 9초 뒤
+    assert not is_hazard({"ttc": float("inf"), "dca": 0.5}, cfg)   # 접근 자체를 안 함
+
+
 # ============ 보조 뷰 슬롯 배정 ============
 def _cfg(**kw):
     from src.labeling.label_function import LabelConfig

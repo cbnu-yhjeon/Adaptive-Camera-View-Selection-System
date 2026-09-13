@@ -38,23 +38,24 @@ from src.utils.geometry import point_visible_in_camera
 class LabelConfig:
     categories: list[str] = field(default_factory=lambda: ["vehicle", "human.pedestrian"])
     max_range: float = 50.0
-    tau: float = 4.0
+    tau: float = 3.0
     w_type: str = "exp"
     w_min_near: float = 0.3
     near_range: float = 10.0
     v_r_min: float = 0.1
     # 위험 재정의 (B.4-(2),(3))
     ttc_mode: str = "cpa"        # cpa | radial(ablation)
-    d_near: float = 4.0          # 최접근 거리가 이보다 가까우면 경로 감쇠 없음
-    d_scale: float = 3.0         # 초과분 지수 감쇠 스케일
+    d_near: float = 3.0          # 최접근 거리가 이보다 가까우면 경로 감쇠 없음
+    d_scale: float = 1.5         # 초과분 지수 감쇠 스케일
     rho_min: float = 0.05        # 경로 무관 객체의 하한
-    d_hazard: float = 5.0        # '임박 위험 객체' 판정: 최접근 거리가 이보다 가까울 것
+    d_hazard: float = 3.0        # '실제 위험' 판정 최접근 거리 (차폭 감안 여유 약 1.1m)
+    hazard_ttc: float = 5.0      # '실제 위험' 판정 시간 지평 (원격주행 지연 감안)
     attr_exempt_touch: float = 1.5   # 이 거리 이내로 최접근하면 상태 감쇠를 완전히 해제
     attr_exempt_scale: float = 2.0   # 해제 정도의 감쇠 스케일 (0이면 예외 없음)
     touch_range: float = 2.0     # 이 거리 이내면 근접 보정을 방향과 무관하게 적용
     attr_weight: dict = field(default_factory=dict)   # 비면 DEFAULT_ATTR_WEIGHT
     # 보조 뷰 선택 (B.4-(6))
-    aux_threshold: float = 0.10  # 위험 슬롯 임계 — 순수 위험 항 기준(기동 항 제외)
+    aux_threshold: float = 0.12  # 위험 슬롯 임계 — 순수 위험 항 기준(기동 항 제외)
     aux_max: int = 2             # 동시에 강조할 최대 채널 수
     m_guard: float = 0.9         # 기동 적합도가 이 값 이상인 채널을 사각지대로 보장
     lambda_m: float = 0.4
@@ -150,15 +151,24 @@ def risk_vector_from_contribs(contribs: list[dict]) -> np.ndarray:
     return risk
 
 
-def hazard_ttcs(contribs: list[dict], cfg: LabelConfig) -> list[float]:
-    """'임박 위험 객체'의 TTC 목록.
+def is_hazard(contrib: dict, cfg: LabelConfig) -> bool:
+    """'실제 위험' 판정 — 라벨·평가·골드셋 추출이 공유하는 단일 정의.
 
-    cpa 정의에서는 옆으로 5m 떨어져 스쳐 갈 객체도 최접근 시각이 0.2s로 나온다.
-    시간만으로는 위험을 가릴 수 없으므로 **최접근 거리(DCA)가 d_hazard 이내**인
-    객체만 위험으로 센다. 이 정의가 평가의 '위험 객체 가시화율'과도 일치해야 한다.
+    `hazard_ttc(5s) 안에 d_hazard(3m) 이내로 최접근`. 두 조건이 모두 필요하다:
+      - 시간만 보면 옆으로 5m 떨어져 스쳐 갈 객체도 최접근 시각이 0.2s로 나온다.
+      - 거리만 보면 10초 뒤에나 가까워질 객체가 지금 위험으로 잡힌다.
+    DCA는 중심점 간 거리라 3m는 차폭 감안 실제 여유 약 1.1m다.
+    trainval 기준 해당 채널 1,879개(프레임의 5.3%) — 이 희소성 때문에 표시 정책의
+    정밀도 상한이 구조적으로 낮다. 자세한 근거는 CLAUDE.md B.8 참조.
     """
-    return [c["ttc"] for c in contribs
-            if np.isfinite(c["ttc"]) and c.get("dca", 0.0) < cfg.d_hazard]
+    ttc = contrib.get("ttc", np.inf)
+    return bool(np.isfinite(ttc) and 0.0 <= ttc < cfg.hazard_ttc
+                and contrib.get("dca", 0.0) < cfg.d_hazard)
+
+
+def hazard_ttcs(contribs: list[dict], cfg: LabelConfig) -> list[float]:
+    """'실제 위험' 객체의 TTC 목록 (min_ttc 컬럼 산출용)."""
+    return [c["ttc"] for c in contribs if is_hazard(c, cfg)]
 
 
 def compute_channel_scores(wrapper, sample_token, cfg: LabelConfig):
