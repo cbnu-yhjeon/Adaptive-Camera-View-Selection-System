@@ -23,9 +23,11 @@ from dataclasses import dataclass, field
 import numpy as np
 
 from src.labeling.maneuver import ManeuverThresholds, infer_maneuver
-from src.labeling.ttc import compute_ttc, risk_weight, horizontal_range, TTC_INF
+from src.labeling.ttc import (
+    TTC_INF, closest_approach, compute_ttc, horizontal_range, path_factor, risk_weight,
+)
 from src.utils.constants import (
-    CAMERAS, CAMERA_INDEX, NUM_CAMERAS, maneuver_to_layout_index,
+    CAMERAS, CAMERA_INDEX, NUM_CAMERAS, attribute_weight, maneuver_to_layout_index,
     maneuver_view_vector, travel_direction_view,
 )
 from src.utils.geometry import point_visible_in_camera
@@ -40,6 +42,16 @@ class LabelConfig:
     w_min_near: float = 0.3
     near_range: float = 10.0
     v_r_min: float = 0.1
+    # 위험 재정의 (B.4-(2),(3))
+    ttc_mode: str = "cpa"        # cpa | radial(ablation)
+    d_near: float = 2.0          # 최접근 거리가 이보다 가까우면 경로 감쇠 없음
+    d_scale: float = 2.0         # 초과분 지수 감쇠 스케일
+    rho_min: float = 0.05        # 경로 무관 객체의 하한
+    d_hazard: float = 3.0        # '임박 위험 객체' 판정: 최접근 거리가 이보다 가까울 것
+    attr_weight: dict = field(default_factory=dict)   # 비면 DEFAULT_ATTR_WEIGHT
+    # 보조 뷰 선택 (B.4-(6))
+    aux_threshold: float = 0.5   # s(c)가 이 값 이상인 비-primary 채널만 강조
+    aux_max: int = 2             # 동시에 강조할 최대 채널 수
     lambda_m: float = 1.0
     T_soft: float = 0.5
     ema_alpha: float = 0.7
@@ -94,12 +106,19 @@ def channel_risk_contributors(wrapper, sample_token, cfg: LabelConfig) -> list[d
         if not np.all(np.isfinite(v_obj)):     # box_velocity NaN 폴백: 정지 가정
             v_obj = np.zeros(2)
         ttc = compute_ttc(box["global_center"][:2], ego["translation"][:2],
-                          v_obj, ego_vel, v_r_min=cfg.v_r_min)
+                          v_obj, ego_vel, v_r_min=cfg.v_r_min, mode=cfg.ttc_mode)
         r = horizontal_range(box["global_center"], ego["translation"])
+        # ρ = 상태 계수 × 경로 관련성. 스쳐 지나갈 객체와 정지 객체를 낮춘다.
+        _, dca = closest_approach(box["global_center"][:2], ego["translation"][:2],
+                                  v_obj, ego_vel)
+        rho = (attribute_weight(box.get("attribute", ""), cfg.attr_weight or None)
+               * path_factor(dca, d_near=cfg.d_near, d_scale=cfg.d_scale,
+                             rho_min=cfg.rho_min))
         w = risk_weight(ttc, r, tau=cfg.tau, w_type=cfg.w_type,
-                        w_min_near=cfg.w_min_near, near_range=cfg.near_range)
+                        w_min_near=cfg.w_min_near, near_range=cfg.near_range, rho=rho)
         vis = _channel_visibility(calibs, box, ego)
-        contribs.append({"vis": vis, "r": float(r), "ttc": float(ttc), "w": float(w)})
+        contribs.append({"vis": vis, "r": float(r), "ttc": float(ttc),
+                         "w": float(w), "rho": float(rho), "dca": float(dca)})
     return contribs
 
 
@@ -116,11 +135,22 @@ def risk_vector_from_contribs(contribs: list[dict]) -> np.ndarray:
     return risk
 
 
+def hazard_ttcs(contribs: list[dict], cfg: LabelConfig) -> list[float]:
+    """'임박 위험 객체'의 TTC 목록.
+
+    cpa 정의에서는 옆으로 5m 떨어져 스쳐 갈 객체도 최접근 시각이 0.2s로 나온다.
+    시간만으로는 위험을 가릴 수 없으므로 **최접근 거리(DCA)가 d_hazard 이내**인
+    객체만 위험으로 센다. 이 정의가 평가의 '위험 객체 가시화율'과도 일치해야 한다.
+    """
+    return [c["ttc"] for c in contribs
+            if np.isfinite(c["ttc"]) and c.get("dca", 0.0) < cfg.d_hazard]
+
+
 def compute_channel_scores(wrapper, sample_token, cfg: LabelConfig):
-    """한 keyframe의 위험도 채널 벡터(6) + n_objects + min_ttc."""
+    """한 keyframe의 위험도 채널 벡터(6) + n_objects + min_ttc(임박 위험 기준)."""
     contribs = channel_risk_contributors(wrapper, sample_token, cfg)
     risk = risk_vector_from_contribs(contribs)
-    ttcs = [c["ttc"] for c in contribs if np.isfinite(c["ttc"])]
+    ttcs = hazard_ttcs(contribs, cfg)
     min_ttc = min(ttcs) if ttcs else TTC_INF
     return risk, len(contribs), min_ttc
 
@@ -146,6 +176,23 @@ def _argmax_excl(scores: np.ndarray, excl: int) -> int:
     m = scores.copy()
     m[excl] = -np.inf
     return int(np.argmax(m))
+
+
+def select_aux_views(scores: np.ndarray, primary: int, cfg: LabelConfig) -> list[int]:
+    """강조할 보조 채널 목록 (0~aux_max개) — 임계값 기반 다중 선택.
+
+    항상 1장을 고르면 위험도 기동도 없는 프레임에서도 화면이 켜져 오퍼레이터가
+    보조 뷰를 무시하게 된다(실측: 16.2%의 프레임이 위험 기여 없이 기동 항만으로 선택됨).
+    반대로 차선변경처럼 측방과 후측방이 동시에 중요한 상황은 1장으로 표현할 수 없다.
+    s(c) ≥ aux_threshold인 비-primary 채널을 점수 순으로 최대 aux_max개 고른다.
+
+    임계값을 위험 항이 아니라 s(c)=위험+λ·m(c) 전체에 거는 것이 핵심이다. 기동 항
+    덕분에 **검출된 객체가 하나도 없어도 차선변경 방향은 켜진다** — 검출 실패 시
+    화면이 꺼지는 것이 이 시스템의 가장 위험한 실패 모드이기 때문이다.
+    """
+    order = [c for c in np.argsort(-scores) if c != primary]
+    return [int(c) for c in order[:max(0, cfg.aux_max)]
+            if scores[c] >= cfg.aux_threshold]
 
 
 def _softmax_excl(x: np.ndarray, temp: float, excl: int) -> np.ndarray:
@@ -220,11 +267,14 @@ def generate_scene_labels(wrapper, scene_token: str, cfg: LabelConfig) -> list[d
     for i, row in enumerate(rows):
         s_smooth = ema[i]
         soft = _softmax_excl(s_smooth, cfg.T_soft, primary[i])
+        aux = select_aux_views(s_smooth, primary[i], cfg)
         for c in range(NUM_CAMERAS):
             row[f"s_{c}"] = float(s_smooth[c])
             row[f"soft_{c}"] = float(soft[c])
+            row[f"aux_{c}"] = int(c in aux)      # 다중 선택 타깃(0/1)
         row["primary_view"] = primary[i]
-        row["attention_view"] = attention[i]
+        row["attention_view"] = attention[i]     # 단일 argmax — 베이스라인 비교용 유지
+        row["n_aux"] = len(aux)
     return rows
 
 

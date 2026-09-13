@@ -143,8 +143,13 @@ class NuscWrapper:
                   max_range: float | None = None) -> list[dict]:
         """sample의 GT 박스 목록.
 
-        각 박스: {category, global_center(xyz), size, yaw, global_velocity(xy),
-                  range(수평거리 m), ann_token}. category prefix 필터 + 거리 상한 적용.
+        각 박스: {category, attribute, global_center(xyz), size, yaw,
+                  global_velocity(xy), range(수평거리 m), ann_token}.
+        category prefix 필터 + 거리 상한 적용.
+
+        attribute는 nuScenes 주석의 상태 라벨(vehicle.parked / vehicle.moving /
+        pedestrian.standing 등). 주차 차량이 전체 위험량의 40% 이상을 차지하므로
+        라벨 함수가 이 값으로 정지 객체를 감쇠한다.
         """
         sample = self.nusc.get("sample", sample_token)
         ego_t = self.get_ego_pose(sample_token)["translation"]
@@ -161,6 +166,8 @@ class NuscWrapper:
             vel = self.nusc.box_velocity(ann_token)  # global (vx,vy,vz), NaN 가능
             out.append({
                 "category": cat,
+                "attribute": self._attribute_name(ann["attribute_tokens"][0])
+                             if ann["attribute_tokens"] else "",
                 "global_center": center,
                 "size": np.array(ann["size"], dtype=np.float64),
                 "rotation": np.array(ann["rotation"], dtype=np.float64),
@@ -231,6 +238,11 @@ class NuscWrapper:
     def _scene_number(self, scene_token: str) -> int:
         name = self.scene_name(scene_token)  # 'scene-0061'
         return int(name.split("-")[-1])
+
+    @lru_cache(maxsize=None)
+    def _attribute_name(self, attribute_token: str) -> str:
+        """attribute 토큰 → 이름. 객체마다 조회하므로 캐시한다."""
+        return self.nusc.get("attribute", attribute_token)["name"]
 
     @lru_cache(maxsize=None)
     def _scene_has_images(self, scene_token: str) -> bool:

@@ -164,18 +164,31 @@ project/
 - 두 채널에 동시 투영되면 양쪽에 가중 0.5로 귀속.
 - 거리 상한: `label.max_range = 50m` (이보다 먼 객체는 무시).
 
-### (2) TTC (radial 정의, v1)
+### (2) TTC (최접근 정의, v2 — 2026-09 개정)
 ```
-r   = || p_obj - p_ego ||                # 수평면 거리
-v_r = -(p_obj - p_ego)·(v_obj - v_ego)/r # 접근 속도 (양수 = 접근 중)
-TTC = r / v_r        if v_r > 0.1 m/s
-    = ∞              otherwise
+p_rel = p_obj - p_ego,   v_rel = v_obj - v_ego
+t*    = -(p_rel·v_rel)/||v_rel||²        # 최접근 시각
+DCA   = ||p_rel + v_rel·t*||             # 그때의 거리
+TTC   = t*   (접근 중)  |  ∞ (멀어지는 중)
 ```
+**왜 radial을 버렸나**: radial 정의(`r/v_r`)는 옆으로 스쳐 지나갈 객체를 충돌 임박으로
+오판한다. ego가 10m/s로 주행하면 20m 앞 길가 주차 차량도 TTC=2s가 나온다. 실측 결과
+전체 위험량의 **62.9%가 정지·주차 객체**에서 나왔고, 이를 빼면 선택 뷰가 29.4%의
+프레임에서 뒤집혔다. `ttc_mode: radial`로 되돌릴 수 있으며 ablation 항목으로 쓴다.
+
+**임박 위험 객체 정의**: `TTC < 3s AND DCA < d_hazard(5m)`. 시간만으로는 위험을 가릴 수
+없다 — 옆 5m로 스쳐 갈 객체도 최접근 시각은 0.2s다. 평가의 '위험 객체 가시화율'도
+반드시 이 정의를 공유한다.
 - `v_obj`: GT 박스의 velocity (devkit `box_velocity()`), NaN이면 인접 keyframe 차분.
 - `v_ego`: CAN pose 또는 ego_pose 차분.
 
 ### (3) 위험 가중 함수 (config `label.w_type`)
-- 기본: `w(TTC) = exp(-TTC / tau)`, `tau = 4.0s`, TTC=∞ → 0.
+- 기본: `w = ρ_attr · ρ_path · max( exp(-TTC/tau), 근접보정 )`, `tau = 4.0s`, TTC=∞ → 0.
+- **ρ_attr (객체 상태 계수)**: nuScenes 주석의 attribute를 사용. 주차 0.2 / 정지 0.5 /
+  서있는 보행자 0.5 / 세워둔 자전거 0.2 / 그 외(움직이는 객체) 1.0. 0으로 만들지는
+  않는다 — 주차 차량도 문 열림·보행자 가림 위험이 있다.
+- **ρ_path (경로 관련성)**: `exp(-max(0, DCA - d_near)/d_scale)`, 하한 rho_min.
+  d_near=4m, d_scale=3m (DCA는 중심점 간 거리이고 인접 차선이 3.5m임을 감안).
 - 대안(실험용): `w = clip(1/TTC, 0, 1)`.
 - 근접 보정: r < 10m 인 객체는 TTC와 무관하게 최소 `w_min_near = 0.3` 부여
   (저속 근접 객체 누락 방지 — 후진/주차 상황 커버).
@@ -207,12 +220,22 @@ TTC = r / v_r        if v_r > 0.1 m/s
 
 ### (6) 최종 점수와 라벨 — **v1 뷰 정책 (2026-07 설계 결정)**
 ```
-s(c) = Σ_{i∈c} w(TTC_i) + λ·m(c)          # λ 기본 1.0
-primary_view   = 진행 방향 뷰             # 전진 CAM_FRONT / 후진(REVERSE) CAM_BACK
-attention_view = argmax_{c ≠ primary} s(c) # 위험/기동 기반 적응형 보조 뷰
-soft_label     = softmax(s / T_soft), primary 채널 마스킹  # T_soft 기본 0.5, KL 손실용
+s(c) = Σ_{i∈c} w_i + λ·m(c)                # λ 기본 0.4
+primary_view   = 진행 방향 뷰              # 전진 CAM_FRONT / 후진(REVERSE) CAM_BACK
+aux_views      = {c ≠ primary : s(c) ≥ θ}  # 점수 상위 aux_max(2)개, 0~2장 (θ 기본 0.15)
+attention_view = argmax_{c ≠ primary} s(c) # 단일 선택 — 베이스라인 비교용으로 유지
+soft_label     = softmax(s / T_soft), primary 채널 마스킹
 layout         = 기동 상태 → 템플릿 매핑 (constants.LAYOUT_MAP, K=5)
 ```
+- **왜 임계값 다중 선택인가 (v2)**: 항상 1장을 고르면 ① 위험도 기동도 없는 프레임에서도
+  화면이 켜져 오퍼레이터가 보조 뷰를 무시하게 되고 ② 차선변경처럼 측방과 후측방이 동시에
+  중요한 상황을 표현할 수 없다. 실측 비교(동일 부하): 항상 1장 → 평균 1.00장·임박위험
+  커버 58.2%, 임계값 방식 → 평균 1.06장·커버 **75.0%**. 보조 0장 30% / 1장 34% / 2장 36%.
+- **임계값은 위험 항이 아니라 s(c) 전체에 건다.** 기동 항 덕분에 검출된 객체가 없어도
+  차선변경 방향은 켜진다(λ·m: 측방 0.4, 후측방 0.2 > θ=0.15). 검출 실패 시 화면이 꺼지는
+  것이 이 시스템의 가장 위험한 실패 모드이기 때문이다.
+- **λ=0.4인 이유**: λ=1.0이면 기동 항이 보조 슬롯 2개를 독점해 실제 위험을 밀어냈다
+  (차선변경 중 위험 커버 70.7%). λ=0.4에서 83.1%로 회복된다.
 - **원칙(이동체 안전)**: 진행 방향(primary)은 UI 메인 위치에 **상시 표시**하고, 위험도·기동으로
   고른 뷰(attention)를 보조 위치에 강조한다. 원래 명세의 단일 `main_view=argmax`를 대체.
   → 논문 기여 프레임이 "단일 메인뷰 선택"에서 **"보조 주의뷰 선택"**으로 이동.
@@ -222,7 +245,7 @@ layout         = 기동 상태 → 템플릿 매핑 (constants.LAYOUT_MAP, K=5)
   기동 클래스에서 결정적으로 매핑 (v1은 단순화 — 논문 2.1의 "사전 정의 템플릿 분류"와 일치).
 - 출력: `data/labels_{version}.parquet`
   컬럼: `sample_token, scene_token, timestamp, s_0..s_5, primary_view, attention_view,
-  soft_0..soft_5, maneuver, layout, n_objects, min_ttc`
+  aux_0..aux_5, n_aux, soft_0..soft_5, maneuver, layout, n_objects, min_ttc`
 
 ### (7) 라벨 안정화 (라벨 자체의 flicker 방지)
 - scene 내 시간순으로 s(c)에 EMA 스무딩(α=0.7) 적용 후 attention 결정.
@@ -300,8 +323,19 @@ GT 객체 리스트에 다음을 적용해 위험도 벡터를 재계산:
 - **Macro-F1**: 6채널 기준 (골드셋 + 의사 라벨 시험셋 둘 다).
 - **Flicker rate**: 뷰 전환 후 1.5초(3 keyframes) 내 재전환된 전환의 비율.
   scene 단위로 시간순 추론 후 계산.
-- **위험 객체 가시화율**: TTC < 3s 인 GT 객체가 선택 뷰(primary ∪ attention) 화각에
-  들어있는 keyframe 비율. (라벨이 아닌 GT 기하로 직접 계산 — 순환 없음)
+- **평균 보조 뷰 수**: 인지 부하의 대리 지표. 표시 방식과 무관하게 계산된다.
+- **위험 객체 가시화율**: 임박 위험 객체(TTC<3s **AND** DCA<5m)가 선택 뷰(primary ∪ aux)
+  화각에 들어있는 keyframe 비율. (라벨이 아닌 GT 기하로 직접 계산 — 순환 없음)
+- **운영 곡선**: 추론 임계값 τ를 쓸어가며 (평균 보조 뷰 수 vs 가시화율)을 그린다.
+  강건성(M7)도 스칼라가 아니라 이 곡선의 열화로 보고한다.
+
+### 표시 방식 — 두 가정을 병기 (2026-09 결정)
+같은 모델 출력을 두 UI 가정으로 해석해 보고한다. 계산은 동일하고 해석과 부가 열만 다르다.
+- **하이라이트(정보 손실 없음)**: 6채널을 모두 표시하되 선택 뷰를 크게·고해상도로.
+  놓친 위험 = '주의 유도 실패'(정보는 화면에 남아 있음). 대역폭 절감은 해상도 차등으로 계산.
+- **전환(선택 뷰만 표시)**: 놓친 위험 = 안전 실패. 대역폭 절감이 가장 크다.
+- 이 연구의 전제가 "검출은 불완전하다"이므로, 불완전한 검출로 카메라를 끄는 전환 방식은
+  자기모순 위험이 있다. 논문 본문은 하이라이트를 기본 가정으로 서술하고 전환은 비교로 둔다.
 
 ### 골드셋 절차
 1. test 분할에서 기동 상태별 층화 추출로 300 keyframe 선정 (STRAIGHT 편중 방지:

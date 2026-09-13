@@ -2,23 +2,34 @@
 
 원리
 ----
-TTC는 "지금 상대속도가 유지되면 몇 초 뒤 부딪히는가"이다. radial(반경) 정의:
+TTC는 "지금 상대속도가 유지되면 몇 초 뒤 부딪히는가"이다. 두 정의를 지원한다.
 
-    r   = ‖p_obj − p_ego‖                    (수평면 거리)
-    v_r = −(p_obj − p_ego)·(v_obj − v_ego)/r  (접근 속도, 양수 = 접근 중)
-    TTC = r / v_r      (v_r > 0.1 m/s 일 때)
-        = ∞            (그 외 — 멀어지거나 정지)
+**cpa (기본)** — 최접근(closest point of approach) 기반:
 
-v_r 부호 규약: (p_obj − p_ego)는 ego→obj 방향. 상대속도 (v_obj − v_ego)를
-그 방향에 투영해 부호를 뒤집으면, 객체가 다가올 때 v_r > 0 이 된다.
+    p_rel = p_obj − p_ego,  v_rel = v_obj − v_ego
+    t*    = −(p_rel·v_rel) / ‖v_rel‖²        (최접근 시각)
+    DCA   = ‖p_rel + v_rel·t*‖               (그때의 거리)
+    TTC   = t*   (접근 중일 때)  |  ∞ (멀어지는 중)
 
-위험 가중 w(TTC)는 TTC가 짧을수록 1에 가깝게, 길수록 0에 가깝게 만든다.
-채널 점수 s(c) = Σ w(TTC_i) + λ·m(c) 의 위험도 항으로 쓰인다.
+**radial** — 접근 속도만 보는 고전 정의 (ablation·비교용):
 
-왜 이 프로젝트에서 쓰는가
--------------------------
-"어느 카메라가 지금 중요한가"의 핵심 근거가 위험 객체다. TTC가 작은(곧 충돌
-위험) 객체가 많은 카메라일수록 s(c)가 커져 메인 뷰로 선택된다.
+    v_r = −(p_rel·v_rel)/‖p_rel‖,  TTC = ‖p_rel‖ / v_r
+
+왜 cpa가 기본인가
+-----------------
+radial 정의는 **옆으로 스쳐 지나갈 객체를 충돌 임박으로 오판한다.** ego가 10m/s로
+주행하면 20m 앞 길가 주차 차량도 접근 속도가 생겨 TTC=2s가 나온다. 실측 결과
+전체 위험량의 62.9%가 정지·주차 객체에서 나왔고, 이들을 빼면 선택 뷰가 29.4%의
+프레임에서 뒤집혔다. cpa는 "실제로 얼마나 가까워지는가(DCA)"를 분리해내므로
+스쳐 지나갈 객체를 경로 관련성 계수로 감쇠할 수 있다.
+
+위험 가중
+---------
+    w = ρ_attr · ρ_path · max( exp(−TTC/τ), 근접보정 )
+
+  - ρ_attr: 객체 속성 계수. 주차 차량처럼 움직이지 않는 객체를 낮춘다.
+  - ρ_path: 경로 관련성 계수. DCA가 클수록(스쳐 지나갈수록) 낮춘다.
+채널 점수 s(c) = Σ w + λ·m(c) 의 위험도 항으로 쓰인다.
 """
 
 from __future__ import annotations
@@ -28,21 +39,58 @@ import numpy as np
 TTC_INF = float("inf")
 
 
+def closest_approach(p_obj, p_ego, v_obj, v_ego) -> tuple[float, float]:
+    """최접근 시각 t*(초)와 그때의 거리 DCA(m).
+
+    멀어지는 중이거나 상대속도가 0이면 지금이 최접근이므로 (0, 현재거리).
+    """
+    p_rel = _xy(p_obj) - _xy(p_ego)
+    v_rel = _xy(v_obj) - _xy(v_ego)
+    r = float(np.linalg.norm(p_rel))
+    vv = float(np.dot(v_rel, v_rel))
+    if vv < 1e-9:                       # 상대정지 — 거리 변화 없음
+        return 0.0, r
+    t = -float(np.dot(p_rel, v_rel)) / vv
+    if t <= 0.0:                        # 이미 멀어지는 중
+        return 0.0, r
+    return t, float(np.linalg.norm(p_rel + v_rel * t))
+
+
 def compute_ttc(p_obj, p_ego, v_obj, v_ego,
-                v_r_min: float = 0.1) -> float:
-    """radial TTC(초). 접근 중이 아니면 inf.
+                v_r_min: float = 0.1, mode: str = "cpa") -> float:
+    """TTC(초). 접근 중이 아니면 inf.
 
     입력은 2D(수평 x,y) 또는 3D 모두 허용하며, 거리는 수평면 기준으로 계산한다.
+    mode="cpa"는 최접근 시각을, "radial"은 고전적 접근속도 기반 값을 돌려준다.
     """
     p_rel = _xy(p_obj) - _xy(p_ego)     # ego→obj
     v_rel = _xy(v_obj) - _xy(v_ego)     # 객체의 상대속도
     r = float(np.linalg.norm(p_rel))
     if r < 1e-6:
         return 0.0                      # 완전 겹침 → 즉시 충돌
+
     v_r = -float(np.dot(p_rel, v_rel)) / r
-    if v_r > v_r_min:
+    if v_r <= v_r_min:                  # 접근 중이 아님(두 정의 공통)
+        return TTC_INF
+    if mode == "radial":
         return r / v_r
-    return TTC_INF
+    if mode == "cpa":
+        t, _ = closest_approach(p_obj, p_ego, v_obj, v_ego)
+        return t if t > 0.0 else 0.0
+    raise ValueError(f"알 수 없는 ttc mode: {mode}")
+
+
+def path_factor(dca: float, d_near: float = 2.0, d_scale: float = 2.0,
+                rho_min: float = 0.05) -> float:
+    """경로 관련성 계수 ρ_path ∈ [rho_min, 1].
+
+    최접근 거리(DCA)가 d_near 이내면 1(정면 충돌 경로), 그보다 멀면 지수 감쇠한다.
+    "옆으로 3m 떨어져 스쳐 지나갈 객체"와 "정면으로 다가오는 객체"를 구분하는 항.
+    """
+    if not np.isfinite(dca):
+        return rho_min
+    excess = max(0.0, float(dca) - d_near)
+    return float(np.clip(np.exp(-excess / max(d_scale, 1e-6)), rho_min, 1.0))
 
 
 def horizontal_range(p_obj, p_ego) -> float:
@@ -52,7 +100,7 @@ def horizontal_range(p_obj, p_ego) -> float:
 
 def risk_weight(ttc: float, r: float, tau: float = 4.0,
                 w_type: str = "exp", w_min_near: float = 0.3,
-                near_range: float = 10.0) -> float:
+                near_range: float = 10.0, rho: float = 1.0) -> float:
     """위험 가중 w ∈ [0, 1] (CLAUDE.md B.4-(3)).
 
     Args:
@@ -62,6 +110,8 @@ def risk_weight(ttc: float, r: float, tau: float = 4.0,
         w_type: "exp" → exp(−TTC/tau) | "inv" → clip(1/TTC, 0, 1).
         w_min_near: r < near_range 인 근접 객체의 최소 가중(저속 근접 누락 방지).
         near_range: 근접 보정 거리 임계(기본 10m).
+        rho: 객체 속성·경로 관련성 계수(ρ_attr·ρ_path). 근접 보정에도 함께 적용되어,
+             바로 옆 주차 차량이 최소 가중만으로 채널을 지배하지 않게 한다.
     """
     if ttc == TTC_INF:
         w = 0.0
@@ -75,7 +125,7 @@ def risk_weight(ttc: float, r: float, tau: float = 4.0,
     # 근접 보정: 후진/주차 등 저속 근접 객체가 TTC=inf여도 최소 가중 부여
     if r < near_range:
         w = max(w, w_min_near)
-    return float(np.clip(w, 0.0, 1.0))
+    return float(np.clip(rho * w, 0.0, 1.0))
 
 
 def _xy(p) -> np.ndarray:

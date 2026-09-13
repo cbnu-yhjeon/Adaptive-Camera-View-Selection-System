@@ -80,6 +80,24 @@ MANEUVER_VIEW_MAP: dict[str, dict[str, float]] = {
 #   기동 클래스 → 화면 배치 템플릿의 결정적 매핑.
 #   v1은 단순화: 기동에서 바로 템플릿을 정한다.
 # =====================================================================
+# nuScenes 주석 상태(attribute) → 위험 가중 계수 ρ_attr.
+# 실측: 주차 차량이 전체 객체의 46.6% / 위험량의 42.9%를 차지하고, 정지류 전체가
+# 위험량의 62.9%였다. 완전히 제외하지는 않는다 — 주차 차량도 문 열림·보행자 가림
+# 위험이 있고, 정지 차량과 서 있는 보행자는 곧 움직일 수 있다.
+DEFAULT_ATTR_WEIGHT: dict[str, float] = {
+    "vehicle.parked":                0.2,
+    "vehicle.stopped":               0.5,   # 신호 대기 등 — 곧 출발할 수 있음
+    "pedestrian.standing":           0.5,   # 갑자기 도로로 진입할 수 있음
+    "pedestrian.sitting_lying_down": 0.3,
+    "cycle.without_rider":           0.2,   # 세워둔 자전거
+}
+
+
+def attribute_weight(attribute: str, table: dict[str, float] | None = None) -> float:
+    """객체 상태 → ρ_attr (기본 1.0 = 움직이는 객체)."""
+    return (table or DEFAULT_ATTR_WEIGHT).get(attribute, 1.0)
+
+
 LAYOUTS: list[str] = [
     "FRONT_CENTRIC",   # 0 ①전방 중심
     "TURN_LEFT",       # 1 ②좌회전형

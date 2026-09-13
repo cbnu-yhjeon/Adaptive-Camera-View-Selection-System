@@ -81,9 +81,12 @@ def apply_noise(contribs: list[dict], rng: np.random.Generator,
         ttc = c["ttc"]
         if np.isfinite(ttc) and nc.sigma_ttc_rel > 0:
             ttc = max(0.1, ttc * (1.0 + rng.normal(0.0, nc.sigma_ttc_rel)))
+        # ρ(상태·경로 계수)는 검출기가 따로 추정하는 양이므로 위치 노이즈로 바꾸지 않는다.
+        # 속성 오분류는 향후 별도 노이즈 유형으로 추가한다.
+        rho = float(c.get("rho", 1.0))
         w = risk_weight(ttc, r2, tau=nc.tau, w_type=nc.w_type,
-                        w_min_near=nc.w_min_near, near_range=nc.near_range)
-        out.append({"vis": list(c["vis"]), "r": r2, "ttc": ttc, "w": w})
+                        w_min_near=nc.w_min_near, near_range=nc.near_range, rho=rho)
+        out.append({"vis": list(c["vis"]), "r": r2, "ttc": ttc, "w": w, "rho": rho})
 
     # 2) 오검출(FP)
     if nc.lambda_fp > 0:
@@ -93,7 +96,8 @@ def apply_noise(contribs: list[dict], rng: np.random.Generator,
             ttc = float(rng.uniform(1.0, 10.0))
             w = risk_weight(ttc, r, tau=nc.tau, w_type=nc.w_type,
                             w_min_near=nc.w_min_near, near_range=nc.near_range)
-            out.append({"vis": [ch], "r": r, "ttc": ttc, "w": w})
+            # 오검출은 '움직이는 실제 객체'로 보이므로 ρ=1 — 가장 교란적인 형태
+            out.append({"vis": [ch], "r": r, "ttc": ttc, "w": w, "rho": 1.0})
 
     # 3) 채널 블랙아웃
     blackout: list[int] = []

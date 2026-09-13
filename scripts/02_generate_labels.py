@@ -58,6 +58,7 @@ def main() -> int:
     cols = (["sample_token", "scene_token", "timestamp"]
             + [f"s_{c}" for c in range(6)]
             + ["primary_view", "attention_view"]
+            + [f"aux_{c}" for c in range(6)] + ["n_aux"]
             + [f"soft_{c}" for c in range(6)]
             + ["maneuver", "layout", "n_objects", "min_ttc"])
     df = df[cols]

@@ -12,8 +12,32 @@ label:
   near_range: 10.0
   v_r_min: 0.1             # 접근속도 하한(이하이면 TTC=inf)
 
+  # 위험 재정의 — radial TTC는 길가 주차 차량을 충돌 임박으로 오판한다.
+  # 실측: 정지·주차 객체가 위험량의 62.9%, 제외 시 선택 뷰가 29.4% 프레임에서 뒤집힘.
+  ttc_mode: cpa            # cpa(최접근 기반, 기본) | radial(ablation)
+  # DCA는 중심점 간 거리다. 차폭(1.9m)·인접 차선(3.5m)을 감안해 상수를 잡는다.
+  d_near: 4.0              # 최접근 거리(DCA)가 이보다 가까우면 경로 감쇠 없음
+  d_scale: 3.0             # DCA 초과분 지수 감쇠 스케일
+  rho_min: 0.05            # 경로 무관 객체의 가중 하한
+  d_hazard: 5.0            # '임박 위험 객체' 판정 거리 (평가 지표와 공유)
+  attr_weight:             # 객체 상태별 계수 (비우면 constants의 기본값)
+    vehicle.parked: 0.2
+    vehicle.stopped: 0.5
+    pedestrian.standing: 0.5
+    pedestrian.sitting_lying_down: 0.3
+    cycle.without_rider: 0.2
+
+  # 보조 뷰 선택 — 항상 1장이 아니라 0~2장 (인지부하 ↔ 안전 트레이드오프)
+  # θ 재보정: 주차 차량 편향 제거로 위험 척도가 줄어 0.5는 과도했다(평균 0.5장).
+  # θ=0.15에서 평균 1.08장 — 현행(항상 1장)과 같은 부하에 위험 커버 45.3%→84.3%.
+  aux_threshold: 0.15      # s(c)가 이 값 이상인 비-primary 채널만 강조
+  aux_max: 2               # 동시 강조 최대 채널 수 (차선변경: 측방+후측방)
+
   # 점수 결합
-  lambda_m: 1.0            # s(c)=Σw + lambda·m(c)
+  # λ=1.0이면 기동 항이 보조 슬롯 2개를 독점해 실제 위험을 밀어냈다
+  # (차선변경 중 위험 커버 70.7%). λ=0.4에서 기동 기본값은 유지하면서
+  # (LC 측방 0.4·후측방 0.2 > θ) 두 번째 슬롯을 위험이 가져갈 수 있다.
+  lambda_m: 0.4            # s(c)=Σw + lambda·m(c)
   T_soft: 0.5              # soft_label = softmax(s / T_soft)
 
   # 안정화
