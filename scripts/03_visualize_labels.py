@@ -124,6 +124,42 @@ def visualize_one(wrapper, row, cfg, out_path):
     plt.close(fig)
 
 
+def _stratified_sample(df, n: int, min_risky: int, rng) -> list[int]:
+    """기동별 층화 + 위험 장면 보장 추출.
+
+    trainval은 STRAIGHT가 절반이라 균등 추출하면 검수 20장 중 대부분이 직진 장면이 된다.
+    라벨 함수가 실제로 판단을 내리는 구간(회전·차선변경·후진·정지, 그리고 임박 위험)을
+    보여줘야 검수가 의미를 가진다.
+    """
+    picked: list[int] = []
+
+    # 1) 위험 장면(min_TTC<3s) 먼저 확보 — 라벨이 가장 크게 갈리는 구간
+    risky = np.flatnonzero(((df["min_ttc"] >= 0) & (df["min_ttc"] < 3.0)).to_numpy())
+    if min_risky > 0 and len(risky):
+        picked += list(rng.choice(risky, size=min(min_risky, len(risky)), replace=False))
+
+    # 2) 남은 자리를 기동 클래스에 고르게 배분
+    groups = {m: np.flatnonzero((df["maneuver"] == m).to_numpy())
+              for m in df["maneuver"].unique()}
+    groups = {m: g for m, g in groups.items() if len(g)}
+    remaining = max(0, n - len(picked))
+    per = max(1, remaining // max(1, len(groups)))
+    for m, g in sorted(groups.items()):
+        avail = np.setdiff1d(g, np.array(picked, dtype=int))
+        if len(avail) == 0 or len(picked) >= n:
+            continue
+        take = min(per, len(avail), n - len(picked))
+        picked += list(rng.choice(avail, size=take, replace=False))
+
+    # 3) 그래도 모자라면 무작위로 채움
+    if len(picked) < n:
+        rest = np.setdiff1d(np.arange(len(df)), np.array(picked, dtype=int))
+        take = min(n - len(picked), len(rest))
+        if take:
+            picked += list(rng.choice(rest, size=take, replace=False))
+    return [int(i) for i in picked[:n]]
+
+
 def main() -> int:
     base, lab = load_configs()
     ap = argparse.ArgumentParser()
@@ -133,6 +169,10 @@ def main() -> int:
     ap.add_argument("--n", type=int, default=20)
     ap.add_argument("--seed", type=int, default=base.get("seed", 42))
     ap.add_argument("--outdir", default="results/label_viz")
+    ap.add_argument("--uniform", action="store_true",
+                    help="기동별 층화 대신 균등 무작위 추출")
+    ap.add_argument("--min_risky", type=int, default=4,
+                    help="min_TTC<3s인 위험 장면 최소 포함 수 (층화 시)")
     args = ap.parse_args()
 
     labels = args.labels or f"data/labels_{args.version}.parquet"
@@ -143,8 +183,13 @@ def main() -> int:
                     require_image_files=base.get("require_image_files", True))
 
     rng = np.random.default_rng(args.seed)
-    idx = rng.choice(len(df), size=min(args.n, len(df)), replace=False)
+    if args.uniform:
+        idx = rng.choice(len(df), size=min(args.n, len(df)), replace=False)
+    else:
+        idx = _stratified_sample(df, args.n, args.min_risky, rng)
+    counts = df.iloc[idx]["maneuver"].value_counts().to_dict()
     print(f"[시각화] {len(idx)}장 생성 → {args.outdir}/")
+    print(f"  구성: {counts}")
     for k, i in enumerate(sorted(idx)):
         row = df.iloc[i]
         out = os.path.join(args.outdir, f"viz_{k:02d}_{row['maneuver']}.png")

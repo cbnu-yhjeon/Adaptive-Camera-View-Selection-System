@@ -6,7 +6,8 @@
 #   ├── maps/  samples/  sweeps/  v1.0-mini/
 #   └── can_bus/
 dataroot: ~/data/nuscenes
-version: v1.0-mini          # v1.0-mini | v1.0-trainval
+version: v1.0-trainval      # v1.0-mini | v1.0-trainval
+# mini 스모크 테스트: --version v1.0-mini --splits splits/scene_split_mini.json
 
 # 이미지 파일이 존재하는 scene만 사용 (trainval 부분집합 대응)
 require_image_files: true
