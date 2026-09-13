@@ -180,35 +180,83 @@ def test_wrap_angle():
     assert abs(wrap_angle(np.radians(190)) - np.radians(-170)) < 1e-9
 
 
-# ============ 보조 뷰 다중 선택 ============
-def test_aux_views_threshold_and_cap():
-    """임계값 이상만, 최대 aux_max개, primary 제외."""
-    from src.labeling.label_function import LabelConfig, select_aux_views
-    cfg = LabelConfig(aux_threshold=0.5, aux_max=2)
-    s = np.array([3.0, 1.2, 0.8, 0.1, 0.0, 0.6])      # 0번이 primary
-    assert select_aux_views(s, primary=0, cfg=cfg) == [1, 2]
-    assert 0 not in select_aux_views(s, primary=0, cfg=cfg)
+# ============ 보조 뷰 슬롯 배정 ============
+def _cfg(**kw):
+    from src.labeling.label_function import LabelConfig
+    return LabelConfig(aux_threshold=0.10, aux_max=2, m_guard=0.9, **kw)
 
 
-def test_aux_views_can_be_empty():
-    """아무것도 임계값을 넘지 못하면 보조 뷰 없음 — 인지부하 절감의 핵심."""
-    from src.labeling.label_function import LabelConfig, select_aux_views
-    cfg = LabelConfig(aux_threshold=0.5, aux_max=2)
-    s = np.array([1.0, 0.2, 0.1, 0.0, 0.05, 0.3])
-    assert select_aux_views(s, primary=0, cfg=cfg) == []
-
-
-def test_aux_views_maneuver_term_keeps_blind_side_on():
-    """검출된 객체가 0이어도 기동 항만으로 차선변경 방향은 켜져야 한다.
-
-    검출 실패 시 화면이 꺼지는 것이 가장 위험한 실패 모드다.
-    """
-    from src.labeling.label_function import LabelConfig, select_aux_views
+def test_aux_slot_risk_only_when_no_maneuver():
+    """직진(사각지대 없음)이면 위험 항만으로 채운다."""
+    from src.labeling.label_function import select_aux_views
     from src.utils.constants import maneuver_view_vector
-    cfg = LabelConfig(aux_threshold=0.5, aux_max=2)
-    s = np.array(maneuver_view_vector("LANE_CHANGE_LEFT"))   # 위험 0, 기동 항만
-    aux = select_aux_views(s, primary=0, cfg=cfg)
-    assert len(aux) >= 1 and 4 in aux                        # 4 = CAM_BACK_LEFT
+    m = np.array(maneuver_view_vector("STRAIGHT"))          # FRONT(=primary)만 1.0
+    risk = np.array([0.9, 0.4, 0.2, 0.05, 0.0, 0.03])
+    assert select_aux_views(risk, m, primary=0, cfg=_cfg()) == [1, 2]
+
+
+def test_aux_can_be_empty():
+    """위험도 사각지대도 없으면 강조하지 않는다 — 인지부하 절감의 핵심."""
+    from src.labeling.label_function import select_aux_views
+    from src.utils.constants import maneuver_view_vector
+    m = np.array(maneuver_view_vector("STRAIGHT"))
+    risk = np.array([0.5, 0.02, 0.0, 0.01, 0.0, 0.05])
+    assert select_aux_views(risk, m, primary=0, cfg=_cfg()) == []
+
+
+def test_aux_blind_side_guaranteed_without_any_detection():
+    """검출이 0이어도 차선변경 사각지대(후측방)는 반드시 켜진다."""
+    from src.labeling.label_function import select_aux_views
+    from src.utils.constants import maneuver_view_vector
+    m = np.array(maneuver_view_vector("LANE_CHANGE_LEFT"))  # BACK_LEFT=1.0
+    aux = select_aux_views(np.zeros(6), m, primary=0, cfg=_cfg())
+    assert aux == [4]                                        # 4 = CAM_BACK_LEFT
+
+
+def test_aux_risk_takes_remaining_slot_during_maneuver():
+    """사각지대 1장을 보장하고 남은 슬롯은 위험이 가져간다 (기동 항이 독점하지 않음)."""
+    from src.labeling.label_function import select_aux_views
+    from src.utils.constants import maneuver_view_vector
+    m = np.array(maneuver_view_vector("LANE_CHANGE_LEFT"))   # BACK_LEFT 1.0, FRONT_LEFT 0.5
+    risk = np.array([0.0, 0.8, 0.0, 0.0, 0.0, 0.1])          # 위험은 FRONT_RIGHT에
+    aux = select_aux_views(risk, m, primary=0, cfg=_cfg())
+    assert aux == [4, 1], f"기대 [BACK_LEFT, FRONT_RIGHT], 실제 {aux}"
+
+
+def test_merge_aux_flicker():
+    """A B A 패턴의 가운데 단발 변경을 이전 집합으로 병합."""
+    from src.labeling.label_function import merge_aux_flicker
+    out = merge_aux_flicker([[1], [1], [3], [1], [1]])
+    assert [set(a) for a in out] == [{1}, {1}, {1}, {1}, {1}]
+
+
+def test_maneuver_term_survives_smoothing():
+    """STRAIGHT 사이에 낀 차선변경 프레임에서도 기동 항이 온전히 살아 있어야 한다.
+
+    기동 항까지 EMA에 넣으면 (1-α)=0.3배로 희석되어 λ·m=0.4가 0.12로 떨어지고,
+    임계값 0.15를 넘지 못해 사각지대 뷰가 꺼진다.
+    """
+    from src.labeling.label_function import smooth_scores
+    from src.utils.constants import maneuver_view_vector
+    n = 7
+    risks = [np.zeros(6) for _ in range(n)]                 # 검출된 위험 없음
+    m = [np.array(maneuver_view_vector("STRAIGHT"))] * n
+    m[3] = np.array(maneuver_view_vector("LANE_CHANGE_LEFT"))
+    s = smooth_scores(risks, m, alpha=0.7, lambda_m=0.4)
+    assert s[3][4] == 0.4                                   # BACK_LEFT = λ·m 온전히
+    assert s[3][4] >= 0.15                                  # 임계값 통과 → 사각지대 켜짐
+    assert s[2][4] == 0.0                                   # 직진 프레임엔 번지지 않음
+
+
+def test_risk_term_is_still_smoothed():
+    """위험 항은 여전히 평활되어야 한다 — 검출 지터 억제가 EMA의 목적."""
+    from src.labeling.label_function import smooth_scores
+    risks = [np.zeros(6) for _ in range(4)]
+    risks[2][1] = 1.0                                       # 한 프레임만 튐
+    m = [np.zeros(6)] * 4
+    s = smooth_scores(risks, m, alpha=0.7, lambda_m=0.4)
+    assert s[2][1] < 1.0                                    # 스파이크가 눌리고
+    assert s[3][1] > 0.0                                    # 뒤 프레임으로 번진다
 
 
 if __name__ == "__main__":

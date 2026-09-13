@@ -44,15 +44,16 @@ class LabelConfig:
     v_r_min: float = 0.1
     # 위험 재정의 (B.4-(2),(3))
     ttc_mode: str = "cpa"        # cpa | radial(ablation)
-    d_near: float = 2.0          # 최접근 거리가 이보다 가까우면 경로 감쇠 없음
-    d_scale: float = 2.0         # 초과분 지수 감쇠 스케일
+    d_near: float = 4.0          # 최접근 거리가 이보다 가까우면 경로 감쇠 없음
+    d_scale: float = 3.0         # 초과분 지수 감쇠 스케일
     rho_min: float = 0.05        # 경로 무관 객체의 하한
-    d_hazard: float = 3.0        # '임박 위험 객체' 판정: 최접근 거리가 이보다 가까울 것
+    d_hazard: float = 5.0        # '임박 위험 객체' 판정: 최접근 거리가 이보다 가까울 것
     attr_weight: dict = field(default_factory=dict)   # 비면 DEFAULT_ATTR_WEIGHT
     # 보조 뷰 선택 (B.4-(6))
-    aux_threshold: float = 0.5   # s(c)가 이 값 이상인 비-primary 채널만 강조
+    aux_threshold: float = 0.10  # 위험 슬롯 임계 — 순수 위험 항 기준(기동 항 제외)
     aux_max: int = 2             # 동시에 강조할 최대 채널 수
-    lambda_m: float = 1.0
+    m_guard: float = 0.9         # 기동 적합도가 이 값 이상인 채널을 사각지대로 보장
+    lambda_m: float = 0.4
     T_soft: float = 0.5
     ema_alpha: float = 0.7
     flicker_merge: bool = True
@@ -178,21 +179,45 @@ def _argmax_excl(scores: np.ndarray, excl: int) -> int:
     return int(np.argmax(m))
 
 
-def select_aux_views(scores: np.ndarray, primary: int, cfg: LabelConfig) -> list[int]:
-    """강조할 보조 채널 목록 (0~aux_max개) — 임계값 기반 다중 선택.
+def select_aux_views(risk: np.ndarray, m_vec: np.ndarray, primary: int,
+                     cfg: LabelConfig) -> list[int]:
+    """강조할 보조 채널 목록 (0~aux_max개) — **슬롯을 역할로 나눠** 배정한다.
 
-    항상 1장을 고르면 위험도 기동도 없는 프레임에서도 화면이 켜져 오퍼레이터가
-    보조 뷰를 무시하게 된다(실측: 16.2%의 프레임이 위험 기여 없이 기동 항만으로 선택됨).
-    반대로 차선변경처럼 측방과 후측방이 동시에 중요한 상황은 1장으로 표현할 수 없다.
-    s(c) ≥ aux_threshold인 비-primary 채널을 점수 순으로 최대 aux_max개 고른다.
+    슬롯 1 (안전 기본값): 기동이 만드는 사각지대 채널. 차선변경이면 후측방, 회전이면
+      회전 방향. **검출된 객체가 없어도 켠다** — 사각을 봐야 하는 이유는 "객체가
+      검출돼서"가 아니라 "안 보여서"이고, 검출 실패 시 화면이 꺼지는 것이 이 시스템의
+      가장 위험한 실패 모드다.
+    슬롯 2~ (위험): 순수 위험 항 기준 상위 채널 중 risk ≥ aux_threshold.
 
-    임계값을 위험 항이 아니라 s(c)=위험+λ·m(c) 전체에 거는 것이 핵심이다. 기동 항
-    덕분에 **검출된 객체가 하나도 없어도 차선변경 방향은 켜진다** — 검출 실패 시
-    화면이 꺼지는 것이 이 시스템의 가장 위험한 실패 모드이기 때문이다.
+    하나의 임계값을 합산 점수 s(c)에 걸면 기동 항이 슬롯을 모두 차지해 실제 위험이
+    밀려난다(실측: 차선변경 중 위험 커버 60.6%). 역할을 나누면 사각지대를 보장하면서도
+    남은 슬롯을 위험이 가져간다(70.3%).
     """
-    order = [c for c in np.argsort(-scores) if c != primary]
-    return [int(c) for c in order[:max(0, cfg.aux_max)]
-            if scores[c] >= cfg.aux_threshold]
+    sel: list[int] = []
+    cand = [c for c in np.argsort(-m_vec) if c != primary and m_vec[c] >= cfg.m_guard]
+    if cand:
+        sel.append(int(cand[0]))
+    for c in np.argsort(-risk):
+        if len(sel) >= max(0, cfg.aux_max):
+            break
+        if c == primary or int(c) in sel:
+            continue
+        if risk[c] >= cfg.aux_threshold:
+            sel.append(int(c))
+    return sel[:max(0, cfg.aux_max)]
+
+
+def merge_aux_flicker(aux_seq: list[list[int]]) -> list[list[int]]:
+    """A B A 패턴에서 1-keyframe(0.5s)짜리 단발 변경을 이전 집합으로 병합.
+
+    attention 단일 채널에만 적용하던 병합을 보조 뷰 '집합'으로 확장한다.
+    기동 항을 평활하지 않게 되면서 기동 경계에서 집합이 튀는 빈도가 늘었다.
+    """
+    out = [list(a) for a in aux_seq]
+    for i in range(1, len(out) - 1):
+        if set(out[i - 1]) == set(out[i + 1]) and set(out[i]) != set(out[i - 1]):
+            out[i] = list(out[i - 1])
+    return out
 
 
 def _softmax_excl(x: np.ndarray, temp: float, excl: int) -> np.ndarray:
@@ -231,15 +256,37 @@ def _resolve_views(rows: list[dict], ema: list[np.ndarray], cfg: LabelConfig):
     return primary, attention
 
 
+def smooth_scores(risks: list[np.ndarray], m_vecs: list[np.ndarray],
+                  alpha: float, lambda_m: float) -> list[np.ndarray]:
+    """s(c) = EMA(위험 항) + λ·m(c) — **기동 항은 평활하지 않는다.**
+
+    EMA는 프레임마다 흔들리는 *검출 위험*을 안정화하려는 장치다. 기동 상태는 이미
+    ±3초 ego pose 윈도우로 추론된 안정적인 신호라, 여기서 다시 평활하면 이중 스무딩이
+    되어 기동 항이 이웃 프레임에 희석된다. 실제로 STRAIGHT 사이에 낀 차선변경
+    프레임에서 후측방 항(λ·m=0.4)이 0.12까지 떨어져 임계값(0.15)을 넘지 못했고,
+    "차선변경 중에는 사각지대를 반드시 켠다"는 안전 기본값이 무력화됐다.
+    """
+    return [e + lambda_m * m for e, m in zip(smooth_risk(risks, alpha), m_vecs)]
+
+
+def smooth_risk(risks: list[np.ndarray], alpha: float) -> list[np.ndarray]:
+    """위험 항 EMA — 검출 지터를 눌러 라벨 flicker를 줄인다."""
+    out, ema = [], None
+    for r in risks:
+        ema = r if ema is None else alpha * ema + (1 - alpha) * r
+        out.append(ema)
+    return out
+
+
 def generate_scene_labels(wrapper, scene_token: str, cfg: LabelConfig) -> list[dict]:
-    """scene 전체 keyframe 라벨 (EMA 스무딩 + primary/attention + flicker 병합)."""
+    """scene 전체 keyframe 라벨 (위험 항 EMA + primary/aux + flicker 병합)."""
     toks = wrapper.sample_tokens_in_scene(scene_token)
-    rows, raw_s = [], []
+    rows, risks, m_vecs = [], [], []
     for st in toks:
         risk, n_obj, min_ttc = compute_channel_scores(wrapper, st, cfg)
         maneuver = infer_sample_maneuver(wrapper, st, cfg)
-        m_vec = np.array(maneuver_view_vector(maneuver), dtype=np.float64)
-        raw_s.append(risk + cfg.lambda_m * m_vec)
+        risks.append(risk)
+        m_vecs.append(np.array(maneuver_view_vector(maneuver), dtype=np.float64))
         rows.append({
             "sample_token": st,
             "scene_token": scene_token,
@@ -250,10 +297,9 @@ def generate_scene_labels(wrapper, scene_token: str, cfg: LabelConfig) -> list[d
             "min_ttc": float(min_ttc if min_ttc != TTC_INF else -1.0),  # inf→-1
         })
 
-    # --- EMA 스무딩 ---
-    ema = []
-    for i, s in enumerate(raw_s):
-        ema.append(s if i == 0 else cfg.ema_alpha * ema[-1] + (1 - cfg.ema_alpha) * s)
+    # --- 위험 항만 EMA 스무딩하고 기동 항은 원값으로 더한다 ---
+    ema_risk = smooth_risk(risks, cfg.ema_alpha)
+    ema = [e + cfg.lambda_m * m for e, m in zip(ema_risk, m_vecs)]
 
     primary, attention = _resolve_views(rows, ema, cfg)
 
@@ -263,11 +309,17 @@ def generate_scene_labels(wrapper, scene_token: str, cfg: LabelConfig) -> list[d
             if attention[i - 1] == attention[i + 1] and attention[i] != attention[i - 1]:
                 attention[i] = attention[i - 1]
 
+    # --- 보조 뷰 집합 + 단발 변경 병합 ---
+    aux_seq = [select_aux_views(ema_risk[i], m_vecs[i], primary[i], cfg)
+               for i in range(len(rows))]
+    if cfg.flicker_merge:
+        aux_seq = merge_aux_flicker(aux_seq)
+
     # --- 컬럼 채우기 ---
     for i, row in enumerate(rows):
         s_smooth = ema[i]
         soft = _softmax_excl(s_smooth, cfg.T_soft, primary[i])
-        aux = select_aux_views(s_smooth, primary[i], cfg)
+        aux = aux_seq[i]
         for c in range(NUM_CAMERAS):
             row[f"s_{c}"] = float(s_smooth[c])
             row[f"soft_{c}"] = float(soft[c])
