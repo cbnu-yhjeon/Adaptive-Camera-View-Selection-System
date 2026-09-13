@@ -25,6 +25,7 @@ from torch.utils.data import DataLoader
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
+from src.data import contrib_cache  # noqa: E402
 from src.data.dataset import ViewSelectionDataset, collate  # noqa: E402
 from src.data.feature_cache import FeatureCache  # noqa: E402
 from src.data.nusc_wrapper import NuscWrapper  # noqa: E402
@@ -58,12 +59,15 @@ def set_seed(seed):
 def build_datasets(base, lab, tc, args):
     w = NuscWrapper(args.dataroot, base["version"],
                     require_image_files=base.get("require_image_files", True))
-    fc = FeatureCache(os.path.join(base.get("cache_dir", "cache"), base["version"]))
+    cache_dir = os.path.join(base.get("cache_dir", "cache"), base["version"])
+    fc = FeatureCache(cache_dir)
     df = pd.read_parquet(f"data/labels_{base['version']}.parquet")
-    split = split_for_names(load_split(base["splits_file"]),
+    split = split_for_names(load_split(args.splits),
                             {w.scene_name(t) for t in w.scene_tokens()})
     label_cfg = LabelConfig.from_dict(lab)
     tr = tc["train"]
+    # 위험 기여·CAN은 실행마다 다시 계산하지 않고 캐시에서 읽는다(없으면 1회 생성).
+    cc = contrib_cache.load_or_build(w, w.all_sample_tokens(), label_cfg, cache_dir)
 
     def mk(names, is_train):
         return ViewSelectionDataset(
@@ -71,7 +75,7 @@ def build_datasets(base, lab, tc, args):
             risk_source=tr.get("risk_source", "gt"),
             noise_preset=tr.get("noise_preset", "clean"),
             train_risk_noise=(is_train and tr.get("risk_noise", False)),
-            seed=base.get("seed", 42))
+            seed=base.get("seed", 42), contrib_cache=cc)
 
     return fc, mk(split["train"], True), mk(split["val"], False)
 
@@ -102,10 +106,13 @@ def main() -> int:
     ap.add_argument("--epochs", type=int, default=None)
     ap.add_argument("--overfit", action="store_true", help="train셋 성능도 리포트(sanity)")
     ap.add_argument("--dataroot", default=None)
+    # mini 스모크 테스트는 trainval 분할에서 val이 비므로 mini 전용 분할을 쓴다.
+    ap.add_argument("--splits", default=None)
     args = ap.parse_args()
 
     base, lab, tc = load_cfgs(args.config)
     args.dataroot = args.dataroot or base["dataroot"]
+    args.splits = args.splits or base["splits_file"]
     seed = base.get("seed", 42)
     set_seed(seed)
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -145,6 +152,9 @@ def main() -> int:
     history = []
     for ep in range(epochs):
         model.train()
+        # epoch마다 다른 노이즈 실현을 뽑게 한다(고정 노이즈 암기 방지 — 강건성의 전제).
+        # DataLoader 이터레이터 생성 전에 호출해야 워커에 반영된다.
+        train_ds.set_epoch(ep)
         losses = []
         for batch in train_dl:
             batch = to_device(batch, device)

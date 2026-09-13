@@ -13,6 +13,17 @@ scene 경계에서는 앞을 패딩하고 마스크로 표시한다.
 
 risk_source: gt | noisy | none  (+ 향후 lidar 훅). train_risk_noise=True면
 학습 증강으로 매 아이템 노이즈 프리셋을 무작위 적용.
+
+노이즈 난수 정책 (원칙 2·4)
+--------------------------
+- **학습 증강**: 같은 샘플이라도 epoch마다 다른 노이즈 실현을 봐야 한다. 그렇지
+  않으면 고정된 손상 데이터를 암기하게 되어 강건성(M7)이 증명되지 않는다.
+  시드는 (seed, epoch, index)의 결정적 함수이므로 재현성은 유지된다.
+  학습 루프가 epoch마다 `set_epoch()`를 호출해야 한다.
+- **평가**: (seed, index)만 사용해 아이템별로 고정한다. 제안 모델과 B2가
+  **동일한 손상 입력**을 보아야 열화 곡선 비교가 성립하기 때문이다.
+- 검출 품질(프리셋)과 카메라 결손(블랙아웃)은 2초 시퀀스 안에서 유지되는 성질이므로
+  프레임마다 다시 뽑지 않고 **아이템 단위로 한 번** 정한다.
 """
 
 from __future__ import annotations
@@ -28,11 +39,23 @@ from src.labeling.label_function import (
 from src.utils.constants import D_CAN, MANEUVER_INDEX, NUM_CAMERAS
 
 
+def item_rng(base_seed: int, index: int, epoch: int | None) -> np.random.Generator:
+    """아이템용 난수 생성기.
+
+    epoch=None이면 (seed, index)만으로 결정 → 실행·모델에 무관하게 항상 같은 노이즈.
+    epoch가 주어지면 epoch마다 다른 실현이 나오되 (seed, epoch, index)로 재현 가능하다.
+    """
+    if epoch is None:
+        return np.random.default_rng([base_seed, index])
+    return np.random.default_rng([base_seed, epoch, index])
+
+
 class ViewSelectionDataset(Dataset):
     def __init__(self, wrapper, feature_cache, labels_df, label_cfg: LabelConfig,
                  scene_names: list[str], seq_len: int = 4,
                  risk_source: str = "gt", noise_preset: str = "clean",
-                 train_risk_noise: bool = False, seed: int = 42):
+                 train_risk_noise: bool = False, seed: int = 42,
+                 contrib_cache=None):
         self.w = wrapper
         self.fc = feature_cache
         self.cfg = label_cfg
@@ -42,6 +65,7 @@ class ViewSelectionDataset(Dataset):
         self.train_risk_noise = train_risk_noise
         self.feat_dim = feature_cache.feat_dim
         self._base_seed = seed
+        self._epoch = 0
 
         name_set = set(scene_names)
         self.labels = labels_df.set_index("sample_token")
@@ -60,47 +84,88 @@ class ViewSelectionDataset(Dataset):
             for pos in range(len(toks)):
                 self.flat.append((st, pos))
 
-        # 위험 기여 + CAN 특징 사전 계산(메모리 캐시 — mini 규모에 적합)
+        # 위험 기여 + CAN 특징. 디스크 캐시(contrib_cache.ContribCache)가 주어지면
+        # 그대로 쓰고, 없으면 메모리에 직접 계산한다(mini 규모 스모크 테스트용).
+        self._cache = contrib_cache
         self._contribs: dict[str, list] = {}
         self._can: dict[str, tuple] = {}
-        for st, toks in self.scene_tokens.items():
-            for t in toks:
-                self._contribs[t] = channel_risk_contributors(wrapper, t, label_cfg)
-                self._can[t] = wrapper.get_can_features(t)
+        if self._cache is None:
+            for st, toks in self.scene_tokens.items():
+                for t in toks:
+                    self._contribs[t] = channel_risk_contributors(wrapper, t, label_cfg)
+                    self._can[t] = wrapper.get_can_features(t)
 
         # 노이즈 파라미터(위험 재계산 정합)
         self._risk_params = dict(tau=label_cfg.tau, w_type=label_cfg.w_type,
                                  w_min_near=label_cfg.w_min_near,
                                  near_range=label_cfg.near_range)
+        self._nc: dict[str, object] = {}     # 프리셋별 NoiseConfig 재사용
 
     def __len__(self):
         return len(self.flat)
 
+    def set_epoch(self, epoch: int) -> None:
+        """학습 루프가 epoch마다 호출한다 — 증강 노이즈를 매 epoch 새로 뽑기 위함.
+
+        DataLoader 워커는 epoch마다 다시 포크되므로, 이터레이터를 만들기 전에
+        호출해야 워커에 값이 전달된다.
+        """
+        self._epoch = int(epoch)
+
     # ------------------------------------------------------------------
-    def _risk_and_blackout(self, token: str, rng: np.random.Generator):
-        """risk_source 조건에 따른 (risk_vec[6], blackout 채널 목록)."""
+    def _get_contribs(self, token: str) -> list[dict]:
+        return self._cache.get(token) if self._cache is not None else self._contribs[token]
+
+    def _get_can(self, token: str):
+        return self._cache.can(token) if self._cache is not None else self._can[token]
+
+    def _noise_config(self, preset: str):
+        """프리셋별 NoiseConfig. 블랙아웃은 아이템 단위로 따로 다루므로 여기선 끈다."""
+        if preset not in self._nc:
+            self._nc[preset] = make_noise_config(
+                preset, risk_params=self._risk_params, n_blackout=0)
+        return self._nc[preset]
+
+    def _item_noise(self, rng: np.random.Generator):
+        """아이템 전체에 고정되는 노이즈 조건 → (source, preset, blackout 채널).
+
+        검출 품질과 카메라 결손은 2초 시퀀스 내내 유지되는 성질이라 프레임마다
+        다시 뽑지 않는다.
+        """
         source = self.risk_source
         preset = self.noise_preset
         if self.train_risk_noise:                  # 학습 증강: 노이즈 강제
             source = "noisy"
             preset = str(rng.choice(["light", "medium"]))
 
-        contribs = self._contribs[token]
-        if source == "none":
-            return np.zeros(NUM_CAMERAS, dtype=np.float32), []
-        if source == "gt":
-            return risk_vector_from_contribs(contribs).astype(np.float32), []
+        blackout: list[int] = []
         if source == "noisy":
-            nc = make_noise_config(preset, risk_params=self._risk_params)
-            res = apply_noise(contribs, rng, nc)
-            return risk_vector_from_contribs(res.contribs).astype(np.float32), res.blackout
+            n_blk = make_noise_config(preset, risk_params=self._risk_params).n_blackout
+            if n_blk > 0:
+                blackout = [int(c) for c in rng.choice(
+                    NUM_CAMERAS, size=min(n_blk, NUM_CAMERAS), replace=False)]
+        return source, preset, blackout
+
+    def _risk_vector(self, token: str, rng: np.random.Generator,
+                     source: str, preset: str) -> np.ndarray:
+        """risk_source 조건에 따른 채널 위험도 벡터(6)."""
+        if source == "none":
+            return np.zeros(NUM_CAMERAS, dtype=np.float32)
+        contribs = self._get_contribs(token)
+        if source == "gt":
+            return risk_vector_from_contribs(contribs).astype(np.float32)
+        if source == "noisy":
+            res = apply_noise(contribs, rng, self._noise_config(preset))
+            return risk_vector_from_contribs(res.contribs).astype(np.float32)
         # 향후: source == "lidar" → LiDAR 검출기 contributors 사용
         raise ValueError(f"알 수 없는 risk_source: {source}")
 
     def __getitem__(self, i: int):
         scene_token, pos = self.flat[i]
         toks = self.scene_tokens[scene_token]
-        rng = np.random.default_rng(self._base_seed + i)
+        # 학습 증강일 때만 epoch를 시드에 섞는다(위 '노이즈 난수 정책' 참조).
+        rng = item_rng(self._base_seed, i, self._epoch if self.train_risk_noise else None)
+        source, preset, blackout = self._item_noise(rng)
 
         T = self.seq_len
         img = np.zeros((T, NUM_CAMERAS, self.feat_dim), dtype=np.float32)
@@ -116,12 +181,11 @@ class ViewSelectionDataset(Dataset):
             tok = toks[src_pos]
             pad_mask[k] = 1.0
             img[k] = self.fc.get(tok)
-            feat, mask = self._can[tok]
+            feat, mask = self._get_can(tok)
             can[k, :len(feat)] = feat
             can[k, -1] = mask
-            rv, blackout = self._risk_and_blackout(tok, rng)
-            risk[k] = rv
-            for ch in blackout:                     # 채널 블랙아웃: img_feat 0
+            risk[k] = self._risk_vector(tok, rng, source, preset)
+            for ch in blackout:                     # 채널 결손: img_feat 0 (시퀀스 내내 유지)
                 img[k, ch] = 0.0
 
         row = self.labels.loc[toks[pos]]

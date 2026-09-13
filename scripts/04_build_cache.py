@@ -23,6 +23,7 @@ from torch.utils.data import DataLoader
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
+from src.data import contrib_cache  # noqa: E402
 from src.data.dataset import ViewSelectionDataset, collate  # noqa: E402
 from src.data.feature_cache import FeatureCache, build_feature_cache  # noqa: E402
 from src.data.nusc_wrapper import NuscWrapper  # noqa: E402
@@ -45,6 +46,8 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--dataroot", default=base["dataroot"])
     ap.add_argument("--version", default=base["version"])
+    # mini 스모크 테스트는 trainval 분할에서 val이 비므로 mini 전용 분할을 쓴다.
+    ap.add_argument("--splits", default=base["splits_file"])
     ap.add_argument("--force", action="store_true")
     ap.add_argument("--risk_source", default="gt", choices=["gt", "noisy", "none"])
     ap.add_argument("--noise", default="clean", choices=["clean", "light", "medium", "heavy"])
@@ -65,12 +68,19 @@ def main() -> int:
     fc = FeatureCache(cache_dir)
     print(f"  캐시 로드 OK (feat_dim={fc.feat_dim}), {time.time()-t0:.1f}s\n")
 
-    # 2) 분할 + Dataset
+    # 2) 위험 기여 + CAN 캐시 (없으면 생성 — 이후 모든 학습/평가가 재사용)
+    t0 = time.time()
+    cc = contrib_cache.load_or_build(w, w.all_sample_tokens(),
+                                     LabelConfig.from_dict(lab), cache_dir,
+                                     force=args.force)
+    print(f"  기여캐시 준비 {time.time()-t0:.1f}s\n")
+
+    # 3) 분할 + Dataset
     df = pd.read_parquet(labels_path)
-    split = split_for_names(load_split(base["splits_file"]),
+    split = split_for_names(load_split(args.splits),
                             {w.scene_name(t) for t in w.scene_tokens()})
     label_cfg = LabelConfig.from_dict(lab)
-    print(f"분할: train {len(split['train'])} / val {len(split['val'])} / "
+    print(f"분할({args.splits}): train {len(split['train'])} / val {len(split['val'])} / "
           f"test {len(split['test'])} scenes")
 
     sets = {}
@@ -78,11 +88,12 @@ def main() -> int:
         ds = ViewSelectionDataset(
             w, fc, df, label_cfg, split[name], seq_len=lab.get("seq_len", 4),
             risk_source=args.risk_source, noise_preset=args.noise,
-            train_risk_noise=(name == "train" and args.risk_source == "noisy"))
+            train_risk_noise=(name == "train" and args.risk_source == "noisy"),
+            seed=base.get("seed", 42), contrib_cache=cc)
         sets[name] = ds
         print(f"  {name}: {len(ds)} keyframe")
 
-    # 3) 배치 shape 검증
+    # 4) 배치 shape 검증
     print("\n=== 배치 shape 검증 ===")
     dl = DataLoader(sets["train"], batch_size=args.batch_size, shuffle=False,
                     collate_fn=collate, num_workers=0)
@@ -97,7 +108,7 @@ def main() -> int:
     assert batch["risk"].shape == (B, 4, 6)
     print("  ✅ shape 검증 통과")
 
-    # 4) 1 epoch 벤치마크 (WeightedRandomSampler)
+    # 5) 1 epoch 벤치마크 (WeightedRandomSampler)
     print("\n=== 1 epoch 순회 벤치마크 (train, sampler) ===")
     sampler = sets["train"].make_sampler()
     dl = DataLoader(sets["train"], batch_size=args.batch_size, sampler=sampler,

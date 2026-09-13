@@ -61,11 +61,15 @@ class LabelConfig:
         return cfg
 
 
-def _channel_visibility(wrapper, sample_token, box, ego) -> list[int]:
-    """박스가 보이는 채널 인덱스 목록 (0~5)."""
+def _channel_visibility(calibs: list[dict], box, ego) -> list[int]:
+    """박스가 보이는 채널 인덱스 목록 (0~5).
+
+    calibs는 CAMERAS 순서의 캘리브레이션 6개. 캘리브레이션은 프레임 단위로 같으므로
+    호출자가 프레임당 한 번만 조회해 넘긴다(박스마다 다시 조회하면 34k keyframe 규모에서
+    devkit 조회와 배열 생성이 지배적인 비용이 된다).
+    """
     vis = []
-    for ci, cam in enumerate(CAMERAS):
-        cal = wrapper.get_camera_calib(sample_token, cam)
+    for ci, cal in enumerate(calibs):
         if point_visible_in_camera(box["global_center"], ego["translation"],
                                    ego["rotation"], cal["translation"],
                                    cal["rotation"], cal["intrinsic"],
@@ -82,6 +86,7 @@ def channel_risk_contributors(wrapper, sample_token, cfg: LabelConfig) -> list[d
     ego = wrapper.get_ego_pose(sample_token)
     ego_vel = wrapper.get_ego_velocity(sample_token)
     boxes = wrapper.get_boxes(sample_token, cfg.categories, cfg.max_range)
+    calibs = [wrapper.get_camera_calib(sample_token, cam) for cam in CAMERAS]
 
     contribs = []
     for box in boxes:
@@ -93,7 +98,7 @@ def channel_risk_contributors(wrapper, sample_token, cfg: LabelConfig) -> list[d
         r = horizontal_range(box["global_center"], ego["translation"])
         w = risk_weight(ttc, r, tau=cfg.tau, w_type=cfg.w_type,
                         w_min_near=cfg.w_min_near, near_range=cfg.near_range)
-        vis = _channel_visibility(wrapper, sample_token, box, ego)
+        vis = _channel_visibility(calibs, box, ego)
         contribs.append({"vis": vis, "r": float(r), "ttc": float(ttc), "w": float(w)})
     return contribs
 

@@ -274,6 +274,16 @@ GT 객체 리스트에 다음을 적용해 위험도 벡터를 재계산:
 - **채널 블랙아웃**: 지정 채널의 img_feat를 0으로, 위험도는 유지/제거 옵션.
 - 강도 프리셋: `light / medium / heavy` (M7의 x축).
 
+### 난수 정책 (원칙 2·4의 교차점 — 위반 시 M7이 무효)
+- **학습 증강**: 시드는 `(seed, epoch, index)`. 같은 샘플이라도 epoch마다 다른 노이즈
+  실현을 봐야 한다. 인덱스만으로 시드하면 고정된 손상 입력을 암기하게 되어 강건성이
+  증명되지 않는다. 학습 루프는 epoch마다 `dataset.set_epoch(ep)`를 호출한다
+  (DataLoader 이터레이터 생성 **전에** 호출해야 워커에 반영된다).
+- **평가**: 시드는 `(seed, index)`만. 제안 모델과 B2가 **동일한 손상 입력**을 봐야
+  열화 곡선 비교가 성립한다.
+- **아이템 단위 고정**: 검출 품질(프리셋)과 카메라 결손(블랙아웃 채널)은 2초 시퀀스
+  안에서 유지되는 성질이므로 프레임마다 다시 뽑지 않는다.
+
 ## B.7 베이스라인 명세 (M5)
 
 | ID | 정의 | 구현 |
@@ -355,6 +365,9 @@ GT 객체 리스트에 다음을 적용해 위험도 벡터를 재계산:
       추출해 `cache/{version}/feat_{camera}.npy` (memmap) 저장. 재실행 시 스킵.
 - [ ] `dataset.py`: (B.5 입력 명세) 시퀀스 조립, scene 경계 처리(패딩+마스크),
       risk_source 분기, noise.py 연동, WeightedRandomSampler.
+- [ ] `data/contrib_cache.py`: 위험 기여(GT 박스 투영) + CAN 특징을 npz로 캐시.
+      Dataset이 실행마다 재계산하면 trainval 34k keyframe × 실험 10여 회가 낭비된다.
+      캐시 키는 contributors 값을 바꾸는 LabelConfig 필드만 반영.
 - [ ] `scripts/04_build_cache.py` + 로더 1 epoch 순회 벤치마크.
 - ✅ 배치 shape 검증 테스트 통과, mini 기준 1 epoch < 1분 (캐시 사용 시).
 
