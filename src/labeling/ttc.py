@@ -80,6 +80,33 @@ def compute_ttc(p_obj, p_ego, v_obj, v_ego,
     raise ValueError(f"알 수 없는 ttc mode: {mode}")
 
 
+def near_floor(p_obj, p_ego, v_ego, r: float, w_min_near: float = 0.3,
+               near_range: float = 10.0, touch_range: float = 2.0,
+               stop_speed: float = 0.5) -> float:
+    """근접 보정의 실효 하한 — **진행 방향 쪽 객체에만** 적용한다.
+
+    근접 보정은 "저속으로 다가가다 부딪힐 수 있는 객체"를 놓치지 않으려는 장치다
+    (후진·주차). 방향 조건 없이 r<near_range 전부에 적용하면, 이미 지나쳐 뒤에
+    남은 정지 객체에도 최소 가중이 붙어 후방 채널이 켜진다.
+
+    실측 사례(scene-0533): ego가 1.7m/s로 전진 중인데 뒤쪽 3.6m 주차 차량과 6.3m
+    차량이 근접 보정만으로 w=0.145/0.140을 받아 BACK_RIGHT·BACK이 보조 뷰로 뽑혔다.
+    둘 다 TTC=inf(접근하지 않음)였다.
+
+    규칙: 접촉 거리(touch_range) 이내면 방향 무관, 그 밖에서는 진행 방향 반평면에
+    있는 객체만. 정지 중(|v_ego| < stop_speed)이면 내가 부딪힐 일이 없으므로 미적용.
+    """
+    if r >= near_range:
+        return 0.0
+    if r < touch_range:
+        return w_min_near                      # 사실상 접촉 — 방향 무관
+    v = _xy(v_ego)
+    if float(np.linalg.norm(v)) < stop_speed:
+        return 0.0                             # 정지 중 — 내가 다가가지 않는다
+    p_rel = _xy(p_obj) - _xy(p_ego)
+    return w_min_near if float(np.dot(p_rel, v)) > 0.0 else 0.0
+
+
 def attr_path_gate(dca: float, d_touch: float = 1.5, d_scale: float = 2.0) -> float:
     """경로 위 객체에 대해 상태 감쇠를 해제하는 정도 ∈ [0, 1] (1 = 감쇠 없음).
 

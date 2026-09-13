@@ -25,7 +25,7 @@ import numpy as np
 from src.labeling.maneuver import ManeuverThresholds, infer_maneuver
 from src.labeling.ttc import (
     TTC_INF, attr_path_gate, closest_approach, compute_ttc, horizontal_range,
-    path_factor, risk_weight,
+    near_floor, path_factor, risk_weight,
 )
 from src.utils.constants import (
     CAMERAS, CAMERA_INDEX, NUM_CAMERAS, attribute_weight, maneuver_to_layout_index,
@@ -51,6 +51,7 @@ class LabelConfig:
     d_hazard: float = 5.0        # '임박 위험 객체' 판정: 최접근 거리가 이보다 가까울 것
     attr_exempt_touch: float = 1.5   # 이 거리 이내로 최접근하면 상태 감쇠를 완전히 해제
     attr_exempt_scale: float = 2.0   # 해제 정도의 감쇠 스케일 (0이면 예외 없음)
+    touch_range: float = 2.0     # 이 거리 이내면 근접 보정을 방향과 무관하게 적용
     attr_weight: dict = field(default_factory=dict)   # 비면 DEFAULT_ATTR_WEIGHT
     # 보조 뷰 선택 (B.4-(6))
     aux_threshold: float = 0.10  # 위험 슬롯 임계 — 순수 위험 항 기준(기동 항 제외)
@@ -122,11 +123,17 @@ def channel_risk_contributors(wrapper, sample_token, cfg: LabelConfig) -> list[d
         rho = ((a + (1.0 - a) * gate)
                * path_factor(dca, d_near=cfg.d_near, d_scale=cfg.d_scale,
                              rho_min=cfg.rho_min))
+        # 근접 보정은 진행 방향 쪽 객체에만 — 지나쳐 온 정지 객체가 후방 채널을 켜지 않도록.
+        floor = near_floor(box["global_center"][:2], ego["translation"][:2], ego_vel, r,
+                           w_min_near=cfg.w_min_near, near_range=cfg.near_range,
+                           touch_range=cfg.touch_range,
+                           stop_speed=cfg.maneuver_th.stop_speed)
         w = risk_weight(ttc, r, tau=cfg.tau, w_type=cfg.w_type,
-                        w_min_near=cfg.w_min_near, near_range=cfg.near_range, rho=rho)
+                        w_min_near=floor, near_range=cfg.near_range, rho=rho)
         vis = _channel_visibility(calibs, box, ego)
         contribs.append({"vis": vis, "r": float(r), "ttc": float(ttc),
-                         "w": float(w), "rho": float(rho), "dca": float(dca)})
+                         "w": float(w), "rho": float(rho), "dca": float(dca),
+                         "floor": float(floor)})
     return contribs
 
 

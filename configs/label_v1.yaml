@@ -8,8 +8,11 @@ label:
   # TTC / 위험 가중
   tau: 4.0                 # w(TTC)=exp(-TTC/tau)
   w_type: exp              # exp | inv
-  w_min_near: 0.3          # 근접(r<near_range) 최소 가중
-  near_range: 10.0
+  # 근접 보정: 저속으로 다가가다 부딪힐 객체를 놓치지 않기 위한 하한.
+  # **진행 방향 쪽 객체에만** 적용한다 — 지나쳐 온 정지 객체가 후방 채널을 켜던 문제.
+  w_min_near: 0.3          # 근접 최소 가중
+  near_range: 10.0         # 근접 판정 거리
+  touch_range: 2.0         # 이 거리 이내면 방향과 무관하게 적용(사실상 접촉)
   v_r_min: 0.1             # 접근속도 하한(이하이면 TTC=inf)
 
   # 위험 재정의 — radial TTC는 길가 주차 차량을 충돌 임박으로 오판한다.

@@ -84,9 +84,12 @@ def apply_noise(contribs: list[dict], rng: np.random.Generator,
         # ρ(상태·경로 계수)는 검출기가 따로 추정하는 양이므로 위치 노이즈로 바꾸지 않는다.
         # 속성 오분류는 향후 별도 노이즈 유형으로 추가한다.
         rho = float(c.get("rho", 1.0))
+        # 근접 보정 하한은 진행 방향에 따라 라벨 단계에서 결정된 값을 그대로 쓴다.
+        floor = float(c.get("floor", nc.w_min_near))
         w = risk_weight(ttc, r2, tau=nc.tau, w_type=nc.w_type,
-                        w_min_near=nc.w_min_near, near_range=nc.near_range, rho=rho)
-        out.append({"vis": list(c["vis"]), "r": r2, "ttc": ttc, "w": w, "rho": rho})
+                        w_min_near=floor, near_range=nc.near_range, rho=rho)
+        out.append({"vis": list(c["vis"]), "r": r2, "ttc": ttc, "w": w,
+                    "rho": rho, "floor": floor})
 
     # 2) 오검출(FP)
     if nc.lambda_fp > 0:

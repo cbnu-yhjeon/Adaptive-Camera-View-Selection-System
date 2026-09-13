@@ -192,6 +192,32 @@ def test_attr_discount_lifted_on_collision_path():
     assert far < 0.25                              # 원래 감쇠 유지
 
 
+def test_near_floor_only_in_travel_direction():
+    """근접 보정은 진행 방향 쪽 객체에만 — 지나쳐 온 정지 객체는 제외."""
+    from src.labeling.ttc import near_floor
+    v_fwd = [5.0, 0.0]                                    # +x로 전진 중
+    ahead  = near_floor([6.0, 0.0], [0, 0], v_fwd, r=6.0)   # 앞 6m
+    behind = near_floor([-3.6, 0.0], [0, 0], v_fwd, r=3.6)  # 뒤 3.6m (scene-0533 사례)
+    touch  = near_floor([-1.5, 0.0], [0, 0], v_fwd, r=1.5)  # 뒤 1.5m — 접촉 거리
+    far    = near_floor([20.0, 0.0], [0, 0], v_fwd, r=20.0)
+    assert ahead == 0.3 and behind == 0.0 and touch == 0.3 and far == 0.0
+
+
+def test_near_floor_follows_reverse_direction():
+    """후진 중이면 뒤쪽 객체에 적용된다 — 보정의 원래 목적(후진·주차)."""
+    from src.labeling.ttc import near_floor
+    v_rev = [-3.0, 0.0]
+    assert near_floor([-5.0, 0.0], [0, 0], v_rev, r=5.0) == 0.3
+    assert near_floor([5.0, 0.0], [0, 0], v_rev, r=5.0) == 0.0
+
+
+def test_near_floor_off_when_stopped():
+    """정지 중이면 내가 다가가지 않으므로 미적용(접촉 거리는 예외)."""
+    from src.labeling.ttc import near_floor
+    assert near_floor([5.0, 0.0], [0, 0], [0.0, 0.0], r=5.0) == 0.0
+    assert near_floor([1.2, 0.0], [0, 0], [0.0, 0.0], r=1.2) == 0.3
+
+
 # ============ 보조 뷰 슬롯 배정 ============
 def _cfg(**kw):
     from src.labeling.label_function import LabelConfig

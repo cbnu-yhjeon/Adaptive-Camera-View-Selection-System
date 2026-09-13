@@ -19,6 +19,7 @@ tau를 바꾸면 w가 달라지므로 새 캐시가 되지만, ema_alpha·T_soft
     obj_w    (m,)    float32 위험 가중 (ρ 반영 후)
     obj_rho  (m,)    float32 상태·경로 계수 ρ — 노이즈 재계산 시 그대로 재사용
     obj_dca  (m,)    float32 최접근 거리 — '임박 위험' 판정과 평가 지표에 사용
+    obj_floor(m,)    float32 근접 보정 실효 하한 (진행 방향 조건 반영)
     can_feat (n,5)   float32 정규화된 CAN 특징
     can_mask (n,)    float32 1=CAN 존재
 """
@@ -38,7 +39,8 @@ from src.utils.constants import NUM_CAMERAS
 # contributors 값에 실제로 영향을 주는 필드만 캐시 키에 넣는다.
 _KEY_FIELDS = ("categories", "max_range", "tau", "w_type",
                "w_min_near", "near_range", "v_r_min",
-               "ttc_mode", "d_near", "d_scale", "rho_min", "attr_weight")
+               "ttc_mode", "d_near", "d_scale", "rho_min", "attr_weight",
+               "attr_exempt_touch", "attr_exempt_scale", "touch_range")
 
 
 def cache_key(cfg: LabelConfig) -> str:
@@ -63,6 +65,7 @@ def build(wrapper, tokens: list[str], cfg: LabelConfig, path: str,
     w_l: list[float] = []
     rho_l: list[float] = []
     dca_l: list[float] = []
+    floor_l: list[float] = []
     can_feat = np.zeros((n, 5), dtype=np.float32)
     can_mask = np.zeros(n, dtype=np.float32)
 
@@ -78,6 +81,7 @@ def build(wrapper, tokens: list[str], cfg: LabelConfig, path: str,
             w_l.append(c["w"])
             rho_l.append(c.get("rho", 1.0))
             dca_l.append(c.get("dca", 0.0))
+            floor_l.append(c.get("floor", 0.0))
         offsets[i + 1] = len(vis_l)
 
         feat, m = wrapper.get_can_features(tok)
@@ -98,6 +102,7 @@ def build(wrapper, tokens: list[str], cfg: LabelConfig, path: str,
              obj_w=np.array(w_l, dtype=np.float32),
              obj_rho=np.array(rho_l, dtype=np.float32),
              obj_dca=np.array(dca_l, dtype=np.float32),
+             obj_floor=np.array(floor_l, dtype=np.float32),
              can_feat=can_feat,
              can_mask=can_mask)
     if verbose:
@@ -120,6 +125,7 @@ class ContribCache:
         self.obj_w = z["obj_w"]
         self.obj_rho = z["obj_rho"] if "obj_rho" in z else np.ones_like(z["obj_w"])
         self.obj_dca = z["obj_dca"] if "obj_dca" in z else np.zeros_like(z["obj_w"])
+        self.obj_floor = z["obj_floor"] if "obj_floor" in z else np.zeros_like(z["obj_w"])
         self.can_feat = z["can_feat"]
         self.can_mask = z["can_mask"]
 
@@ -140,7 +146,8 @@ class ContribCache:
             out.append({"vis": vis, "r": float(self.obj_r[j]),
                         "ttc": float(self.obj_ttc[j]), "w": float(self.obj_w[j]),
                         "rho": float(self.obj_rho[j]),
-                        "dca": float(self.obj_dca[j])})
+                        "dca": float(self.obj_dca[j]),
+                        "floor": float(self.obj_floor[j])})
         return out
 
     def can(self, token: str) -> tuple[np.ndarray, float]:
