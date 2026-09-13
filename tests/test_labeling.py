@@ -180,6 +180,18 @@ def test_wrap_angle():
     assert abs(wrap_angle(np.radians(190)) - np.radians(-170)) < 1e-9
 
 
+def test_attr_discount_lifted_on_collision_path():
+    """경로 위 주차 차량은 상태 감쇠를 받지 않아야 한다 (ρ_attr × ρ_path 이중 감쇠 방지)."""
+    from src.labeling.ttc import attr_path_gate
+    a = 0.2                                        # vehicle.parked
+    on_path = a + (1 - a) * attr_path_gate(1.0)    # 최접근 1.0m — 부딪힐 거리
+    close   = a + (1 - a) * attr_path_gate(3.1)    # scene-0526의 SUV
+    far     = a + (1 - a) * attr_path_gate(10.0)   # 길가에 늘어선 주차 차량
+    assert on_path > 0.95                          # 사실상 감쇠 없음
+    assert 0.4 < close < 0.7                       # 부분 해제
+    assert far < 0.25                              # 원래 감쇠 유지
+
+
 # ============ 보조 뷰 슬롯 배정 ============
 def _cfg(**kw):
     from src.labeling.label_function import LabelConfig

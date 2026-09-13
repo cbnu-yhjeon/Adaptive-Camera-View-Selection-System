@@ -80,6 +80,20 @@ def compute_ttc(p_obj, p_ego, v_obj, v_ego,
     raise ValueError(f"알 수 없는 ttc mode: {mode}")
 
 
+def attr_path_gate(dca: float, d_touch: float = 1.5, d_scale: float = 2.0) -> float:
+    """경로 위 객체에 대해 상태 감쇠를 해제하는 정도 ∈ [0, 1] (1 = 감쇠 없음).
+
+    ρ_attr(주차 0.2)와 ρ_path를 그냥 곱하면 **경로 위의 주차 차량이 이중으로 깎인다.**
+    주차 감쇠는 길가에 늘어서서 스쳐 지나갈 차를 위한 것이고 그건 ρ_path가 이미
+    처리한다. 최접근 거리가 차체 폭 수준이면 주차 여부와 무관하게 부딪힐 대상이므로
+    감쇠를 풀어야 한다 — 특히 그쪽으로 차선변경 중이라면.
+
+    실측 사례(scene-0526): 7.6m 앞 DCA 3.1m 주차 SUV가 ρ_attr 0.2에 눌려 채널 위험이
+    0.097이 되면서 임계값 0.10을 0.003 차이로 넘지 못했다.
+    """
+    return float(np.exp(-max(0.0, float(dca) - d_touch) / max(d_scale, 1e-6)))
+
+
 def path_factor(dca: float, d_near: float = 2.0, d_scale: float = 2.0,
                 rho_min: float = 0.05) -> float:
     """경로 관련성 계수 ρ_path ∈ [rho_min, 1].

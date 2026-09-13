@@ -24,7 +24,8 @@ import numpy as np
 
 from src.labeling.maneuver import ManeuverThresholds, infer_maneuver
 from src.labeling.ttc import (
-    TTC_INF, closest_approach, compute_ttc, horizontal_range, path_factor, risk_weight,
+    TTC_INF, attr_path_gate, closest_approach, compute_ttc, horizontal_range,
+    path_factor, risk_weight,
 )
 from src.utils.constants import (
     CAMERAS, CAMERA_INDEX, NUM_CAMERAS, attribute_weight, maneuver_to_layout_index,
@@ -48,6 +49,8 @@ class LabelConfig:
     d_scale: float = 3.0         # 초과분 지수 감쇠 스케일
     rho_min: float = 0.05        # 경로 무관 객체의 하한
     d_hazard: float = 5.0        # '임박 위험 객체' 판정: 최접근 거리가 이보다 가까울 것
+    attr_exempt_touch: float = 1.5   # 이 거리 이내로 최접근하면 상태 감쇠를 완전히 해제
+    attr_exempt_scale: float = 2.0   # 해제 정도의 감쇠 스케일 (0이면 예외 없음)
     attr_weight: dict = field(default_factory=dict)   # 비면 DEFAULT_ATTR_WEIGHT
     # 보조 뷰 선택 (B.4-(6))
     aux_threshold: float = 0.10  # 위험 슬롯 임계 — 순수 위험 항 기준(기동 항 제외)
@@ -112,7 +115,11 @@ def channel_risk_contributors(wrapper, sample_token, cfg: LabelConfig) -> list[d
         # ρ = 상태 계수 × 경로 관련성. 스쳐 지나갈 객체와 정지 객체를 낮춘다.
         _, dca = closest_approach(box["global_center"][:2], ego["translation"][:2],
                                   v_obj, ego_vel)
-        rho = (attribute_weight(box.get("attribute", ""), cfg.attr_weight or None)
+        # 상태 감쇠는 '스쳐 지나갈' 객체용이다. 경로 위(최접근이 차체 폭 수준)면 해제한다.
+        a = attribute_weight(box.get("attribute", ""), cfg.attr_weight or None)
+        gate = (attr_path_gate(dca, cfg.attr_exempt_touch, cfg.attr_exempt_scale)
+                if cfg.attr_exempt_scale > 0 else 0.0)
+        rho = ((a + (1.0 - a) * gate)
                * path_factor(dca, d_near=cfg.d_near, d_scale=cfg.d_scale,
                              rho_min=cfg.rho_min))
         w = risk_weight(ttc, r, tau=cfg.tau, w_type=cfg.w_type,

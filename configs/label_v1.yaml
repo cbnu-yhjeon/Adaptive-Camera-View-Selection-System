@@ -20,6 +20,10 @@ label:
   d_scale: 3.0             # DCA 초과분 지수 감쇠 스케일
   rho_min: 0.05            # 경로 무관 객체의 가중 하한
   d_hazard: 5.0            # '임박 위험 객체' 판정 거리 (평가 지표와 공유)
+  # ρ_attr와 ρ_path를 그냥 곱하면 경로 위 주차 차량이 이중으로 깎인다.
+  # 최접근이 차체 폭 수준이면 주차 여부와 무관하게 부딪힐 대상이므로 감쇠를 해제한다.
+  attr_exempt_touch: 1.5   # 이 거리 이내 최접근이면 상태 감쇠 완전 해제
+  attr_exempt_scale: 2.0   # 해제 감쇠 스케일 (0 = 예외 없음)
   attr_weight:             # 객체 상태별 계수 (비우면 constants의 기본값)
     vehicle.parked: 0.2
     vehicle.stopped: 0.5
