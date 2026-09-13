@@ -5,17 +5,22 @@
 #   python3 -m venv .venv && source .venv/bin/activate
 #   pip install -r requirements.txt
 #
-# ⚠️ torch/torchvision은 시스템 CUDA 드라이버에 맞는 휠을 받아야 한다.
-#    기본 `pip install torch`는 최신(cu130) 휠을 받는데, 이 환경의 드라이버는
-#    CUDA 12.6이라 GPU 인식이 안 된다(torch.cuda.is_available()==False).
-#    반드시 cu124 인덱스에서 설치할 것:
+# ⚠️ 1) numpy는 2.x를 쓰면 안 된다.
+#    nuscenes-devkit 1.2.0이 `numpy<2.0.0`을 고정한다. 다른 프로젝트와 공용 venv를
+#    쓰면 numpy가 강제 다운그레이드되므로, 이 프로젝트는 반드시 전용 venv를 쓴다.
 #
-#      pip install --index-url https://download.pytorch.org/whl/cu124 torch torchvision
-#
-#    (검증: RTX 4070 + 드라이버 560/CUDA12.6 → torch 2.6.0+cu124 로 CUDA=True)
+# ⚠️ 2) torch/torchvision은 GPU에 맞는 휠이 필요하다.
+#    RTX 5060 Ti(Blackwell, sm_120)에서는 PyPI 기본 인덱스의 휠(cu130 동봉)로 동작한다.
+#      python3 -m venv .venv && source .venv/bin/activate
+#      pip install "numpy<2" torch torchvision
+#    (검증 2026-09: RTX 5060 Ti + 드라이버 610.88 → torch 2.14.0+cu130, CUDA=True)
+#    옛 RTX 4070 머신에서는 cu124 인덱스가 필요했다 — 머신이 바뀌면 재확인할 것.
 #    정확한 버전 고정은 requirements-lock.txt 참조.
 
-# --- 딥러닝 (위 주의사항대로 cu124 인덱스에서 설치) ---
+# --- 수치 (devkit 제약) ---
+numpy<2                   # nuscenes-devkit 1.2.0 요구사항
+
+# --- 딥러닝 ---
 timm                      # MobileNetV3-small 백본 (특징 캐시용)
 
 # --- nuScenes ---
@@ -23,7 +28,6 @@ nuscenes-devkit           # scene/sample/CAN/GT 박스 접근
 pyquaternion              # 3D 회전(쿼터니언) — devkit 의존, 좌표 변환에 사용
 
 # --- 데이터 처리 ---
-numpy
 scipy
 pandas
 pyarrow                   # parquet 라벨 저장/로드

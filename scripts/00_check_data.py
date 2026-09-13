@@ -34,7 +34,7 @@ def main() -> int:
     ap.add_argument("--version", default=base["version"])
     args = ap.parse_args()
 
-    root = os.path.abspath(args.dataroot)
+    root = os.path.abspath(os.path.expanduser(args.dataroot))
     print(f"[검증] dataroot = {root}")
     print(f"[검증] version  = {args.version}\n")
 

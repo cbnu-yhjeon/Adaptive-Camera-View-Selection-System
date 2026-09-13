@@ -1,0 +1,22 @@
+{
+  "method": "scene-level random 70/15/15",
+  "version_generated_on": "v1.0-mini",
+  "seed": 42,
+  "n_scenes": 10,
+  "train": [
+    "scene-0061",
+    "scene-0553",
+    "scene-0655",
+    "scene-0757",
+    "scene-0796",
+    "scene-0916",
+    "scene-1077"
+  ],
+  "val": [
+    "scene-0103",
+    "scene-1100"
+  ],
+  "test": [
+    "scene-1094"
+  ]
+}

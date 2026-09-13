@@ -27,7 +27,7 @@ class NuscWrapper:
                  require_image_files: bool = True, verbose: bool = False):
         from nuscenes.nuscenes import NuScenes
 
-        self.dataroot = os.path.abspath(dataroot)
+        self.dataroot = os.path.abspath(os.path.expanduser(dataroot))
         self.version = version
         self.require_image_files = require_image_files
         self.nusc = NuScenes(version=version, dataroot=self.dataroot, verbose=verbose)

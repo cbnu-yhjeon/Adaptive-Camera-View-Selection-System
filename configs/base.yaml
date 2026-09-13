@@ -5,7 +5,7 @@
 #   {dataroot}/
 #   ├── maps/  samples/  sweeps/  v1.0-mini/
 #   └── can_bus/
-dataroot: /home/avg/CBNU/data/nuscenes
+dataroot: ~/data/nuscenes
 version: v1.0-mini          # v1.0-mini | v1.0-trainval
 
 # 이미지 파일이 존재하는 scene만 사용 (trainval 부분집합 대응)
