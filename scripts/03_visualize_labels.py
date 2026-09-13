@@ -193,7 +193,11 @@ def main() -> int:
     print(f"  구성: {counts}")
     for k, i in enumerate(sorted(idx)):
         row = df.iloc[i]
-        out = os.path.join(args.outdir, f"viz_{k:02d}_{row['maneuver']}.png")
+        # 파일명에 keyframe 토큰을 넣는다 — 라벨을 다시 생성하면 내용이 바뀌므로,
+        # 이름을 재사용하면 게시·캐시 환경에서 이전 그림이 남아 상황과 어긋난다.
+        out = os.path.join(
+            args.outdir,
+            f"viz_{k:02d}_{row['maneuver']}_{row['sample_token'][:8]}.png")
         visualize_one(w, row, cfg, out)
         naux = int(row.get("n_aux", 1))
         print(f"  [{k+1}/{len(idx)}] {os.path.basename(out)}  "
