@@ -597,19 +597,25 @@
     <p>이는 직관이 아니라 반세기에 걸쳐 축적된 인간공학적 사실이다. Tickner와 Poulton(1973)[8]은
       동시 감시 화면이 늘어날수록 이상 사건 탐지 정확도가 떨어짐을 보였고(4화면 83% / 9화면 84% /
       <strong>16화면 64%</strong>), 이후 연구들은 효과적으로 감시 가능한 화면 수를
-      <strong>4개 내외</strong>로 제시한다. Tatler 등(2021)[7]은 27개 장면 멀티플렉스에서
+      <strong>4개 내외</strong>로 제시한다. Tatler(2021)[7]는 27개 장면 멀티플렉스에서
       <strong>배치 구조만으로도 탐색 시간이 유의하게 달라짐</strong>을 보였다. 인지 부하와 상황인식은
       역관계이므로, 화면 탐색에 자원을 쓸수록 상황 이해는 오히려 나빠진다.</p>
     <h3 class="indent">1.4 그 과업은 이미 사람이 수동으로 하고 있다</h3>
-    <p>현장 CCTV 오퍼레이터 관찰 연구에 따르면, 이들은 멀티플렉스를 훑지 않고 단일 화면에서
-      <strong>평균 27~62초마다 카메라를 능동적으로 전환</strong>하며 감시한다. 즉
-      <strong>“어느 뷰를 볼 것인가”는 이미 사람이 수행 중인 과업</strong>이며, 본 연구는 그것을
-      자동화한다. 그리고 주행 상황은 초 단위로 바뀌므로 <strong>30초~1분 주기의 수동 전환은
-      원리적으로 부족하다.</strong></p>
+    <p>Stainer 등(2013)[14]은 실제 관제실에서 <strong>근무 중인 CCTV 오퍼레이터의 시선을 기록</strong>했다.
+      이들은 멀티플렉스 벽면을 훑는 대신 관심 카메라를 <strong>단일 스팟 모니터</strong>에 띄워 보았고,
+      새 카메라를 선택하는 간격은 <strong>평균 26.9초와 62.4초</strong>였다(관찰 대상 오퍼레이터 2명,
+      개인차가 크다). 즉 <strong>“어느 뷰를 볼 것인가”는 이미 사람이 수행 중인 과업</strong>이며, 본 연구는
+      그것을 자동화한다. 다만 주행 상황은 초 단위로 바뀌므로 <strong>30초~1분 주기의 수동 전환은
+      원리적으로 부족하다.</strong> (현장 관찰이라 표본이 작다 — 모집단 추정치가 아니라 관제 현장에서
+      어떤 전략이 쓰이는지를 보여주는 근거로 인용한다.)</p>
 
     <h3 class="indent">1.5 원격 조건은 실차보다 불리하다</h3>
-    <p>원격 오퍼레이터는 2차원 표현, 제한된 시야, 청각·전정 피드백의 부재로 환경 요소 지각이
-      저해된다. “사람이 알아서 중요한 곳을 보겠지”라는 가정이 실차 운전보다 덜 성립한다는 뜻이다.</p>
+    <p>원격 오퍼레이터는 차량과 물리적으로 분리되어 있다. Linkov와 Vanžura(2021)[15]는 원격 운전자가
+      <strong>차량의 속도·노면 경사·적재 하중을 체감으로 알 수 없고 엔진음도 듣지 못하며</strong>,
+      <strong>전정기관과 기계수용기가 받지 못하는 감각만큼 상황인식이 저하</strong>된다고 정리한다.
+      여기에 본 연구의 전제인 <strong>다채널 2차원 영상</strong>이 더해진다 — 깊이 단서가 약하고 화각
+      바깥은 보이지 않는다. 결국 <strong>“사람이 알아서 중요한 곳을 보겠지”라는 가정이 실차 운전보다
+      덜 성립</strong>하며, 이것이 어디를 볼지를 시스템이 거들어야 하는 이유다.</p>
 
     <h3 class="indent">1.6 표현을 바꾸면 워크로드가 실제로 움직인다</h3>
     <p>개입 가능성은 실증되어 있다. Musicant 등(2024)[13]은 피험자 <strong>148명</strong>(여성 80명,
@@ -857,7 +863,7 @@
     <div class="sec-head"><span class="sec-num">05</span><h2>연구 방법</h2></div>
 
     <h3 class="indent">5.1 데이터</h3>
-    <p>nuScenes v1.0-trainval을 사용한다. 6채널 카메라(전방·전측방·후측방·후방)와 3D 객체 GT,
+    <p>nuScenes v1.0-trainval[1]을 사용한다. 6채널 카메라(전방·전측방·후측방·후방)와 3D 객체 GT,
       ego pose, CAN 확장 데이터를 모두 제공하므로 의사 라벨 생성에 필요한 신호가 갖추어져 있다.
       데이터 누수를 막기 위해 <strong>scene 단위로 분할</strong>하고, 분할 파일은 실험 시작 전에
       고정·형상관리하여 이후 변경하지 않는다.</p>
@@ -1257,25 +1263,33 @@ s(c) = EMA(Σ_{i∈c} w_i) + λ · m(c),      λ = 0.4</div>
       <li>Hofbauer, M., Kuhn, C. B., Khlifi, M., Petrovic, G., Steinbach, E.
         Traffic-Aware Multi-View Video Stream Adaptation for Teleoperated Driving.
         <em>IEEE VTC2022-Spring</em>, 2022.</li>
-      <li>Tatler, B. W., et al. Searching in CCTV: effects of organisation in the multiplex.
-        <em>Cognitive Research: Principles and Implications</em>, 2021.</li>
-      <li>Tickner, A. H., &amp; Poulton, E. C. 다중 화면 감시 성능 연구, 1973.
-        <em>— 서지정보 원문 확인 필요</em></li>
+      <li>Tatler, B. W. Searching in CCTV: effects of organisation in the multiplex.
+        <em>Cognitive Research: Principles and Implications</em>, 6, 2021.
+        DOI 10.1186/s41235-021-00277-2</li>
+      <li>Tickner, A. H., Poulton, E. C. Monitoring up to 16 Synthetic Television Pictures Showing
+        a Great Deal of Movement. <em>Ergonomics</em> 16(4):381–401, 1973.
+        DOI 10.1080/00140137308924529</li>
       <li>Majstorović, D., Hoffmann, S., Pfab, F., Schimpe, A., Wolf, M.-M., Diermeyer, F.
-        Survey on Teleoperation Concepts for Automated Vehicles. <em>arXiv:2208.08876</em>, 2022.
-        <em>— 게재 학회 확인 필요</em></li>
+        Survey on Teleoperation Concepts for Automated Vehicles.
+        <em>IEEE SMC 2022</em>, pp. 1290–1296. DOI 10.1109/SMC53654.2022.9945267</li>
       <li>Bogdoll, D., Orf, S., Töttel, L., Zöllner, J. M. Taxonomy and Survey on Remote Human
         Input Systems for Driving Automation Systems. <em>Advances in Information and Communication
         (FICC)</em>, Springer, 2022.</li>
       <li>Kettwich, C., Schrank, A., Oehl, M. Teleoperation of Highly Automated Vehicles in Public
         Transport: User-Centered Design of a Human–Machine Interface for Remote-Operation and Its
-        Expert Usability Evaluation. <em>MTI</em> 5(5):26, 2021. <em>— 저자 확인 필요</em></li>
-      <li>Wolf, M., et al. A User-Centered Teleoperation GUI for Automated Vehicles: Identifying
+        Expert Usability Evaluation. <em>MTI</em> 5(5):26, 2021. DOI 10.3390/mti5050026</li>
+      <li>Wolf, M.-M., Schmidt, H., Christl, M., Fank, J., Diermeyer, F. A User-Centered
+        Teleoperation GUI for Automated Vehicles: Identifying
         and Evaluating Information Requirements for Remote Driving and Assistance.
         <em>MTI</em> 9(8):78, 2025. DOI 10.3390/mti9080078</li>
       <li>Musicant, O., Botzer, A., Richmond-Hacham, B. Safety, Efficiency, and Mental Workload in
         Simulated Teledriving of a Vehicle as Functions of Camera Viewpoint.
         <em>Sensors</em> 24(18):6134, 2024. DOI 10.3390/s24186134</li>
+      <li>Stainer, M. J., Scott-Brown, K. C., Tatler, B. W. Looking for Trouble: A Description of
+        Oculomotor Search Strategies During Live CCTV Operation.
+        <em>Frontiers in Human Neuroscience</em> 7:615, 2013. DOI 10.3389/fnhum.2013.00615</li>
+      <li>Linkov, V., Vanžura, M. Situation Awareness Measurement in Remotely Controlled Cars.
+        <em>Frontiers in Psychology</em> 12:592930, 2021. DOI 10.3389/fpsyg.2021.592930</li>
     </ol>
   </div>
 
