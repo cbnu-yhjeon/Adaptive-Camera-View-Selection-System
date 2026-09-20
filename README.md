@@ -5,9 +5,16 @@
 ## 📋 연구 개요
 
 원격주행 관제에서는 6채널 카메라를 고정 레이아웃으로 모두 표시하기 때문에 오퍼레이터의
-인지 부하가 커진다. 본 연구는 **주행 컨텍스트(영상 + CAN + 객체 위험도 + 기동 상태)를
-융합**하여 "지금 가장 중요한 카메라 뷰"를 자동으로 선택하는 딥러닝 모델을 학습하고,
+인지 부하가 커진다. 다중 화면 감시의 한계는 실증되어 있고(동시 감시 16화면에서 이상 사건
+탐지 정확도 64%까지 저하, 효과적 감시 한계 약 4뷰), 현장 오퍼레이터는 이미 단일 화면에서
+**평균 27~62초마다 카메라를 수동 전환**하며 감시한다 — 주행 상황이 초 단위로 바뀌는 것을
+감안하면 부족한 주기다. 본 연구는 **주행 컨텍스트(영상 + CAN + 객체 위험도 + 기동 상태)를
+융합**하여 "지금 강조해야 할 카메라 뷰"를 자동으로 선택하는 딥러닝 모델을 학습하고,
 오프라인 실험으로 검증한다.
+
+> **검증 범위**: 한정 자원은 대역폭이 아니라 **오퍼레이터의 주의**다. 표시 방식은
+> 하이라이트(6채널 전부 유지)를 기본 가정으로 하며, 전송량·화질 절감이나 1인당 다수 차량
+> 감시(처리량)는 본 연구의 검증 대상이 아니다. 상세는 `CLAUDE.md` A.1 참조.
 
 공개 벤치마크가 없으므로 **nuScenes의 3D 객체 GT + CAN 신호로 '이상적 뷰' 의사 라벨을
 자동 생성(weak supervision)**하여 학습에 사용한다.
@@ -209,9 +216,23 @@ pip install nuscenes-devkit timm opencv-python-headless pandas pyarrow \
 
 ## 📚 참고문헌
 
-1. Caesar, H., et al. (2020). nuScenes: A multimodal dataset for autonomous driving. *CVPR 2020*.
-2. Neumeier, S., et al. (2019). Teleoperation: The holy grail to solve the autonomous driving dilemma. *IEEE/RSJ IROS*.
+1. Caesar, H., et al. (2020). nuScenes: A Multimodal Dataset for Autonomous Driving. *CVPR 2020*.
+2. Neumeier, S., Wintersberger, P., Frison, A.-K., Becher, A., Facchi, C., Riener, A. (2019).
+   Teleoperation: The Holy Grail to Solve Problems of Automated Driving? Sure, but Latency Matters.
+   *AutomotiveUI '19*. DOI 10.1145/3342197.3344534
 3. Howard, A., et al. (2019). Searching for MobileNetV3. *ICCV 2019*.
+4. Xia, Y., Zhang, D., Kim, J., Nakayama, K., Zipser, K., Whitney, D. (2019).
+   Predicting Driver Attention in Critical Situations. *ACCV 2018*, LNCS 11365, Springer.
+   DOI 10.1007/978-3-030-20873-8_42
+5. Palazzi, A., Abati, D., Solera, F., Cucchiara, R. Predicting the Driver's Focus of Attention:
+   The DR(eye)VE Project. *IEEE TPAMI* 41(7):1720–1733.
+6. Hofbauer, M., Kuhn, C. B., Khlifi, M., Petrovic, G., Steinbach, E. (2022).
+   Traffic-Aware Multi-View Video Stream Adaptation for Teleoperated Driving. *IEEE VTC2022-Spring*.
+   — 가장 가까운 선행연구. 뷰 중요도를 **대역폭 배분**에 활용. 본 연구는 **주의 배분**으로
+   정식화하고 검출 불확실성 하의 강건성을 주 검증 대상으로 삼는 점이 다르다.
+7. Tatler, B. W., et al. (2021). Searching in CCTV: effects of organisation in the multiplex.
+   *Cognitive Research: Principles and Implications*. DOI 10.1186/s41235-021-00277-2
+8. Tickner, A. H., & Poulton, E. C. (1973). 다중 화면 감시 성능 연구. ⚠️ 서지정보 원문 확인 필요
 
 ## 📧 Contact
 
