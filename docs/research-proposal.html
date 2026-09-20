@@ -476,6 +476,7 @@
   .pl-arrow { text-align:center; color:var(--muted); font-size:11px; line-height:1; }
   .pl-note { font-size:11px; color:var(--muted); text-align:center; }
 
+  .table-wrap .src { display:block; margin-top:2px; }
 </style>
 
 <div class="page">
@@ -1228,6 +1229,77 @@ s(c) = EMA(Σ_{i∈c} w_i) + λ · m(c),      λ = 0.4</div>
         <caption>추론 임계값을 쓸어가며 (평균 보조 뷰 수 vs 위험 사건 포착률) 운영 곡선을 그리고,
           강건성(C3)도 스칼라가 아니라 이 곡선의 열화로 보고한다.</caption>
       </div>
+    </div>
+
+    <h3 class="indent">6.1 지표 설정값</h3>
+    <p>지표는 정의만으로 재현되지 않는다. 같은 이름의 ‘재현율’도 무엇을 위험으로 세는지,
+      분모를 어디까지 잡는지에 따라 값이 달라진다. 아래 값을 고정하고 실험 전체에 동일하게
+      적용한다.</p>
+    <div class="indent">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th style="width:150px">지표</th><th style="width:230px">설정값</th>
+            <th>산출 규약 — 무엇을 세고 무엇을 세지 않는가</th></tr></thead>
+          <tbody>
+            <tr><td class="key">‘실제 위험’ 정의<br><span class="src">전 지표 공용</span></td>
+              <td><code>TTC &lt; 5 s</code> <strong>그리고</strong> <code>DCA &lt; 3 m</code><br>
+                최접근(CPA) 기하 · 탐지 상한 50 m</td>
+              <td>라벨 · 평가 · 골드셋이 <strong>같은 함수</strong>(<code>label_function.is_hazard</code>)를
+                쓴다. 정의가 갈라지면 재현율과 정밀도가 서로 다른 모집단을 가리킨다.
+                시간만 보면 옆 5 m로 스쳐 갈 객체가, 거리만 보면 10초 뒤에나 가까워질 객체가
+                잡힌다 — 두 조건이 모두 필요하다</td></tr>
+            <tr><td class="key">평균 보조 뷰 수</td>
+              <td>상한 2장 · 0장 허용<br>keyframe 단위 평균</td>
+              <td>진행 방향(primary)은 <strong>세지 않는다</strong> — 항상 켜져 있으므로 선택의
+                결과가 아니다. 표시 방식(하이라이트/전환)과 무관하게 계산된다</td></tr>
+            <tr><td class="key">위험 사건 포착률<br>(재현율)</td>
+              <td>대상 1,879 채널 · 1,814 프레임<br>(trainval 34,149의 5.3%)<br>
+                test 분할 283 프레임</td>
+              <td>위험 객체가 <strong>선택 뷰(primary ∪ aux)의 화각</strong>에 들어 있으면 포착으로
+                센다. 라벨이 아니라 <strong>GT 기하 투영</strong>으로 직접 판정하므로 순환이 없다</td></tr>
+            <tr><td class="key">위험 슬롯 정밀도</td>
+              <td>분모 = <strong>위험 슬롯으로 켠 채널</strong>만<br>
+                (안전 기본값 슬롯은 제외)</td>
+              <td>안전 기본값은 검출이 0이어도 켜는 것이 목적이므로 정밀도로 평가하면 설계 의도와
+                반대로 벌점을 받는다. <strong>반드시 재현율과 병기</strong>한다 — 재현율만 보면
+                ‘많이 켜면 오르는’ 지표라 튜닝이 왜곡된다</td></tr>
+            <tr><td class="key">Top-1 / Top-2</td>
+              <td>골드셋 300 keyframe<br>복수 정답 · ‘강조 불필요’ 허용</td>
+              <td>예측이 정답 <strong>집합에 포함</strong>되면 정답으로 센다. 층화 추출이므로
+                <strong>역확률 가중</strong>으로 전체 분포 기준 추정치를 복원해 주 수치로 싣고,
+                층별 수치를 함께 보고한다</td></tr>
+            <tr><td class="key">Macro-F1</td>
+              <td>6채널 기준 · 클래스 균등 평균</td>
+              <td>골드셋과 의사 라벨 시험셋 양쪽에서 산출하되, <strong>주 지표는 골드셋</strong>이다
+                (순환 평가 차단)</td></tr>
+            <tr><td class="key">Flicker rate</td>
+              <td>되돌림 판정 창 <strong>3 keyframe = 1.5초</strong><br>
+                강조 <em>집합</em> 기준</td>
+              <td>scene 단위로 시간순 추론한 뒤 계산한다. 전환 후 창 안에 되돌아온 전환만 센다 —
+                한 방향으로 바뀐 뒤 유지되는 전환은 flicker가 아니다</td></tr>
+            <tr><td class="key">운영 곡선</td>
+              <td>임계값 θ를 <strong>0.04 – 0.55</strong>로 스윕<br>
+                대표 운영점 θ = 0.12</td>
+              <td>가로축은 평균 보조 뷰 수, 세로축은 포착률과 정밀도. 강건성(C3)도 스칼라가 아니라
+                <strong>이 곡선의 열화</strong>로 보고한다</td></tr>
+          </tbody>
+        </table>
+        <caption>‘실제 위험’ 정의의 두 값은 실측으로 정했다. DCA를 4 m로 늘리면 옆 차선 통과가
+          대량 유입되고(프레임의 16.4%), 시간을 3초로 줄이면 test 분할 위험 프레임이 146개로
+          떨어져 통계가 서지 않는다. <strong>거리는 조이고 시간은 늘린다</strong> — 5초는 원격주행의
+          전송 지연에 인지 · 판단 · 조작을 더한 최소치다.</caption>
+      </div>
+    </div>
+
+    <div class="note">
+      <span class="label">모든 방법에 동일하게 고정하는 평가 조건</span>
+      <p><strong>입력</strong> <code>risk_source = noisy(medium)</code> — 표 1의 공정 비교 조건이다.
+        <code>gt</code> 조건은 상한 참고용으로 부록에 별도 보고한다.
+        <strong>난수</strong> 평가 시드는 <code>(seed, index)</code>만 쓴다(기본 seed 42) —
+        제안 모델과 B2가 <strong>같은 손상 입력</strong>을 봐야 열화 곡선 비교가 성립한다.
+        검출 품질과 블랙아웃 채널은 2초 시퀀스 안에서 유지된다.
+        <strong>추론</strong> scene 단위 시간순으로 수행한다 — flicker와 운영 곡선이 시간 구조에
+        의존하기 때문이다.</p>
     </div>
     <div class="indent">
       <div class="table-wrap">

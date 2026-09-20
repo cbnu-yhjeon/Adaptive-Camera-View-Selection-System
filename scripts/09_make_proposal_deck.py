@@ -629,9 +629,95 @@ def s_close(prs):
     return s
 
 
+def s_modules(prs):
+    """5.5 구현 구조 — 계층별 모듈 표. 설계 의도의 핵심 어구는 굵게 살린다."""
+    s = new_slide(prs)
+    y = slide_head(s, "5.5 연구 방법", "구현 구조 — 계층별 모듈",
+                   sub="각 계층이 한 가지 책임만 지도록 나눴다. 오른쪽 열이 실제로 시간을 들여 판단한 지점이다.")
+    rows = [
+        ("utils/\nconstants",
+         "채널 순서(6) · 기동 7클래스 · 기동→채널 적합도 m(c) · 레이아웃 K=5 · 객체 상태 계수",
+         [("라벨의 채널 3번과 모델 출력의 채널 3번이 달라지면 실험 전체가 ", 0),
+          ("조용히 오염된다", 1), (". 순서를 한 곳에 못 박는다", 0)]),
+        ("data/\nnusc_wrapper",
+         "devkit을 감싸 scene · 이미지 · GT 박스 · ego pose · CAN · 캘리브를 제공. "
+         "CAN blacklist와 이미지 결손 scene 필터",
+         [("데이터 접근 지점을 하나로 모아, devkit 버전이나 좌표 규약이 바뀌어도 ", 0),
+          ("수정 지점이 한 곳", 1), ("이 되게 한다", 0)]),
+        ("data/\nfeature_cache\ncontrib_cache",
+         "백본 GAP 특징과 위험 기여 · CAN 특징을 디스크에 미리 굽는다",
+         [("34,149 keyframe × 실험 10여 회를 매번 재계산하면 낭비다. 캐시 키는 ", 0),
+          ("기여 값을 바꾸는 설정 필드만", 1), (" 반영해 무관한 변경으로 무효화되지 않는다", 0)]),
+        ("data/\nnoise",
+         "검출 오류 시뮬레이터 — 누락(원거리 가중) · 오검출(Poisson) · 위치/속도 잡음 · 채널 블랙아웃",
+         [("학습 증강과 강건성 평가가 ", 0), ("같은 코드", 1),
+          ("를 쓴다. 평가에만 있는 오류 모델은 학습이 본 적 없는 분포가 되어 비교가 공정하지 않다", 0)]),
+        ("data/\ndataset",
+         "과거 T=4 시퀀스 조립, scene 경계 패딩 + 마스크, risk_source 분기, 난수 시드 정책",
+         [("모델은 ", 0), ("과거만 본다", 1),
+          (". 라벨이 미래 pose를 참조하는 비대칭이 ‘선제적 전환 학습’의 핵심이다", 0)]),
+        ("labeling/\nttc",
+         "최접근(CPA) TTC와 DCA, 위험 가중 w, 경로 계수 ρ_path, 상태 감쇠 예외, 진행방향 게이트 근접 보정",
+         [("radial 정의는 옆으로 스쳐 갈 객체를 충돌 임박으로 오판한다 — 실측상 위험량의 ", 0),
+          ("62.9%가 정지 · 주차 객체", 1), ("에서 나왔다. 되돌릴 수 있으며 ablation 항목(A6)이다", 0)]),
+        ("labeling/\nlabel_function",
+         "채널 귀속 → 채널 위험도 → s(c) → primary · aux 슬롯 · soft label · layout, "
+         "scene 단위 EMA와 flicker 병합",
+         [("위험 항만 평활한다.", 1),
+          (" 기동 상태는 이미 ±3초 윈도우로 추론된 안정 신호라 다시 평활하면 이중 스무딩이 되어 "
+           "기동 경계에서 안전 기본값이 꺼진다", 0)]),
+        ("models/\nproposed",
+         "채널 토큰화 → Transformer → 채널별 GRU → 뷰 · 레이아웃 두 헤드",
+         [("ablation은 별도 모델이 아니라 ", 0), ("같은 코드의 플래그", 1),
+          ("(use_can · use_risk · use_transformer · use_gru)다. 구조가 갈라지면 "
+           "제거 효과인지 구현 차이인지 알 수 없다", 0)]),
+    ]
+
+    x0 = MARGIN
+    tw = W - 2 * MARGIN
+    cw = [0.145, 0.355, 0.500]
+    head = ("계층 · 모듈", "하는 일", "설계 의도 — 왜 이렇게 두었는가")
+
+    hh = 0.30
+    bg = box(s, x0, y, tw, hh, fill=SURF2, line=None)
+    bg.text_frame.text = ""
+    xx = x0
+    for ci, h in enumerate(head):
+        tf = textbox(s, xx + 0.10, y + 0.05, cw[ci] * tw - 0.20, hh - 0.10,
+                     anchor=MSO_ANCHOR.MIDDLE)
+        para(tf, h, size=9.5, color=MUTED, font=MONO, first=True)
+        xx += cw[ci] * tw
+
+    yy = y + hh
+    rh = 0.575
+    for mod, does, intent in rows:
+        tf = textbox(s, x0 + 0.10, yy + 0.09, cw[0] * tw - 0.18, rh - 0.14)
+        for k, line in enumerate(mod.split("\n")):
+            para(tf, line, size=9, bold=(k > 0), font=MONO,
+                 color=MUTED if k == 0 else INK, line=1.24, first=(k == 0))
+
+        tf = textbox(s, x0 + cw[0] * tw + 0.10, yy + 0.09,
+                     cw[1] * tw - 0.20, rh - 0.14)
+        para(tf, does, size=9.5, line=1.32, first=True)
+
+        tf = textbox(s, x0 + (cw[0] + cw[1]) * tw + 0.10, yy + 0.09,
+                     cw[2] * tw - 0.18, rh - 0.14)
+        rich(tf, [(t, b, None) for t, b in intent], size=9.5, line=1.32,
+             space_after=0, first=True)
+
+        yy += rh
+        rule_line(s, x0, yy, tw, color=RULE, pt=0.5)
+
+    tf = textbox(s, MARGIN, yy + 0.12, tw, 0.26)
+    rich(tf, [("라벨 경로는 GT를, 모델 입력 경로는 손상된 값을 쓴다 — ", False, MUTED),
+              ("이 경계가 무너지면 주장 C3이 성립하지 않는다.", True, INK)],
+         size=10.5, line=1.3, first=True)
+    return s
+
+
 BUILDERS = [s_cover, s_summary, s_industry, s_console, s_human, s_lever,
             s_related, s_limits, s_goals, s_bg_to_form, s_formulation,
-            s_label, s_label_example, s_model, s_eval, s_prelim,
+            s_label, s_label_example, s_model, s_modules, s_eval, s_prelim,
             s_schedule, s_risk, s_close]
 
 
