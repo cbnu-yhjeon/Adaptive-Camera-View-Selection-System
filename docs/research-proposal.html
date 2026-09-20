@@ -457,6 +457,8 @@
   .bezel  { background:#12171b; padding:7px; border-radius:3px; }
   .console .camgrid figcaption .ko { white-space:nowrap; }
 
+  .src { font-family:var(--f-mono); font-size:10px; color:var(--muted); font-weight:400; }
+
 </style>
 
 <div class="page">
@@ -802,9 +804,63 @@
 
   <section>
     <div class="sec-head"><span class="sec-num">04</span><h2>문제 정의</h2></div>
-    <p>1절이 제기한 필요 — <strong>6채널을 균등 탐색하는 부담을 줄이되 봐야 할 것을 놓치지 않는다</strong> —
-      를 풀 수 있는 하나의 문제로 좁힌다. 본 연구는 이를 <strong>주행 컨텍스트로부터 강조할 보조 뷰를
-      고르는 이산 선택 문제</strong>로 정식화한다.</p>
+    <p>1절은 일곱 개의 사실을 쌓았다. 원격 운전은 한 대를 실시간 조종하는 직접 제어이고(1.1),
+      그 화면은 영상 채널의 배치와 크기가 고정이며(1.2), 사람은 그렇게 늘어놓은 화면을 동시에
+      감시하지 못한다(1.3). 그래서 실제 관제사는 카메라를 수동으로 전환하지만 그 주기가 너무
+      느리고(1.4), 원격 조건은 체감·청각 단서마저 없어 실차보다 불리하다(1.5). 표현을 바꾸면
+      부하는 실제로 내려가고 안전은 유지되지만(1.6), <strong>무엇을 언제 강조할지가 비자명하다</strong>(1.7).</p>
+    <p>이 연쇄의 끝에 남는 것은 하나의 결정 문제다 — <strong>6채널을 균등 탐색하는 부담을 줄이되
+      봐야 할 것을 놓치지 않는다.</strong> 본 연구는 이를 <strong>주행 컨텍스트로부터 강조할 보조 뷰를
+      고르는 이산 선택 문제</strong>로 정식화한다. 정식화의 각 항목은 임의로 정한 것이 아니라
+      위 사실들에서 직접 따라 나온다.</p>
+
+    <div class="indent">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th style="width:74px">배경</th><th style="width:250px">1절에서 확인된 사실</th>
+            <th>정식화에 들어간 결정</th></tr></thead>
+          <tbody>
+            <tr><td class="key">1.1</td>
+              <td>원격 <strong>운전</strong>(직접 제어) 전제 — 오퍼레이터가 한 대를 실시간 조종한다[9,10]</td>
+              <td>진행 방향 뷰(primary)는 선택 대상에서 빼고 <strong>상시 표시</strong>한다:
+                <code>y<sub>t</sub>[p] = 0</code>. 조종 중인 차량의 앞을 끄는 선택지는 없다</td></tr>
+            <tr><td class="key">1.2</td>
+              <td>영상 채널은 <strong>배치와 크기가 고정</strong>이고, 기존 연구가 바꾼 것은 전송 품질이나
+                정보 요소 수였다[6,11,12]</td>
+              <td>적응 대상을 <strong>채널 그 자체</strong>로 둔다 — 출력은 픽셀 맵이나 비트레이트가 아니라
+                채널 단위 이산 벡터 <code>y<sub>t</sub> ∈ {0,1}<sup>6</sup></code></td></tr>
+            <tr><td class="key">1.3</td>
+              <td>동시 감시 화면이 늘수록 탐지가 무너진다 — 4화면 83% → 16화면 64%[8].
+                배치 구조만으로도 탐색 시간이 달라진다[7]</td>
+              <td>목적함수를 <strong>표시량 최소화</strong>로 둔다: <code>min E[Σ y<sub>t</sub>]</code>.
+                동시 강조 상한 <code>Σ y<sub>t</sub> ≤ 2</code>도 여기서 나온다</td></tr>
+            <tr><td class="key">1.4</td>
+              <td>사람은 이미 이 과업을 한다 — 다만 전환 주기가 <strong>26.9~62.4초</strong>로 느리다[14]</td>
+              <td>결정을 <strong>keyframe마다(0.5초) 갱신</strong>한다. 사람이 원리적으로 낼 수 없는
+                주기를 메우는 것이 자동화의 실익이다</td></tr>
+            <tr><td class="key">1.5</td>
+              <td>원격은 속도·경사·하중을 체감할 수 없고 엔진음도 듣지 못한다[15]</td>
+              <td>입력을 영상만으로 두지 않고 <strong>CAN과 객체 위험도를 함께 융합</strong>한다 —
+                사라진 감각을 신호로 대체하는 것이 다중 신호 융합의 근거다</td></tr>
+            <tr><td class="key">1.6</td>
+              <td>표현을 바꾸면 <strong>부하는 내려가고 충돌률은 그대로</strong>였다[13]</td>
+              <td>“부하 감소”와 “안전 유지”를 각각 <strong>목적과 제약</strong>으로 분리한다:
+                <code>min E[Σ y<sub>t</sub>] s.t. 위험 사건 포착률 유지</code></td></tr>
+            <tr><td class="key">1.7</td>
+              <td>실제 위험은 <strong>전체 프레임의 5.3%</strong>에서만 발생한다</td>
+              <td><strong>0장을 허용</strong>한다. 매 프레임 한 장을 강제하면 대부분의 시간에 무의미한
+                강조가 켜져 오퍼레이터가 보조 뷰를 무시하게 된다</td></tr>
+            <tr><td class="key">전제</td>
+              <td>오퍼레이터는 실시간으로 조종한다 — 미래를 볼 수 없다</td>
+              <td><code>x<sub>t</sub></code>는 <strong>시각 t 이하만 참조</strong>한다. 라벨 생성은 오프라인이라
+                미래 pose를 보지만, 모델 입력에는 넣지 않는다</td></tr>
+          </tbody>
+        </table>
+        <caption>왼쪽이 1절, 오른쪽이 아래 정식화다. 이 대응은 <strong>왼쪽에서 오른쪽으로만
+          읽는다</strong> — 정식화를 먼저 정하고 근거를 나중에 찾은 것이 아니라, 배경이 남긴 제약을
+          그대로 적은 것이다.</caption>
+      </div>
+    </div>
 
     <div class="indent">
       <div class="formula">입력   x_t = { 영상특징 F ∈ R^(4×6×576),  CAN c ∈ R^(4×6),  위험도 r ∈ R^(4×6) }
@@ -819,28 +875,31 @@
        s.t. 위험 사건 포착률 유지·향상</div>
     </div>
 
-    <p><strong>성공 기준</strong>은 두 가지다. ① 동일한 평균 표시 뷰 수 조건에서 규칙 기반보다 높은
-      위험 사건 포착률을 보일 것. ② <strong>검출 품질이 나빠질수록 규칙 기반과의 격차가 벌어질 것</strong>
-      (주장 C3).</p>
+    <p><strong>성공 기준</strong>은 두 가지이며, 각각 2.1절의 한계에 대응한다.
+      ① 동일한 평균 표시 뷰 수 조건에서 규칙 기반보다 높은 위험 사건 포착률을 보일 것
+      (한계 <strong>L1·L2</strong> — 적응 대상이 전송 품질·정보 요소 수에 머물렀던 문제).
+      ② <strong>검출 품질이 나빠질수록 규칙 기반과의 격차가 벌어질 것</strong>
+      (한계 <strong>L4</strong>, 주장 <strong>C3</strong> — 선행 연구가 GT 수준 인지를 전제하고 평가한 문제).
+      ①은 설계가 옳았는지를, ②는 그 설계가 현실 조건에서 버티는지를 묻는다.</p>
 
     <h3 class="indent">4.1 배경의 ‘필요’와 측정량의 대응</h3>
-    <p>정식화는 배경이 제기한 필요를 온전히 담지 못한다. 무엇을 무엇으로 대체했는지, 그 대체에서
-      무엇이 빠지는지를 먼저 밝힌다.</p>
+    <p>위 표가 배경에서 정식화로 가는 길이었다면, 이 표는 <strong>정식화에서 측정량으로 가는 길</strong>이다.
+      그리고 그 길에서 무엇이 새는지를 밝힌다 — 정식화는 배경이 제기한 필요를 온전히 담지 못한다.</p>
     <div class="indent">
       <div class="table-wrap">
         <table>
           <thead><tr><th style="width:170px">배경이 제기한 필요</th><th style="width:180px">본 연구가 측정하는 양</th><th>대체에서 생기는 한계</th></tr></thead>
           <tbody>
-            <tr><td class="key">인지 부하 저감</td><td>평균 보조 뷰 수</td>
+            <tr><td class="key">인지 부하 저감<br><span class="src">← 1.3</span></td><td>평균 보조 뷰 수</td>
               <td>피험자 실험으로 부하를 직접 재지 않는다. 동시 주시 화면 수가 탐지 정확도를
                 좌우한다는 선행 결과[7,8]에 근거한 <strong>대리 지표</strong>다.</td></tr>
-            <tr><td class="key">놓치면 안 되는 상황</td><td>위험 사건 포착률<br>(5초 내 3 m 이내 최접근)</td>
+            <tr><td class="key">놓치면 안 되는 상황<br><span class="src">← 1.6 · 1.7</span></td><td>위험 사건 포착률<br>(5초 내 3 m 이내 최접근)</td>
               <td>기하학적 정의이므로 사람이 ‘봐야 한다’고 느끼는 장면과 일치하지 않을 수 있다.
                 <strong>골드셋으로 교차 확인</strong>한다.</td></tr>
-            <tr><td class="key">수동 전환의 느린 주기<br>(평균 27~62초)</td><td>keyframe마다 갱신<br>(0.5초)</td>
+            <tr><td class="key">수동 전환의 느린 주기<br>(26.9~62.4초)<br><span class="src">← 1.4</span></td><td>keyframe마다 갱신<br>(0.5초)</td>
               <td>화면 전환 자체가 유발하는 주의 이동 비용은 모델링하지 않는다.
                 대신 flicker rate로 전환 빈도를 억제한다.</td></tr>
-            <tr><td class="key">실전 입력의 불완전성</td><td>노이즈 주입 하<br>열화 곡선</td>
+            <tr><td class="key">실전 입력의 불완전성<br><span class="src">← 2.1 L4</span></td><td>노이즈 주입 하<br>열화 곡선</td>
               <td>시뮬레이션된 오류 모델이며 실제 검출기의 오류 분포와 다를 수 있다.
                 유형·강도를 나누어 보고한다.</td></tr>
           </tbody>
