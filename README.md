@@ -7,7 +7,7 @@
 원격주행 관제에서는 6채널 카메라를 고정 레이아웃으로 모두 표시하기 때문에 오퍼레이터의
 인지 부하가 커진다. 다중 화면 감시의 한계는 실증되어 있고(동시 감시 16화면에서 이상 사건
 탐지 정확도 64%까지 저하, 효과적 감시 한계 약 4뷰), 현장 오퍼레이터는 이미 단일 화면에서
-**평균 27~62초마다 카메라를 수동 전환**하며 감시한다 — 주행 상황이 초 단위로 바뀌는 것을
+**평균 26.9~62.4초마다 카메라를 수동 전환**하며 감시한다 — 주행 상황이 초 단위로 바뀌는 것을
 감안하면 부족한 주기다. 본 연구는 **주행 컨텍스트(영상 + CAN + 객체 위험도 + 기동 상태)를
 융합**하여 "지금 강조해야 할 카메라 뷰"를 자동으로 선택하는 딥러닝 모델을 학습하고,
 오프라인 실험으로 검증한다.
@@ -41,6 +41,169 @@
 - **재현성**: 모든 실험은 `configs/*.yaml` + `--seed`(기본 42)로 실행하고, 결과는
   `results/{exp_name}/{timestamp}/`에 metrics.json + config 사본 + 체크포인트로 저장한다.
 
+## 🏗️ 전체 구조
+
+### 데이터 흐름
+
+라벨 생성과 모델 추론은 **입력이 다르다**. 라벨은 3D GT를 써도 되지만(정답을 만드는
+용도), 모델이 받는 위험도 벡터는 실전을 흉내내어 손상된 값이다. 이 분리가 무너지면
+강건성 주장(C3)이 성립하지 않는다.
+
+```
+                     ┌──────────────────────────────────────┐
+  nuScenes           │  data/nusc_wrapper.py                │
+  ├ samples/  (이미지)│  scene 순회 · 6채널 경로 · GT 박스    │
+  ├ v1.0-*/  (메타)  │  ego pose · CAN · 캘리브 · blacklist  │
+  └ can_bus/  (CAN)  └──────────────┬───────────────────────┘
+                                    │
+            ┌───────────────────────┼───────────────────────┐
+            │  [라벨 경로 — GT 허용]  │  [모델 입력 경로]        │
+            ▼                       │                       ▼
+  labeling/geometry ─ 투영          │            data/feature_cache
+  labeling/ttc      ─ TTC · DCA · w │            MobileNetV3-small GAP
+  labeling/maneuver ─ 기동 7클래스   │            → cache/{ver}/feat_*.npy
+  labeling/label_function           │                       │
+   risk(c)=EMA(Σw) · s=risk+λ·m     │            data/contrib_cache
+   primary / aux 슬롯 / soft / layout│            위험 기여 + CAN → .npz
+            │                       │                       │
+            ▼                       │                       ▼
+  data/labels_{ver}.parquet ────────┼──────────────► data/dataset.py
+   (학습 타깃)                       │                 T=4 시퀀스 조립
+                                    │                 risk_source 분기
+                                    │                       │
+                                    │                 data/noise.py
+                                    │                 miss · FP · 위치오차
+                                    │                 · 채널 블랙아웃
+                                    │                       │
+                                    │                       ▼
+                                    │            models/proposed.py
+                                    │            채널토큰 6 + CAN 1
+                                    │            → Transformer(2층)
+                                    │            → 채널별 GRU
+                                    │            → Head1 뷰 / Head2 레이아웃
+                                    │                       │
+                                    └───────────────────────┤
+                                                            ▼
+                                                    eval/metrics.py
+                                              Top-1/2 · Macro-F1 · flicker
+                                              위험 포착률 · 위험 슬롯 정밀도
+```
+
+**순환 평가 차단**: 왼쪽 라벨 경로를 그대로 추론에 쓰는 것이 베이스라인 B2다.
+따라서 최종 성능의 주 지표는 사람이 검수한 골드셋이며, 의사 라벨 시험셋 수치는
+보조 열로만 병기한다.
+
+### 디렉터리
+
+```
+├── CLAUDE.md                   # 구현 명세 (단일 진실 공급원)
+├── README.md
+├── configs/
+│   ├── base.yaml               # 경로 · seed · 배치 · 디바이스
+│   ├── label_v1.yaml           # 라벨 함수 하이퍼파라미터
+│   └── train_proposed.yaml     # 모델 · 손실 · 학습 (+ ablation 플래그)
+├── splits/
+│   ├── scene_split_v1.json     # trainval 70/15/15 — 고정, 변경 금지
+│   └── scene_split_mini.json   # mini 스모크 테스트용
+├── src/
+│   ├── utils/     constants · geometry · slide_kit
+│   ├── data/      nusc_wrapper · splits · feature_cache · contrib_cache
+│   │              · noise · dataset
+│   ├── labeling/  ttc · maneuver · label_function
+│   ├── models/    proposed
+│   └── eval/      metrics
+├── scripts/       00~05 파이프라인 + 문서·슬라이드 생성
+├── tests/         geometry · labeling · noise_seeding
+├── docs/          research-proposal.html (연구계획서 원본)
+├── cache/         백본 특징 · 위험 기여 (gitignore)
+└── results/       실험 산출물 · 그림 · 슬라이드 (gitignore)
+```
+
+### 모듈별 설명
+
+#### `src/utils` — 전역 규약
+
+| 모듈 | 하는 일 | 왜 필요한가 |
+|---|---|---|
+| `constants.py` | 채널 순서(6), 기동 7클래스, 기동→채널 적합도 `m(c)`, 레이아웃 K=5, 객체 상태 계수 | 라벨의 채널 3번과 모델 출력의 채널 3번이 달라지면 실험 전체가 **조용히** 오염된다. 순서를 한 곳에 못 박는다 |
+| `geometry.py` | `global → ego → camera → image` 변환과 투영, 화면 내 판정 | 객체를 어느 채널에 귀속시킬지가 라벨의 출발점이다 |
+| `slide_kit.py` | .pptx 공용 부품(도형·표·색 토큰) | 발표 자료용. 연구 파이프라인과 무관 |
+
+#### `src/data` — 데이터 접근과 입력 조립
+
+| 모듈 | 하는 일 | 설계 의도 |
+|---|---|---|
+| `nusc_wrapper.py` | devkit을 감싸 scene 순회·이미지 경로·GT 박스(속도·attribute 포함)·ego pose·CAN·캘리브를 제공. CAN blacklist와 이미지 결손 scene 필터 | 라벨·데이터셋·평가가 **모두 이 래퍼만** 거친다. devkit 버전이나 좌표 규약이 바뀌어도 수정 지점이 한 곳이다 |
+| `splits.py` | scene 이름 기준 70/15/15 결정적 분할, 저장·로드 | 분할 누수 금지(원칙 3). 토큰이 아니라 이름 기준이라 사람이 읽고 검증할 수 있다 |
+| `feature_cache.py` | MobileNetV3-small GAP 특징을 카메라별 `.npy` memmap으로 사전 추출 | 학습 중 백본을 재실행하지 않는다. 원본 이미지 학습이 아니므로 1 epoch가 초 단위로 끝난다 |
+| `contrib_cache.py` | 위험 기여(투영·TTC·DCA·w)와 CAN 특징을 ragged `.npz`로 캐시 | 34,149 keyframe × 실험 10여 회를 매번 재계산하면 낭비다. 캐시 키는 **기여 값을 바꾸는 LabelConfig 필드만** 반영해 무관한 설정 변경으로 무효화되지 않는다 |
+| `noise.py` | 검출 오류 시뮬레이터 — 누락(원거리 가중) · 오검출(Poisson) · 위치/속도 잡음 · 채널 블랙아웃. `clean/light/medium/heavy` 프리셋 | 원칙 2의 구현체. 학습 증강과 강건성 평가 양쪽에서 같은 코드를 쓴다 |
+| `dataset.py` | 과거 T=4 시퀀스 조립(scene 경계 패딩 + 마스크), `risk_source` 분기, 난수 시드 정책, `WeightedRandomSampler` | 모델은 **과거만** 본다. 라벨이 미래를 참조하는 비대칭이 "선제적 전환 학습"의 핵심이다 |
+
+> **난수 정책** (`item_rng`, `set_epoch`) — 학습은 `(seed, epoch, index)`, 평가는 `(seed, index)`.
+> 학습에서 인덱스만으로 시드하면 고정된 손상 입력을 암기해 강건성이 증명되지 않고,
+> 평가에서 epoch를 섞으면 제안 모델과 B2가 서로 다른 입력을 보게 되어 열화 곡선 비교가
+> 성립하지 않는다. 검출 품질과 블랙아웃 채널은 2초 시퀀스 안에서 유지된다.
+
+#### `src/labeling` — 의사 라벨 생성 (M2, 본 연구의 ★)
+
+| 모듈 | 하는 일 | 핵심 판단 |
+|---|---|---|
+| `ttc.py` | 최접근(CPA) 기반 TTC와 DCA, 위험 가중 `w`, 경로 계수 `ρ_path`, 상태 감쇠 예외 `ρ_attr_eff`, 진행방향 게이트 근접 보정 | radial 정의(`r/v_r`)는 옆으로 스쳐 갈 객체를 충돌 임박으로 오판한다. 실측상 위험량의 62.9%가 정지·주차 객체에서 나왔다. `ttc_mode: radial`로 되돌릴 수 있고 ablation 항목으로 쓴다 |
+| `maneuver.py` | ±3초 ego 자세 윈도우로 7개 기동 상태 규칙 판정 | 라벨 생성은 오프라인이므로 미래 pose를 봐도 된다 |
+| `label_function.py` | 채널 귀속 → 채널 위험도 → `s(c) = risk(c) + λ·m(c)` → primary · aux 슬롯 · soft label · layout, scene 단위 EMA 평활과 flicker 병합 | **위험 항만 평활한다.** 기동 상태는 이미 ±3초 윈도우로 추론된 안정 신호라 다시 평활하면 이중 스무딩이 되어, 기동 경계에서 안전 기본값이 꺼진다 |
+
+`is_hazard()` 는 **'실제 위험'의 단일 정의**(`TTC < 5s AND DCA < 3m`)이며 라벨·평가·골드셋이
+모두 이 함수를 공유한다. 정의가 갈라지면 재현율과 정밀도가 서로 다른 모집단을 가리킨다.
+
+#### `src/models` · `src/eval`
+
+| 모듈 | 하는 일 |
+|---|---|
+| `proposed.py` | 채널 토큰 6개 + CAN 토큰 1개 → Transformer(2층·4헤드·d=128) → 채널별 GRU → Head1(뷰) / Head2(레이아웃). 손실은 focal CE + KL(soft) + layout CE + temporal consistency. **ablation은 별도 모델이 아니라 같은 코드의 플래그**(`use_can` · `use_risk` · `use_transformer` · `use_gru`)로 구성 |
+| `metrics.py` | Top-1, 복수 정답 Top-k, Macro-F1, scene 시간순 flicker rate |
+
+### 실행 순서
+
+```bash
+# 0) 데이터 배치 검증
+python scripts/00_check_data.py --version v1.0-mini
+
+# 1) 탐색 — scene별 keyframe 수, CAN 스냅숏
+python scripts/01_explore_data.py --version v1.0-mini
+
+# 2) 의사 라벨 생성 → data/labels_{version}.parquet
+python scripts/02_generate_labels.py --version v1.0-mini
+
+# 3) 검수용 시각화 20장 → results/label_viz/   ← 사용자 승인 게이트 (M2)
+python scripts/03_visualize_labels.py --n 20
+
+# 4) 백본 특징 · 위험 기여 캐시 + 로더 검증
+python scripts/04_build_cache.py --version v1.0-mini
+
+# 5) 학습
+python scripts/05_train.py --config configs/train_proposed.yaml
+python scripts/05_train.py --config configs/train_proposed.yaml --limit_samples 100   # 드라이런
+
+# 테스트
+python -m pytest tests/ -q
+```
+
+> mini 스모크 테스트는 `--version v1.0-mini --splits splits/scene_split_mini.json`.
+> 분할 파일을 새로 만드는 `scripts/make_split.py`는 **최초 1회용**이며 다시 실행하지 않는다.
+
+### 구현 현황
+
+| 계층 | 상태 |
+|---|---|
+| utils · data · labeling | 구현 완료 — 유닛테스트 47개 통과 |
+| models · 학습 루프 | 구현 완료 (mini 스모크 통과). **모델 헤드는 아직 6-way softmax**이며, 계획서 §5.3의 채널별 sigmoid + BCE로 교체 예정 |
+| `baselines/rule_based.py` (B2) | 미구현 — M5 |
+| `eval/evaluate.py` · `eval/robustness.py` | 미구현 — M6 · M7 |
+| `tools/goldset_ui/` | 미구현 — M6 |
+| `scripts/06~08` | 미구현 — M6~M8 |
+| `data/interpolation.py` (2Hz→12Hz) | 선택 항목, 미구현 |
+
 ## 🗂️ 데이터셋
 
 - **nuScenes** (CC BY-NC-SA 4.0, 학술 목적 무료 — 계정 등록 후 다운로드)
@@ -62,9 +225,12 @@ risk 벡터 (채널별 Σw(TTC))                            ┘
 CAN (speed, steering, accel_x, accel_y, yaw_rate)  → CAN 토큰 1개
   → TransformerEncoder(layers=2, heads=4, d=128, ff=256)
   → 채널별 GRU (시간축 처리)
-  → Head1: attention 뷰 분포 (6-way softmax) — 적응형 보조 뷰
+  → Head1: 보조 뷰 로짓 (6채널)
   → Head2: 레이아웃 (K=5-way)
 ```
+
+> 현재 Head1은 6-way softmax다. 계획서 §5.3의 **채널별 독립 sigmoid + BCE**로 교체 예정이며,
+> 그래야 추론 임계값을 쓸어가며 표시량-안전의 운영 곡선을 그릴 수 있다.
 
 - **손실**: `CE_focal(main) + α·KL(soft_label) + γ_l·CE(layout) + β·temporal_consistency`
 - **학습**: AdamW(lr=1e-4), cosine decay, focal loss + WeightedRandomSampler,
@@ -76,16 +242,30 @@ CAN (speed, steering, accel_x, accel_y, yaw_rate)  → CAN 토큰 1개
 결합해 채널 점수 `s(c)`를 계산한다.
 
 ```
-s(c) = Σ_{i∈c} w(TTC_i) + λ·m(c)      # w(TTC)=exp(-TTC/τ), 기동→채널 적합도 m(c)
-primary_view   = 진행방향 뷰 (전진 FRONT / 후진 BACK) — 상시 주시
-attention_view = argmax_{c≠primary} s(c)  — 위험/기동 기반 적응형 보조 뷰
+risk(c) = EMA_α( Σ_{i∈c} w_i )        # 위험 항만 평활 (검출 지터 억제)
+s(c)    = risk(c) + λ·m(c)            # λ=0.4 — 기동 항은 평활하지 않음
+w       = ρ_attr · ρ_path · max( exp(-TTC/τ), 근접보정 )
+
+primary  = 진행방향 뷰 (전진 FRONT / 후진 BACK) — 상시 표시, 선택 대상 아님
+aux      = 슬롯 배정 (최대 2장)
+           슬롯 1  안전 기본값: m(c) ≥ m_guard 인 채널 — 검출 0이어도 켠다
+           슬롯 2~ 위험:       risk(c) ≥ θ 인 채널을 위험 순으로
 ```
+
+**왜 슬롯을 역할로 나누는가**: 하나의 임계값을 합산 `s(c)`에 걸면 기동 항이 슬롯을 독점해
+실제 위험이 밀려난다(차선변경 중 위험 커버 60.6%). 역할 분리 후 70.5%.
+**왜 0장을 허용하는가**: 실제 위험은 프레임의 5.3%뿐이다. 매 프레임 한 장을 강제하면
+대부분의 시간에 무의미한 강조가 켜져 오퍼레이터가 보조 뷰를 무시하게 된다.
 
 > **뷰 정책 (v1)**: 이동체는 진행 방향을 항상 주시해야 하므로 primary(진행방향)를 UI 메인에
 > 고정하고, 위험/기동으로 고른 attention 뷰를 보조로 강조한다. 정지(STOP) 시에는 극단 위험이
 > 아니면 뷰를 유지해 불필요한 전환을 억제한다.
 
-- **TTC**: radial 정의 — 접근 속도 기반. 근접 객체(r<10m) 최소 가중 보정.
+- **TTC**: 최접근(CPA) 정의 — `t* = −(p_rel·v_rel)/‖v_rel‖²`, 그때의 거리가 DCA.
+  radial 정의(`r/v_r`)는 옆으로 스쳐 갈 객체를 충돌 임박으로 오판해 위험량의 62.9%가
+  정지·주차 객체에서 나왔다. `ttc_mode: radial`로 되돌릴 수 있으며 ablation 항목이다.
+- **'실제 위험'의 단일 정의**: `TTC < 5s AND DCA < 3m` (`label_function.is_hazard`) —
+  라벨·평가·골드셋이 같은 함수를 공유한다. trainval 기준 프레임의 5.3%.
 - **기동 상태**: `{STRAIGHT, TURN_L/R, LANE_CHANGE_L/R, REVERSE, STOP}`
   (ego pose 시퀀스 + CAN으로 규칙 추론, 라벨 생성 시에만 미래 pose 참조 허용)
 - **레이아웃**: 기동 클래스 → 사전 정의 템플릿(K=5) 결정적 매핑
@@ -107,7 +287,13 @@ Ablation: A1(−CAN) / A2(−위험도) / A3(−GRU) / A4(−cross-view attentio
 - **Top-1 / Top-2** (골드셋, 복수 정답 허용)
 - **Macro-F1** (6채널, 골드셋 + 의사 라벨 시험셋)
 - **Flicker rate** (전환 후 1.5초 내 재전환 비율)
-- **위험 객체 가시화율** (TTC<3s GT 객체가 선택 뷰 화각에 포함된 비율 — GT 기하로 직접 계산)
+- **평균 보조 뷰 수** — 인지 부하의 대리 지표
+- **위험 사건 포착률(재현율)** — '실제 위험' 객체가 선택 뷰(primary ∪ aux) 화각에 든 비율.
+  GT 기하로 직접 계산하므로 순환이 없다
+- **위험 슬롯 정밀도** — 위험으로 켠 채널 중 실제 위험이 있던 비율. **반드시 병기한다**
+  (재현율만 보면 "많이 켜면 오르는" 지표라 튜닝이 왜곡된다)
+- **운영 곡선** — 임계값을 쓸어가며 (평균 보조 뷰 수 vs 포착률). 강건성도 스칼라가 아니라
+  이 곡선의 열화로 보고한다
 - **강건성**: 노이즈 유형(miss / FP / pos-noise / 채널 드롭) × 강도(clean~heavy)별
   제안 모델 vs B2 열화 곡선
 
@@ -230,18 +416,29 @@ pip install nuscenes-devkit timm opencv-python-headless pandas pyarrow \
    Traffic-Aware Multi-View Video Stream Adaptation for Teleoperated Driving. *IEEE VTC2022-Spring*.
    — 가장 가까운 선행연구. 뷰 중요도를 **대역폭 배분**에 활용. 본 연구는 **주의 배분**으로
    정식화하고 검출 불확실성 하의 강건성을 주 검증 대상으로 삼는 점이 다르다.
-7. Tatler, B. W., et al. (2021). Searching in CCTV: effects of organisation in the multiplex.
-   *Cognitive Research: Principles and Implications*. DOI 10.1186/s41235-021-00277-2
-8. Tickner, A. H., & Poulton, E. C. (1973). 다중 화면 감시 성능 연구. ⚠️ 서지정보 원문 확인 필요
+7. Tatler, B. W. (2021). Searching in CCTV: effects of organisation in the multiplex.
+   *Cognitive Research: Principles and Implications* 6. DOI 10.1186/s41235-021-00277-2
+8. Tickner, A. H., & Poulton, E. C. (1973). Monitoring up to 16 Synthetic Television Pictures
+   Showing a Great Deal of Movement. *Ergonomics* 16(4):381–401. DOI 10.1080/00140137308924529
 9. Majstorović, D., Hoffmann, S., Pfab, F., Schimpe, A., Wolf, M.-M., Diermeyer, F. (2022).
-   Survey on Teleoperation Concepts for Automated Vehicles. *arXiv:2208.08876*. ⚠️ 게재 학회 확인 필요
-   — 원격 운전/원격 지원 개념 분류 + 산업 활동·특허 동향
+   Survey on Teleoperation Concepts for Automated Vehicles. *IEEE SMC 2022*, pp. 1290–1296.
+   DOI 10.1109/SMC53654.2022.9945267 — 원격 운전/원격 지원 개념 분류 + 산업 활동·특허 동향
 10. Bogdoll, D., Orf, S., Töttel, L., Zöllner, J. M. (2022). Taxonomy and Survey on Remote Human
     Input Systems for Driving Automation Systems. *Advances in Information and Communication*, Springer.
 11. Kettwich, C., Schrank, A., Oehl, M. (2021). Teleoperation of Highly Automated Vehicles in Public
-    Transport: User-Centered Design of an HMI... *MTI* 5(5):26. ⚠️ 저자 확인 필요 — 모니터 6대 구성
-12. Wolf, M., et al. (2025). A User-Centered Teleoperation GUI for Automated Vehicles.
-    *MTI* 9(8):78. DOI 10.3390/mti9080078 — 단계별 동적 GUI (표시 요소 수 적응)
+    Transport: User-Centered Design of an HMI and Its Expert Usability Evaluation.
+    *MTI* 5(5):26. DOI 10.3390/mti5050026 — 모니터 6대 중 상단 3대가 영상
+12. Wolf, M.-M., Schmidt, H., Christl, M., Fank, J., Diermeyer, F. (2025). A User-Centered
+    Teleoperation GUI for Automated Vehicles. *MTI* 9(8):78. DOI 10.3390/mti9080078
+    — 단계별 동적 GUI (표시 요소 수 적응)
+13. Musicant, O., Botzer, A., Richmond-Hacham, B. (2024). Safety, Efficiency, and Mental Workload
+    in Simulated Teledriving of a Vehicle as Functions of Camera Viewpoint.
+    *Sensors* 24(18):6134. DOI 10.3390/s24186134 — n=148, 완료시간 14%↓, 충돌률 불변
+14. Stainer, M. J., Scott-Brown, K. C., Tatler, B. W. (2013). Looking for Trouble: A Description of
+    Oculomotor Search Strategies During Live CCTV Operation.
+    *Frontiers in Human Neuroscience* 7:615. DOI 10.3389/fnhum.2013.00615 — 전환 주기 26.9~62.4초
+15. Linkov, V., Vanžura, M. (2021). Situation Awareness Measurement in Remotely Controlled Cars.
+    *Frontiers in Psychology* 12:592930. DOI 10.3389/fpsyg.2021.592930
 
 ## 📧 Contact
 

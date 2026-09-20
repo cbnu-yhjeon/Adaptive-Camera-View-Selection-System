@@ -459,6 +459,23 @@
 
   .src { font-family:var(--f-mono); font-size:10px; color:var(--muted); font-weight:400; }
 
+  /* 구현 구조 파이프라인 (5.5) */
+  .pipeline { display:flex; flex-direction:column; gap:10px; }
+  .pl-src { display:flex; flex-direction:column; align-items:stretch; gap:6px; }
+  .pl-cols { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  @media (max-width:700px) { .pl-cols { grid-template-columns:1fr; } }
+  .pl-col { display:flex; flex-direction:column; gap:6px; min-width:0; }
+  .pl-cap { font-family:var(--f-mono); font-size:10.5px; letter-spacing:.05em;
+            color:var(--accent); text-align:center; }
+  .pl-box { border:1px solid var(--rule); background:var(--surface);
+            padding:8px 10px; font-size:12.5px; line-height:1.45; text-align:center; }
+  .pl-box span { display:block; font-size:11px; color:var(--muted); margin-top:2px; }
+  .pl-box.accent { border-color:var(--accent); background:var(--accent-bg); }
+  .pl-box.signal { border-color:var(--signal); background:var(--signal-bg); }
+  .pl-box.out    { border-style:dashed; background:var(--surface-2); font-weight:600; }
+  .pl-arrow { text-align:center; color:var(--muted); font-size:11px; line-height:1; }
+  .pl-note { font-size:11px; color:var(--muted); text-align:center; }
+
 </style>
 
 <div class="page">
@@ -1064,6 +1081,119 @@ s(c) = EMA(Σ_{i∈c} w_i) + λ · m(c),      λ = 0.4</div>
         손상 실현을 보게 한다. 인덱스만으로 시드하면 고정된 손상 입력을 암기하게 되어 주장 C3을
         입증할 수 없다. 반대로 평가 시에는 <code>(seed, index)</code>만 사용해 제안 모델과 B2가
         동일한 손상 입력을 보도록 고정한다.</p>
+    </div>
+
+    <h3 class="indent">5.5 구현 구조</h3>
+    <p>재현 가능성을 위해 구현을 계층으로 나누고, 각 계층이 한 가지 책임만 지도록 했다.
+      가장 중요한 경계는 <strong>라벨 경로와 모델 입력 경로의 분리</strong>다 — 라벨은 3D GT를
+      써도 되지만(정답을 만드는 용도), 모델이 받는 위험도 벡터는 실전을 흉내내어 손상된 값이다.
+      이 분리가 무너지면 주장 C3이 성립하지 않는다.</p>
+    <div class="indent">
+      <div class="pipeline">
+        <div class="pl-src">
+          <div class="pl-cap">nuScenes</div>
+          <div class="pl-box">samples/ · v1.0-* · can_bus/</div>
+          <div class="pl-arrow">▼</div>
+          <div class="pl-box accent"><b>data/nusc_wrapper</b><br>
+            <span>scene 순회 · 6채널 경로 · GT 박스 · ego pose · CAN · blacklist</span></div>
+          <div class="pl-note">라벨 · 데이터셋 · 평가가 모두 이 래퍼만 거친다</div>
+        </div>
+        <div class="pl-cols">
+          <div class="pl-col">
+            <div class="pl-cap">라벨 경로 — GT 허용</div>
+            <div class="pl-box"><b>labeling/geometry</b><br><span>global→ego→camera 투영, 채널 귀속</span></div>
+            <div class="pl-box"><b>labeling/ttc</b><br><span>최접근 TTC · DCA · 위험 가중 w</span></div>
+            <div class="pl-box"><b>labeling/maneuver</b><br><span>±3초 윈도우 → 기동 7클래스</span></div>
+            <div class="pl-box accent"><b>labeling/label_function</b><br>
+              <span>risk(c)=EMA(Σw) · s=risk+λ·m<br>primary · aux 슬롯 · soft · layout</span></div>
+            <div class="pl-arrow">▼</div>
+            <div class="pl-box out">labels_{version}.parquet<br><span>학습 타깃</span></div>
+          </div>
+          <div class="pl-col">
+            <div class="pl-cap">모델 입력 경로 — 손상 허용</div>
+            <div class="pl-box"><b>data/feature_cache</b><br><span>MobileNetV3-small GAP → .npy memmap</span></div>
+            <div class="pl-box"><b>data/contrib_cache</b><br><span>위험 기여 + CAN 특징 → .npz</span></div>
+            <div class="pl-box"><b>data/noise</b><br><span>누락 · 오검출 · 위치 오차 · 채널 블랙아웃</span></div>
+            <div class="pl-box accent"><b>data/dataset</b><br>
+              <span>T=4 시퀀스 조립 · scene 경계 패딩<br>risk_source 분기 · 균형 샘플러</span></div>
+            <div class="pl-arrow">▼</div>
+            <div class="pl-box out">models/proposed<br><span>Transformer + 채널별 GRU</span></div>
+          </div>
+        </div>
+        <div class="pl-src">
+          <div class="pl-arrow">▼</div>
+          <div class="pl-box signal"><b>eval/metrics</b><br>
+            <span>Top-1/2 · Macro-F1 · flicker · 위험 사건 포착률 · 위험 슬롯 정밀도</span></div>
+        </div>
+      </div>
+      <caption>왼쪽 라벨 경로를 그대로 추론에 쓰는 것이 베이스라인 <strong>B2</strong>다.
+        따라서 최종 성능의 주 지표는 사람이 검수한 골드셋이며, 의사 라벨 시험셋 수치는
+        보조 열로만 병기한다(6절).</caption>
+    </div>
+
+    <div class="indent">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th style="width:150px">계층 · 모듈</th><th style="width:270px">하는 일</th>
+            <th>설계 의도 — 왜 이렇게 두었는가</th></tr></thead>
+          <tbody>
+            <tr><td class="key">utils/<br>constants</td>
+              <td>채널 순서(6) · 기동 7클래스 · 기동→채널 적합도 m(c) · 레이아웃 K=5 ·
+                객체 상태 계수</td>
+              <td>라벨의 채널 3번과 모델 출력의 채널 3번이 달라지면 실험 전체가
+                <strong>조용히</strong> 오염된다. 순서를 한 곳에 못 박는다</td></tr>
+            <tr><td class="key">data/<br>nusc_wrapper</td>
+              <td>devkit을 감싸 scene·이미지·GT 박스·ego pose·CAN·캘리브를 제공.
+                CAN blacklist와 이미지 결손 scene 필터</td>
+              <td>데이터 접근 지점을 하나로 모아, devkit 버전이나 좌표 규약이 바뀌어도
+                수정 지점이 한 곳이 되게 한다</td></tr>
+            <tr><td class="key">data/<br>feature_cache<br>contrib_cache</td>
+              <td>백본 GAP 특징과 위험 기여·CAN 특징을 디스크에 미리 굽는다</td>
+              <td>34,149 keyframe × 실험 10여 회를 매번 재계산하면 낭비다. 캐시 키는
+                <strong>기여 값을 바꾸는 설정 필드만</strong> 반영해 무관한 변경으로
+                무효화되지 않는다</td></tr>
+            <tr><td class="key">data/<br>noise</td>
+              <td>검출 오류 시뮬레이터 — 누락(원거리 가중) · 오검출(Poisson) ·
+                위치/속도 잡음 · 채널 블랙아웃</td>
+              <td>학습 증강과 강건성 평가가 <strong>같은 코드</strong>를 쓴다. 평가에만 있는
+                오류 모델은 학습이 본 적 없는 분포가 되어 비교가 공정하지 않다</td></tr>
+            <tr><td class="key">data/<br>dataset</td>
+              <td>과거 T=4 시퀀스 조립, scene 경계 패딩 + 마스크, risk_source 분기,
+                난수 시드 정책</td>
+              <td>모델은 <strong>과거만</strong> 본다. 라벨이 미래 pose를 참조하는 비대칭이
+                ‘선제적 전환 학습’의 핵심이다</td></tr>
+            <tr><td class="key">labeling/<br>ttc</td>
+              <td>최접근(CPA) TTC와 DCA, 위험 가중 w, 경로 계수 ρ<sub>path</sub>,
+                상태 감쇠 예외, 진행방향 게이트 근접 보정</td>
+              <td>radial 정의는 옆으로 스쳐 갈 객체를 충돌 임박으로 오판한다 — 실측상
+                위험량의 62.9%가 정지·주차 객체에서 나왔다. radial로 되돌릴 수 있으며
+                ablation 항목(A6)이다</td></tr>
+            <tr><td class="key">labeling/<br>label_function</td>
+              <td>채널 귀속 → 채널 위험도 → s(c) → primary · aux 슬롯 · soft label ·
+                layout, scene 단위 EMA와 flicker 병합</td>
+              <td><strong>위험 항만 평활한다.</strong> 기동 상태는 이미 ±3초 윈도우로 추론된
+                안정 신호라 다시 평활하면 이중 스무딩이 되어 기동 경계에서 안전 기본값이
+                꺼진다</td></tr>
+            <tr><td class="key">models/<br>proposed</td>
+              <td>채널 토큰화 → Transformer → 채널별 GRU → 뷰 · 레이아웃 두 헤드</td>
+              <td>ablation은 별도 모델이 아니라 <strong>같은 코드의 플래그</strong>
+                (use_can · use_risk · use_transformer · use_gru)다. 구조가 갈라지면
+                제거 효과인지 구현 차이인지 알 수 없다</td></tr>
+          </tbody>
+        </table>
+        <caption>오른쪽 열이 이 프로젝트에서 실제로 시간을 들여 판단한 지점이다.
+          각 항목은 예비 실험으로 뒤집힌 결과를 반영한 것이며, 되돌릴 수 있도록
+          설정 플래그로 남겨 두었다.</caption>
+      </div>
+    </div>
+
+    <div class="note">
+      <span class="label">구현 현황 (계획서 작성 시점)</span>
+      <p><strong>완료</strong> — utils · data · labeling 전 계층(유닛테스트 47개 통과), 모델과
+        학습 루프(mini 스모크 통과), 의사 라벨 trainval 전 구간 생성.<br>
+        <strong>남은 것</strong> — 규칙 기반 B2, 공통 평가 엔트리와 강건성 스크립트,
+        골드셋 검수 UI, 표·그림 생성 스크립트. 모델 헤드는 현재 6-way softmax이며
+        5.3절의 채널별 sigmoid로 교체해야 운영 곡선을 그릴 수 있다. 8절 일정 참조.</p>
     </div>
   </section>
 
