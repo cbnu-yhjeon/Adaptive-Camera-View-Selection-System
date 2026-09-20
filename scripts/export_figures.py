@@ -35,7 +35,7 @@ TOKENS = """
 
 # 추출할 그림: (파일명, 시작 앵커, 종료 앵커, 렌더 폭)
 FIGURES = [
-    ("fig1_operator_view", '<figure class="indent fig-block">\n      <div class="camgrid">',
+    ("fig1_console_layout", '<figure class="indent fig-block">\n      <div class="console">',
      "</figure>", 900),
     ("fig2_hazard_rarity", '<figure class="indent fig-block">\n      <div class="chart">\n        <svg viewBox="0 0 760 96"',
      "</figure>", 860),
@@ -158,7 +158,7 @@ def main() -> int:
         shoot(standalone(css, body, width), png, width)
         size = os.path.getsize(png) / 1024
         svg_note = ""
-        if name != "fig1_operator_view" and name != "fig4_label_example":
+        if name != "fig1_console_layout" and name != "fig4_label_example":
             svg = os.path.join(args.out, f"{name}.svg")
             if export_svg(body, css, svg):
                 svg_note = f" + SVG {os.path.getsize(svg)/1024:.0f} KB"
