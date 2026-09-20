@@ -45,14 +45,50 @@ FIGURES = [
      "</figure>", 780),
     ("fig5_operating_curve", '<figure class="indent fig-block">\n      <div class="chart">\n        <div class="legend">',
      "</figure>", 860),
+    # 발표 슬라이드는 곡선만 쓰고 수치는 슬라이드 표로 따로 둔다
+    ("fig5_chart_only", '<div class="chart">\n        <div class="legend">', "</div>", 900),
 ]
 
 
+def _drop_block(css: str, opener: str) -> str:
+    """`opener`로 시작하는 규칙을 중괄호 짝을 세어 제거한다.
+
+    정규식으로 닫는 줄을 짐작하면 한 줄짜리 블록(`:root[data-theme="dark"] { ... }`)에서
+    패턴을 못 찾고 뒤따르는 규칙까지 삼킨다 — 실제로 이 방식 때문에 차트 색 규칙이
+    통째로 사라져 fig5의 곡선이 검게 칠해졌다.
+    """
+    out, i = [], 0
+    while True:
+        j = css.find(opener, i)
+        if j == -1:
+            out.append(css[i:])
+            return "".join(out)
+        out.append(css[i:j])
+        k = css.find("{", j)
+        if k == -1:
+            out.append(css[j:])
+            return "".join(out)
+        depth = 0
+        while k < len(css):
+            if css[k] == "{":
+                depth += 1
+            elif css[k] == "}":
+                depth -= 1
+                if depth == 0:
+                    break
+            k += 1
+        i = k + 1
+
+
 def extract_css(src: str) -> str:
-    """문서의 <style> 전체를 가져와 :root 토큰만 인라인 값으로 교체."""
+    """문서의 <style> 전체를 가져와 다크 모드 규칙만 덜어낸다.
+
+    추출한 그림은 항상 라이트 모드로 렌더링하므로 다크 규칙은 불필요하고,
+    :root 토큰은 standalone()에서 인라인 값으로 덮어쓴다.
+    """
     css = re.search(r"<style>(.*?)</style>", src, re.S).group(1)
-    css = re.sub(r"@media \(prefers-color-scheme: dark\).*?\n  \}\n  \}", "", css, flags=re.S)
-    css = re.sub(r":root\[data-theme=\"dark\"\].*?\n  \}", "", css, flags=re.S)
+    css = _drop_block(css, "@media (prefers-color-scheme: dark)")
+    css = _drop_block(css, ':root[data-theme="dark"]')
     return css
 
 
@@ -154,6 +190,11 @@ def main() -> int:
 
     for name, start, end, width in FIGURES:
         body = block(src, start, end)
+        # 캡션 없는 판 — 발표 슬라이드는 캡션을 슬라이드 본문에 따로 쓰므로,
+        # 그림에 구워진 캡션이 남으면 그림 자체가 작아진다.
+        nocap = re.sub(r"<figcaption>.*?</figcaption>", "", body, flags=re.S)
+        shoot(standalone(css, nocap, width),
+              os.path.join(args.out, f"{name}_nocap.png"), width)
         png = os.path.join(args.out, f"{name}.png")
         shoot(standalone(css, body, width), png, width)
         size = os.path.getsize(png) / 1024
