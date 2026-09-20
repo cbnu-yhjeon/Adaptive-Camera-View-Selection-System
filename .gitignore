@@ -19,3 +19,6 @@ results/**/*.ckpt
 .vscode/
 *:Zone.Identifier
 results/*/20*/
+
+# 발표 슬라이드 생성물 (scripts/make_teleop_slide.py로 재생성)
+results/slides/
