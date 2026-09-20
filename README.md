@@ -233,6 +233,15 @@ pip install nuscenes-devkit timm opencv-python-headless pandas pyarrow \
 7. Tatler, B. W., et al. (2021). Searching in CCTV: effects of organisation in the multiplex.
    *Cognitive Research: Principles and Implications*. DOI 10.1186/s41235-021-00277-2
 8. Tickner, A. H., & Poulton, E. C. (1973). 다중 화면 감시 성능 연구. ⚠️ 서지정보 원문 확인 필요
+9. Majstorović, D., Hoffmann, S., Pfab, F., Schimpe, A., Wolf, M.-M., Diermeyer, F. (2022).
+   Survey on Teleoperation Concepts for Automated Vehicles. *arXiv:2208.08876*. ⚠️ 게재 학회 확인 필요
+   — 원격 운전/원격 지원 개념 분류 + 산업 활동·특허 동향
+10. Bogdoll, D., Orf, S., Töttel, L., Zöllner, J. M. (2022). Taxonomy and Survey on Remote Human
+    Input Systems for Driving Automation Systems. *Advances in Information and Communication*, Springer.
+11. Kettwich, C., Schrank, A., Oehl, M. (2021). Teleoperation of Highly Automated Vehicles in Public
+    Transport: User-Centered Design of an HMI... *MTI* 5(5):26. ⚠️ 저자 확인 필요 — 모니터 6대 구성
+12. Wolf, M., et al. (2025). A User-Centered Teleoperation GUI for Automated Vehicles.
+    *MTI* 9(8):78. DOI 10.3390/mti9080078 — 단계별 동적 GUI (표시 요소 수 적응)
 
 ## 📧 Contact
 
