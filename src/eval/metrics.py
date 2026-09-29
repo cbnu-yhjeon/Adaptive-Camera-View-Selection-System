@@ -9,7 +9,7 @@
 from __future__ import annotations
 
 import numpy as np
-from sklearn.metrics import f1_score
+from sklearn.metrics import average_precision_score, f1_score
 
 from src.utils.constants import NUM_CAMERAS
 
@@ -23,6 +23,81 @@ def macro_f1(pred: np.ndarray, target: np.ndarray) -> float:
         return 0.0
     return float(f1_score(target, pred, labels=list(range(NUM_CAMERAS)),
                           average="macro", zero_division=0))
+
+
+def multilabel_f1(pred: np.ndarray, target: np.ndarray,
+                  mask: np.ndarray | None = None) -> float:
+    """채널별 강조 여부(0/1)의 macro-F1 — 다중 선택 학습의 주 지표.
+
+    단일 선택 macro_f1과 다르다: 여기서는 6채널 각각이 독립 이진 문제이고,
+    0장·2장도 표현된다. mask=0인 채널(진행 방향)은 분모에서 뺀다.
+    """
+    p = np.asarray(pred, dtype=bool)
+    t = np.asarray(target, dtype=bool)
+    m = np.ones_like(p, dtype=bool) if mask is None else np.asarray(mask, dtype=bool)
+    if p.size == 0:
+        return 0.0
+    f1s = []
+    for c in range(p.shape[1]):
+        sel = m[:, c]
+        if not sel.any():
+            continue
+        f1s.append(f1_score(t[sel, c], p[sel, c], zero_division=0))
+    return float(np.mean(f1s)) if f1s else 0.0
+
+
+def mean_aux(pred: np.ndarray) -> float:
+    """평균 보조 뷰 수 — 인지 부하의 대리 지표."""
+    p = np.asarray(pred, dtype=bool)
+    return float(p.sum(axis=1).mean()) if p.size else 0.0
+
+
+def macro_ap(prob: np.ndarray, target: np.ndarray,
+             mask: np.ndarray | None = None) -> float:
+    """채널별 average precision의 macro 평균 — **임계값과 무관한** 순위 품질.
+
+    모델 선택(조기 종료)에는 이 값을 쓴다. 고정 임계값 F1로 고르면, 강조 채널이
+    희소해 초기에 전부 음성으로 예측하는 구간에서 F1=0이 되어 학습 신호와 선택 신호가
+    어긋난다(실측: 손실은 계속 내려가는데 val F1이 0으로 붕괴). 운영 곡선 자체가
+    임계값을 쓸어 그리는 것이므로, 선택도 임계값에 의존하지 않아야 한다.
+    """
+    p = np.asarray(prob, dtype=float)
+    t = np.asarray(target, dtype=int)
+    m = np.ones_like(t, dtype=bool) if mask is None else np.asarray(mask, dtype=bool)
+    if p.size == 0:
+        return 0.0
+    aps = []
+    for c in range(p.shape[1]):
+        sel = m[:, c]
+        if not sel.any() or t[sel, c].sum() == 0:
+            continue                      # 양성이 없는 채널은 AP가 정의되지 않는다
+        aps.append(average_precision_score(t[sel, c], p[sel, c]))
+    return float(np.mean(aps)) if aps else 0.0
+
+
+def threshold_for_load(prob: np.ndarray, target_load: float,
+                       mask: np.ndarray | None = None,
+                       aux_max: int = 2) -> float:
+    """예측 평균 보조 뷰 수가 target_load에 가장 가까워지는 임계값.
+
+    정밀도·재현율은 표시량에 좌우되므로, 비교는 **동일 표시량 조건**에서만 의미가
+    있다(CLAUDE.md B.8). 라벨의 표시량에 모델을 맞춘 뒤 지표를 읽는다.
+    """
+    p = np.asarray(prob, dtype=float).copy()
+    if mask is not None:
+        p[~np.asarray(mask, dtype=bool)] = -1.0
+    best, best_gap = 0.5, float("inf")
+    for th in np.linspace(0.01, 0.99, 99):
+        keep = p >= th
+        if aux_max is not None:
+            order = np.argsort(-p, axis=1)
+            drop = np.zeros_like(keep)
+            np.put_along_axis(drop, order[:, aux_max:], True, axis=1)
+            keep = keep & ~drop
+        gap = abs(keep.sum(axis=1).mean() - target_load)
+        if gap < best_gap:
+            best, best_gap = float(th), gap
+    return best
 
 
 def topk_set(pred_topk: list[list[int]], gold_sets: list[list[int]]) -> float:

@@ -30,10 +30,12 @@ from src.data.dataset import ViewSelectionDataset, collate  # noqa: E402
 from src.data.feature_cache import FeatureCache  # noqa: E402
 from src.data.nusc_wrapper import NuscWrapper  # noqa: E402
 from src.data.splits import load_split, split_for_names  # noqa: E402
-from src.eval.metrics import macro_f1, top1  # noqa: E402
+from src.eval.metrics import (  # noqa: E402
+    macro_ap, macro_f1, mean_aux, multilabel_f1, threshold_for_load, top1,
+)
 from src.labeling.label_function import LabelConfig  # noqa: E402
 from src.models.proposed import (  # noqa: E402
-    LossWeights, ModelConfig, ViewSelector, compute_loss,
+    LossWeights, ModelConfig, ViewSelector, compute_loss, select_views,
 )
 
 
@@ -82,22 +84,50 @@ def build_datasets(base, lab, tc, args):
 
 def to_device(batch, device):
     for k in ("img_feat", "can", "risk", "pad_mask", "soft_label",
+              "aux_target", "aux_mask",
               "attention_view", "primary_view", "layout"):
         batch[k] = batch[k].to(device)
     return batch
 
 
 @torch.no_grad()
-def evaluate(model, dl, device):
+def evaluate(model, dl, device, aux_max: int = 2):
+    """다중 선택 지표가 주(主)이고, 단일 선택 Top-1은 베이스라인 비교용으로 병기한다.
+
+    모델 선택은 macro-AP(임계값 무관)로 한다. F1·표시량은 **라벨과 같은 표시량**이
+    되도록 임계값을 맞춘 뒤 읽는다 — 정밀도·재현율이 표시량에 좌우되므로 고정
+    임계값으로는 비교가 성립하지 않는다.
+    """
     model.eval()
-    preds, tgts = [], []
+    probs, aux_t, aux_m, arg, single_t = [], [], [], [], []
     for batch in dl:
         batch = to_device(batch, device)
         out = model(batch)
-        preds.append(out["attn_logits"].argmax(1).cpu().numpy())
-        tgts.append(batch["attention_view"].cpu().numpy())
-    p, t = np.concatenate(preds), np.concatenate(tgts)
-    return {"top1": top1(p, t), "macro_f1": macro_f1(p, t)}
+        logits = out["attn_logits"]
+        probs.append(torch.sigmoid(logits).cpu().numpy())
+        aux_t.append(batch["aux_target"].cpu().numpy())
+        aux_m.append(batch["aux_mask"].cpu().numpy())
+        # 단일 선택: primary를 제외한 argmax
+        masked = logits.masked_fill(
+            torch.nn.functional.one_hot(batch["primary_view"], logits.shape[1]).bool(),
+            float("-inf"))
+        arg.append(masked.argmax(1).cpu().numpy())
+        single_t.append(batch["attention_view"].cpu().numpy())
+    P = np.concatenate(probs)
+    T = np.concatenate(aux_t)
+    M = np.concatenate(aux_m).astype(bool)
+    a, s1 = np.concatenate(arg), np.concatenate(single_t)
+
+    target_load = float(T.sum(axis=1).mean())
+    th = threshold_for_load(P, target_load, M, aux_max)
+    keep = P >= th
+    keep[~M] = False
+    if aux_max is not None:
+        order = np.argsort(-np.where(M, P, -1.0), axis=1)
+        np.put_along_axis(keep, order[:, aux_max:], False, axis=1)
+    return {"ap": macro_ap(P, T, M), "ml_f1": multilabel_f1(keep, T, M),
+            "mean_aux": mean_aux(keep), "label_aux": target_load, "thresh": th,
+            "top1": top1(a, s1), "macro_f1": macro_f1(a, s1)}
 
 
 def main() -> int:
@@ -108,9 +138,13 @@ def main() -> int:
     ap.add_argument("--dataroot", default=None)
     # mini 스모크 테스트는 trainval 분할에서 val이 비므로 mini 전용 분할을 쓴다.
     ap.add_argument("--splits", default=None)
+    ap.add_argument("--version", default=None, help="base.yaml의 version 덮어쓰기")
     args = ap.parse_args()
 
     base, lab, tc = load_cfgs(args.config)
+    if args.version:
+        base["version"] = args.version
+    label_cfg = LabelConfig.from_dict(lab)   # 추론 시 보조 뷰 상한 참조
     args.dataroot = args.dataroot or base["dataroot"]
     args.splits = args.splits or base["splits_file"]
     seed = base.get("seed", 42)
@@ -167,22 +201,24 @@ def main() -> int:
             losses.append(ld["total"].item())
         sched.step()
 
-        val = evaluate(model, val_dl, device)
+        val = evaluate(model, val_dl, device, aux_max=label_cfg.aux_max)
         rec = {"epoch": ep, "loss": float(np.mean(losses)), **val}
         if args.overfit:
-            rec["train_top1"] = evaluate(model, DataLoader(
+            rec["train_ap"] = evaluate(model, DataLoader(
                 train_ds, batch_size=32, shuffle=False, collate_fn=collate),
-                device)["top1"]
+                device, aux_max=label_cfg.aux_max)["ap"]
         history.append(rec)
 
         msg = (f"  ep{ep:02d} loss={rec['loss']:.3f} "
-               f"val_top1={val['top1']:.3f} val_f1={val['macro_f1']:.3f}")
+               f"val_AP={val['ap']:.3f} F1={val['ml_f1']:.3f} "
+               f"보조={val['mean_aux']:.2f}/{val['label_aux']:.2f}장 "
+               f"(τ={val['thresh']:.2f}) | top1={val['top1']:.3f}")
         if args.overfit:
-            msg += f" train_top1={rec['train_top1']:.3f}"
+            msg += f" train_AP={rec['train_ap']:.3f}"
         print(msg)
 
-        if val["macro_f1"] > best_f1:
-            best_f1, best_ep = val["macro_f1"], ep
+        if val["ap"] > best_f1:
+            best_f1, best_ep = val["ap"], ep
             torch.save({"model": model.state_dict(), "mcfg": mcfg.__dict__,
                         "epoch": ep, "val": val}, os.path.join(out_dir, "best.ckpt"))
         elif ep - best_ep >= patience:
@@ -191,7 +227,7 @@ def main() -> int:
 
     with open(os.path.join(out_dir, "metrics.json"), "w", encoding="utf-8") as f:
         json.dump({"best_f1": best_f1, "best_epoch": best_ep, "history": history}, f, indent=2)
-    print(f"\n✅ 학습 완료 — best val macro-F1={best_f1:.3f} (ep{best_ep})\n   → {out_dir}")
+    print(f"\n✅ 학습 완료 — best val macro-AP={best_f1:.3f} (ep{best_ep})\n   → {out_dir}")
     return 0
 
 

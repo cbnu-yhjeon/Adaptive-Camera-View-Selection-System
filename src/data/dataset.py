@@ -190,6 +190,12 @@ class ViewSelectionDataset(Dataset):
 
         row = self.labels.loc[toks[pos]]
         soft = np.array([row[f"soft_{c}"] for c in range(NUM_CAMERAS)], dtype=np.float32)
+        # 다중 선택 타깃 — 채널별 강조 여부(0/1). 진행 방향은 상시 표시라 선택 대상이
+        # 아니므로 마스크로 손실에서 뺀다(타깃을 0으로만 두면 "끄는 법"을 배운다).
+        aux = np.array([float(row[f"aux_{c}"]) for c in range(NUM_CAMERAS)], dtype=np.float32)
+        aux_mask = np.ones(NUM_CAMERAS, dtype=np.float32)
+        aux_mask[int(row["primary_view"])] = 0.0
+        aux[int(row["primary_view"])] = 0.0
         return {
             "img_feat": torch.from_numpy(img),
             "can": torch.from_numpy(can),
@@ -199,6 +205,8 @@ class ViewSelectionDataset(Dataset):
             "primary_view": int(row["primary_view"]),
             "layout": int(row["layout"]),
             "soft_label": torch.from_numpy(soft),
+            "aux_target": torch.from_numpy(aux),
+            "aux_mask": torch.from_numpy(aux_mask),
             "maneuver": str(row["maneuver"]),
         }
 
@@ -217,7 +225,8 @@ class ViewSelectionDataset(Dataset):
 def collate(batch: list[dict]) -> dict:
     """기본 콜레이트 (maneuver 문자열은 리스트로)."""
     out = {}
-    for key in ("img_feat", "can", "risk", "pad_mask", "soft_label"):
+    for key in ("img_feat", "can", "risk", "pad_mask", "soft_label",
+                "aux_target", "aux_mask"):
         out[key] = torch.stack([b[key] for b in batch])
     for key in ("attention_view", "primary_view", "layout"):
         out[key] = torch.tensor([b[key] for b in batch], dtype=torch.long)
