@@ -98,7 +98,8 @@ def main() -> int:
     dl = DataLoader(sets["train"], batch_size=args.batch_size, shuffle=False,
                     collate_fn=collate, num_workers=0)
     batch = next(iter(dl))
-    for k in ("img_feat", "can", "risk", "pad_mask", "soft_label"):
+    for k in ("img_feat", "can", "risk", "pad_mask", "soft_label",
+              "aux_target", "aux_mask"):
         print(f"  {k:<12} {tuple(batch[k].shape)}")
     for k in ("attention_view", "primary_view", "layout"):
         print(f"  {k:<14} {tuple(batch[k].shape)}  예시 {batch[k][:6].tolist()}")
@@ -106,6 +107,14 @@ def main() -> int:
     assert batch["img_feat"].shape == (B, 4, 6, fc.feat_dim)
     assert batch["can"].shape[-1] == 6
     assert batch["risk"].shape == (B, 4, 6)
+    # 다중 선택 타깃 — 진행 방향은 마스크로 제외되고 그 채널의 타깃은 0이어야 한다.
+    assert batch["aux_target"].shape == (B, 6)
+    assert batch["aux_mask"].shape == (B, 6)
+    prim = batch["primary_view"]
+    assert batch["aux_mask"].gather(1, prim[:, None]).sum() == 0, "primary가 마스크되지 않았다"
+    assert batch["aux_target"].gather(1, prim[:, None]).sum() == 0, "primary에 타깃이 붙었다"
+    print(f"  보조 타깃 평균 {batch['aux_target'].sum(1).mean():.2f}장 "
+          f"(마스크 제외 채널 {int(batch['aux_mask'][0].sum())}개)")
     print("  ✅ shape 검증 통과")
 
     # 5) 1 epoch 벤치마크 (WeightedRandomSampler)
