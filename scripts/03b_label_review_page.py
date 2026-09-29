@@ -261,7 +261,7 @@ document.querySelectorAll(".vd").forEach(row => {{
 
 const asText = () => Object.keys(V).sort().map(k =>
   `${{k}}  ${{ {{ok: "맞음", bad: "틀림", hmm: "애매"}}[V[k].v] }}` +
-  (V[k].note ? `  — ${{V[k].note}}` : "")).join("\n") || "(판정 없음)";
+  (V[k].note ? `  — ${{V[k].note}}` : "")).join("\\n") || "(판정 없음)";
 
 document.getElementById("show").addEventListener("click", () => {{
   const o = document.getElementById("out");
