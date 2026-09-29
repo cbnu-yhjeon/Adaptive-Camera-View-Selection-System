@@ -34,10 +34,12 @@ import numpy as np
 class ManeuverThresholds:
     """기동 판정 임계값 (config label.maneuver.* 로 오버라이드)."""
     stop_speed: float = 0.5          # m/s, 이하이면 STOP
-    turn_deg: float = 25.0           # net 헤딩변화 이 이상이면 TURN
+    turn_deg: float = 25.0           # net 헤딩변화 이 이상이면 TURN 후보
+    turn_radius_max: float = 30.0    # 선회 반경 이 이상이면 곡선로 주행 → TURN 아님
     lane_change_min_deg: float = 5.0  # peak 이탈 하한
     lane_change_max_deg: float = 25.0  # peak 이탈 상한
     lane_change_net_deg: float = 10.0  # net 이 이하이면 (되돌아옴) 차선변경
+    lane_change_lat_min: float = 1.75  # 횡변위 하한(m) — 차선폭 3.5m의 절반
     reverse_dot: float = 0.0         # heading·velocity 내적 이 미만이면 REVERSE
     enable_lane_change: bool = True  # False면 차선변경을 TURN으로 흡수(v1 단순화)
 
@@ -101,14 +103,35 @@ def infer_maneuver(positions, yaws, timestamps=None, speeds=None,
     peak_idx = int(np.argmax(np.abs(dev)))
     peak_deg = np.degrees(dev[peak_idx])
 
-    # --- TURN: net 이 큼 ---
-    if abs(net_deg) > th.turn_deg:
-        return "TURN_LEFT" if net_deg > 0 else "TURN_RIGHT"
+    # --- 궤적 분해: 시작 헤딩 기준 종/횡 성분 ---
+    # 차선변경의 본질은 "옆으로 한 차로 옮기는 것"이다. 헤딩 편차는 그 부산물이라
+    # 완만한 곡선로 주행과 섞인다(실측: 헤딩 기준 LANE_CHANGE 라벨의 횡변위 중앙값이
+    # 1.3m로 차선폭 3.5m에 한참 못 미쳤다). 횡변위를 직접 재서 가른다.
+    head = np.array([np.cos(yaw[0]), np.sin(yaw[0])])
+    normal = np.array([-head[1], head[0]])          # 좌측(+) 법선
+    lat = (pos - pos[0]) @ normal
+    lat_end = float(lat[-1])
 
-    # --- LANE_CHANGE: peak 는 중간, net 은 되돌아옴 ---
+    # --- TURN: net 이 크고, 선회 반경이 작다 ---
+    # 반경 조건이 없으면 곡선로 주행이 전부 TURN으로 들어온다. 도심 교차로 회전은
+    # R ≈ 6~25m인데, 반경 없이 |Δψ|만 보면 R 50~70m의 완만한 곡선까지 잡혀
+    # (실측 TURN 라벨의 43%가 R>30m) 차로를 벗어난 적 없는 프레임에 사각지대
+    # 보장 슬롯이 켜졌다.
+    if abs(net_deg) > th.turn_deg:
+        ts = np.asarray(timestamps, dtype=np.float64).ravel() if timestamps is not None else None
+        span = float(ts[-1] - ts[0]) if ts is not None and len(ts) == n else float(n - 1)
+        yaw_rate = abs(np.radians(net_deg)) / max(span, 1e-6)      # rad/s
+        travel = float(np.sum(np.linalg.norm(np.diff(pos, axis=0), axis=1)))
+        radius = (travel / max(span, 1e-6)) / max(yaw_rate, 1e-6)  # R = v / ψ̇
+        if radius <= th.turn_radius_max:
+            return "TURN_LEFT" if net_deg > 0 else "TURN_RIGHT"
+        return "STRAIGHT"       # 곡선로 주행 — 사각지대가 생기지 않는다
+
+    # --- LANE_CHANGE: 한 차로만큼 옆으로 옮기고 헤딩은 되돌아온다 ---
     if th.enable_lane_change:
-        if (th.lane_change_min_deg <= abs(peak_deg) <= th.lane_change_max_deg
-                and abs(net_deg) < th.lane_change_net_deg):
-            return "LANE_CHANGE_LEFT" if peak_deg > 0 else "LANE_CHANGE_RIGHT"
+        if (abs(lat_end) >= th.lane_change_lat_min
+                and abs(net_deg) < th.lane_change_net_deg
+                and abs(peak_deg) <= th.lane_change_max_deg):
+            return "LANE_CHANGE_LEFT" if lat_end > 0 else "LANE_CHANGE_RIGHT"
 
     return "STRAIGHT"

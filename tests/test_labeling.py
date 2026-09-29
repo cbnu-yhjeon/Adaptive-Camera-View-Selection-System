@@ -117,25 +117,46 @@ def test_maneuver_stop():
     assert infer_maneuver(pos, yaw, timestamps=t) == "STOP"
 
 
-def test_maneuver_turn_left():
-    """좌회전: 헤딩이 +40° 순증가."""
-    n, dt = 13, 0.5
+def _arc_track(total_deg: float, radius: float, speed: float = 6.0,
+               n: int = 13, dt: float = 0.5):
+    """반경 radius로 total_deg만큼 도는 원호 궤적 — 헤딩과 위치가 물리적으로 일치한다.
+
+    헤딩만 흔들고 위치는 직선인 픽스처를 쓰면 선회 반경이 0이 되어 실제 주행과
+    다른 것을 검증하게 된다. 판정이 반경·횡변위를 보므로 궤적을 제대로 만든다.
+    """
     t = np.arange(n) * dt
-    yaw = np.linspace(0, np.radians(40), n)   # +40° net
-    pos = np.stack([10 * t, np.zeros(n)], axis=1)  # 전진(속도 확보)
+    omega = np.radians(total_deg) / (t[-1] or 1.0)      # rad/s
+    yaw = omega * t
+    # 원호 적분: 반경 = speed / |omega| 가 되도록 speed를 맞춘다
+    v = abs(omega) * radius
+    x = np.concatenate([[0.0], np.cumsum(v * dt * np.cos(yaw[:-1]))])
+    y = np.concatenate([[0.0], np.cumsum(v * dt * np.sin(yaw[:-1]))])
+    return np.stack([x, y], axis=1), yaw, t
+
+
+def test_maneuver_turn_left():
+    """좌회전: 교차로 수준의 작은 반경(12 m)으로 +60°."""
+    pos, yaw, t = _arc_track(+60, radius=12.0)
     assert infer_maneuver(pos, yaw, timestamps=t) == "TURN_LEFT"
 
 
 def test_maneuver_turn_right():
-    n, dt = 13, 0.5
-    t = np.arange(n) * dt
-    yaw = np.linspace(0, np.radians(-40), n)  # −40° net
-    pos = np.stack([10 * t, np.zeros(n)], axis=1)
+    pos, yaw, t = _arc_track(-60, radius=12.0)
     assert infer_maneuver(pos, yaw, timestamps=t) == "TURN_RIGHT"
 
 
+def test_maneuver_curve_is_not_turn():
+    """완만한 곡선로 주행(R=80 m)은 헤딩이 40° 변해도 TURN이 아니다.
+
+    차로를 벗어나지 않으므로 사각지대가 생기지 않는다 — 실측에서 이 구분이 없어
+    TURN 라벨의 43%가 R>30 m인 곡선 주행이었다.
+    """
+    pos, yaw, t = _arc_track(+40, radius=80.0)
+    assert infer_maneuver(pos, yaw, timestamps=t) == "STRAIGHT"
+
+
 def test_maneuver_lane_change_left():
-    """좌 차선변경: 헤딩이 +15°까지 갔다가 0°로 복귀 (net≈0, peak 중간)."""
+    """좌 차선변경: 헤딩은 되돌아오고 **옆으로 한 차로(3.5 m)** 옮긴다."""
     n, dt = 13, 0.5
     t = np.arange(n) * dt
     half = n // 2
@@ -143,8 +164,27 @@ def test_maneuver_lane_change_left():
         np.linspace(0, np.radians(15), half),
         np.linspace(np.radians(15), 0, n - half),
     ])
-    pos = np.stack([10 * t, np.zeros(n)], axis=1)
+    # 횡변위: S자로 3.5 m 좌측 이동 (전진 속도 10 m/s)
+    lat = 3.5 * (1 - np.cos(np.pi * t / (t[-1] or 1.0))) / 2
+    pos = np.stack([10 * t, lat], axis=1)
     assert infer_maneuver(pos, yaw, timestamps=t) == "LANE_CHANGE_LEFT"
+
+
+def test_maneuver_lane_keeping_is_not_lane_change():
+    """헤딩만 흔들리고 옆으로 움직이지 않으면 차선변경이 아니다.
+
+    횡변위 없이 헤딩 편차만으로 판정하면 차로 유지 중의 흔들림이 전부
+    차선변경이 된다 — 실측 LANE_CHANGE 라벨의 횡변위 중앙값이 1.3 m였다.
+    """
+    n, dt = 13, 0.5
+    t = np.arange(n) * dt
+    half = n // 2
+    yaw = np.concatenate([
+        np.linspace(0, np.radians(15), half),
+        np.linspace(np.radians(15), 0, n - half),
+    ])
+    pos = np.stack([10 * t, np.zeros(n)], axis=1)      # 횡변위 0
+    assert infer_maneuver(pos, yaw, timestamps=t) == "STRAIGHT"
 
 
 def test_maneuver_reverse():

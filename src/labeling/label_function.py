@@ -64,7 +64,9 @@ class LabelConfig:
     flicker_merge: bool = True
     stop_hold: bool = True       # 정지 시 뷰 유지(극단 위험 제외)
     extreme_ttc: float = 1.5     # 이보다 짧은 min_TTC면 정지 중에도 위험 뷰로 전환
-    maneuver_window_s: float = 3.0
+    maneuver_window_s: float = 3.0      # 하위호환 — back/fwd를 주지 않으면 이 값을 양쪽에 씀
+    maneuver_window_back_s: float | None = 1.0   # 과거 방향 윈도우
+    maneuver_window_fwd_s: float | None = 3.0    # 미래 방향 윈도우 (선제적 전환)
     maneuver_th: ManeuverThresholds = field(default_factory=ManeuverThresholds)
 
     @classmethod
@@ -181,13 +183,22 @@ def compute_channel_scores(wrapper, sample_token, cfg: LabelConfig):
 
 
 def infer_sample_maneuver(wrapper, sample_token, cfg: LabelConfig) -> str:
-    """±window 초 ego pose 시퀀스로 기동 추론 (미래 참조 허용)."""
+    """비대칭 윈도우 [-back, +fwd] 초의 ego pose로 기동 추론 (미래 참조 허용).
+
+    미래를 보는 이유는 **선제적 전환**이다 — 회전 전에 미리 측방을 띄워야 쓸모가 있다.
+    과거를 같은 길이로 보면 그 반대 효과가 난다: 이미 끝난 기동의 꼬리가 따라붙어,
+    똑바로 가고 있는 프레임이 TURN으로 라벨된다(실측 scene-0415: t=0 시점에 헤딩
+    변화가 이미 완료됐는데 TURN_LEFT였고, 담장만 보이는 FRONT_LEFT가 강조됐다).
+    그래서 과거는 짧게, 미래는 길게 본다.
+    """
     scene_token = wrapper.sample_scene_token(sample_token)
     toks = wrapper.sample_tokens_in_scene(scene_token)
     t0 = wrapper.sample_timestamp(sample_token)
 
+    back = cfg.maneuver_window_s if cfg.maneuver_window_back_s is None else cfg.maneuver_window_back_s
+    fwd = cfg.maneuver_window_s if cfg.maneuver_window_fwd_s is None else cfg.maneuver_window_fwd_s
     win = [tk for tk in toks
-           if abs(wrapper.sample_timestamp(tk) - t0) <= cfg.maneuver_window_s]
+           if -back <= wrapper.sample_timestamp(tk) - t0 <= fwd]
     positions = np.array([wrapper.get_ego_pose(tk)["translation"][:2] for tk in win])
     yaws = np.array([wrapper.get_ego_yaw(tk) for tk in win])
     times = np.array([wrapper.sample_timestamp(tk) for tk in win])
