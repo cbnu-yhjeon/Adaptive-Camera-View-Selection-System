@@ -95,6 +95,29 @@ th{font-family:var(--m);font-size:11.5px;color:var(--muted);font-weight:400}
 @media(prefers-color-scheme:dark){:root{--paper:#0f1316;--surface:#161b1f;--surface-2:#1c2227;
 --ink:#e6eaec;--muted:#98a3ab;--rule:#29323a;--accent:#4fbac1;--accent-bg:#11302f;
 --signal:#e08063;--signal-bg:#35211a}}
+
+/* 판정 입력 */
+.bar{position:sticky;top:0;z-index:9;background:var(--surface);border:1px solid var(--rule);
+padding:10px 14px;margin:0 0 20px;display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+.bar .cnt{font-family:var(--m);font-size:13px}
+.bar .cnt b{font-size:15px}
+.bar button{font:inherit;font-size:13px;padding:5px 12px;border:1px solid var(--rule);
+background:var(--surface-2);color:var(--ink);cursor:pointer}
+.bar button:hover{border-color:var(--accent)}
+.vd{display:flex;gap:8px;align-items:center;padding:10px 16px;border-top:1px solid var(--rule);
+flex-wrap:wrap}
+.vd button{font:inherit;font-size:13px;padding:5px 14px;border:1px solid var(--rule);
+background:var(--surface);color:var(--muted);cursor:pointer}
+.vd button:hover{border-color:var(--accent);color:var(--ink)}
+.vd button.on[data-v="ok"]{background:var(--accent);border-color:var(--accent);color:#fff}
+.vd button.on[data-v="bad"]{background:var(--signal);border-color:var(--signal);color:#fff}
+.vd button.on[data-v="hmm"]{background:var(--muted);border-color:var(--muted);color:#fff}
+.vd input{flex:1;min-width:220px;font:inherit;font-size:13px;padding:5px 9px;
+border:1px solid var(--rule);background:var(--surface);color:var(--ink)}
+.card.done{border-color:var(--accent)}
+.card.bad{border-color:var(--signal)}
+#out{width:100%;height:150px;font-family:var(--m);font-size:12px;margin-top:10px;
+border:1px solid var(--rule);background:var(--surface);color:var(--ink);padding:10px;display:none}
 """
 
 
@@ -145,6 +168,12 @@ def main() -> int:
   <img src="{img_uri(os.path.join(args.viz, fn))}" alt="{fn}">
   <div class="ft">진행방향 <b>{CAMERAS[int(r['primary_view'])]}</b> ·
     보조 <b>{len(aux)}장</b> — {aux_txt} · 객체 {int(r['n_objects'])}개 · 최소 TTC {ttc}</div>
+  <div class="vd" data-id="{no}">
+    <button data-v="ok">맞음</button>
+    <button data-v="bad">틀림</button>
+    <button data-v="hmm">애매</button>
+    <input type="text" placeholder="무엇이 어떻게 틀렸는지 (선택)">
+  </div>
 </div>""")
         rows.append((no, mv, ev, r))
 
@@ -180,9 +209,79 @@ def main() -> int:
 <table><thead><tr><th>번호</th><th>기동</th><th>누적 Δψ</th><th>선회반경(m)</th>
 <th>횡변위(m)</th><th>보조 뷰</th></tr></thead><tbody>{''.join(trs)}</tbody></table>
 
-<div style="height:26px"></div>
+<div class="bar">
+  <span class="cnt">판정 <b id="n">0</b>/{len(rows)} ·
+    맞음 <b id="nok">0</b> · 틀림 <b id="nbad">0</b> · 애매 <b id="nhmm">0</b></span>
+  <button id="copy">결과 복사</button>
+  <button id="show">결과 보기</button>
+  <button id="clear">초기화</button>
+</div>
+<textarea id="out" readonly></textarea>
+
 {''.join(cards)}
-</div></body></html>"""
+</div>
+<script>
+const KEY = "label_review_{version}";
+const load = () => {{ try {{ return JSON.parse(localStorage.getItem(KEY)) || {{}}; }}
+                      catch (e) {{ return {{}}; }} }};
+const save = (v) => {{ try {{ localStorage.setItem(KEY, JSON.stringify(v)); }} catch (e) {{}} }};
+let V = load();
+
+function paint() {{
+  let ok = 0, bad = 0, hmm = 0;
+  document.querySelectorAll(".vd").forEach(row => {{
+    const id = row.dataset.id, cur = V[id];
+    row.querySelectorAll("button").forEach(b =>
+      b.classList.toggle("on", !!cur && cur.v === b.dataset.v));
+    row.querySelector("input").value = (cur && cur.note) || "";
+    const card = row.closest(".card");
+    card.classList.toggle("done", !!cur && cur.v === "ok");
+    card.classList.toggle("bad", !!cur && cur.v === "bad");
+    if (cur) {{ if (cur.v === "ok") ok++; else if (cur.v === "bad") bad++; else hmm++; }}
+  }});
+  document.getElementById("n").textContent = ok + bad + hmm;
+  document.getElementById("nok").textContent = ok;
+  document.getElementById("nbad").textContent = bad;
+  document.getElementById("nhmm").textContent = hmm;
+}}
+
+document.querySelectorAll(".vd").forEach(row => {{
+  const id = row.dataset.id;
+  row.querySelectorAll("button").forEach(b => b.addEventListener("click", () => {{
+    const cur = V[id] || {{}};
+    V[id] = (cur.v === b.dataset.v) ? undefined : {{ v: b.dataset.v, note: cur.note || "" }};
+    if (!V[id]) delete V[id];
+    save(V); paint();
+  }}));
+  row.querySelector("input").addEventListener("input", e => {{
+    V[id] = Object.assign({{ v: "hmm" }}, V[id], {{ note: e.target.value }});
+    save(V); paint();
+  }});
+}});
+
+const asText = () => Object.keys(V).sort().map(k =>
+  `${{k}}  ${{ {{ok: "맞음", bad: "틀림", hmm: "애매"}}[V[k].v] }}` +
+  (V[k].note ? `  — ${{V[k].note}}` : "")).join("\n") || "(판정 없음)";
+
+document.getElementById("show").addEventListener("click", () => {{
+  const o = document.getElementById("out");
+  o.value = asText();
+  o.style.display = o.style.display === "block" ? "none" : "block";
+}});
+document.getElementById("copy").addEventListener("click", async () => {{
+  const t = asText();
+  try {{ await navigator.clipboard.writeText(t); }}
+  catch (e) {{ const o = document.getElementById("out");
+               o.value = t; o.style.display = "block"; o.select(); }}
+  const b = document.getElementById("copy");
+  b.textContent = "복사됨"; setTimeout(() => b.textContent = "결과 복사", 1200);
+}});
+document.getElementById("clear").addEventListener("click", () => {{
+  if (confirm("판정을 모두 지울까요?")) {{ V = {{}}; save(V); paint(); }}
+}});
+paint();
+</script>
+</body></html>"""
 
     os.makedirs(os.path.dirname(args.out), exist_ok=True)
     with open(args.out, "w", encoding="utf-8") as f:
