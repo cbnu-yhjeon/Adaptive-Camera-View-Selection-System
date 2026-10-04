@@ -39,7 +39,7 @@ class ManeuverThresholds:
     lane_change_min_deg: float = 5.0  # peak 이탈 하한
     lane_change_max_deg: float = 25.0  # peak 이탈 상한
     lane_change_net_deg: float = 10.0  # net 이 이하이면 (되돌아옴) 차선변경
-    lane_change_lat_min: float = 1.75  # 횡변위 하한(m) — 차선폭 3.5m의 절반
+    lane_change_resid_min: float = 2.0  # 곡선 성분을 뺀 횡이탈 하한(m)
     reverse_dot: float = 0.0         # heading·velocity 내적 이 미만이면 REVERSE
     enable_lane_change: bool = True  # False면 차선변경을 TURN으로 흡수(v1 단순화)
 
@@ -111,6 +111,17 @@ def infer_maneuver(positions, yaws, timestamps=None, speeds=None,
     normal = np.array([-head[1], head[0]])          # 좌측(+) 법선
     lat = (pos - pos[0]) @ normal
     lat_end = float(lat[-1])
+    travel = float(np.sum(np.linalg.norm(np.diff(pos, axis=0), axis=1)))
+
+    # 곡선 성분 제거. 시작 헤딩 기준 횡변위는 **차로를 그대로 따라가도** 곡선로에서
+    # 커진다 — 반경 R을 θ만큼 돌면 수직 이탈이 R(1−cosθ)다. 실측 사례(scene-0105)는
+    # 횡변위 1.81m 중 1.87m가 곡선 성분이어서 실제 차로 이탈이 0에 가까웠는데도
+    # 차선변경으로 라벨됐다. 등곡률 원호가 만드는 몫을 빼고 남는 잔차만 센다.
+    theta = np.radians(net_deg)
+    radius = travel / abs(theta) if abs(theta) > 1e-3 else np.inf
+    lat_arc = (np.sign(theta) * radius * (1 - np.cos(theta))
+               if np.isfinite(radius) else 0.0)
+    lat_resid = lat_end - float(lat_arc)
 
     # --- TURN: net 이 크고, 선회 반경이 작다 ---
     # 반경 조건이 없으면 곡선로 주행이 전부 TURN으로 들어온다. 도심 교차로 회전은
@@ -118,20 +129,15 @@ def infer_maneuver(positions, yaws, timestamps=None, speeds=None,
     # (실측 TURN 라벨의 43%가 R>30m) 차로를 벗어난 적 없는 프레임에 사각지대
     # 보장 슬롯이 켜졌다.
     if abs(net_deg) > th.turn_deg:
-        ts = np.asarray(timestamps, dtype=np.float64).ravel() if timestamps is not None else None
-        span = float(ts[-1] - ts[0]) if ts is not None and len(ts) == n else float(n - 1)
-        yaw_rate = abs(np.radians(net_deg)) / max(span, 1e-6)      # rad/s
-        travel = float(np.sum(np.linalg.norm(np.diff(pos, axis=0), axis=1)))
-        radius = (travel / max(span, 1e-6)) / max(yaw_rate, 1e-6)  # R = v / ψ̇
         if radius <= th.turn_radius_max:
             return "TURN_LEFT" if net_deg > 0 else "TURN_RIGHT"
         return "STRAIGHT"       # 곡선로 주행 — 사각지대가 생기지 않는다
 
-    # --- LANE_CHANGE: 한 차로만큼 옆으로 옮기고 헤딩은 되돌아온다 ---
+    # --- LANE_CHANGE: 곡선 성분을 뺀 뒤에도 한 차로만큼 옆으로 옮긴다 ---
     if th.enable_lane_change:
-        if (abs(lat_end) >= th.lane_change_lat_min
+        if (abs(lat_resid) >= th.lane_change_resid_min
                 and abs(net_deg) < th.lane_change_net_deg
                 and abs(peak_deg) <= th.lane_change_max_deg):
-            return "LANE_CHANGE_LEFT" if lat_end > 0 else "LANE_CHANGE_RIGHT"
+            return "LANE_CHANGE_LEFT" if lat_resid > 0 else "LANE_CHANGE_RIGHT"
 
     return "STRAIGHT"

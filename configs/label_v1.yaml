@@ -69,7 +69,10 @@ label:
   # (scene-0415: t=0에 헤딩 변화 완료, 그런데 TURN_LEFT + 담장만 보이는 FRONT_LEFT 강조).
   maneuver_window_s: 3.0        # 하위호환 폴백
   maneuver_window_back_s: 1.0   # 과거
-  maneuver_window_fwd_s: 3.0    # 미래 (선제적 전환 여유)
+  # 미래 5초. 차선변경은 4~6초 기동이라 3초 창에는 절반만 담겨, 곡선로와 구분되지
+  # 않았다(잔차 ≥2.5m 비율 0.28% → 5초 창에서 3.96%). 라벨이 기동보다 최대 5초
+  # 앞서므로 그만큼 예측 난이도가 올라간다 — 선제적 전환을 얻는 대가다.
+  maneuver_window_fwd_s: 5.0
   maneuver:
     stop_speed: 0.5
     turn_deg: 25.0
@@ -77,9 +80,11 @@ label:
     # R≈6~25m인데 |Δψ|만 보면 R 50~70m 완만한 곡선까지 잡혔다(TURN 라벨의 43%가 R>30m).
     # 차로를 벗어나지 않는 곡선 주행에는 사각지대가 생기지 않으므로 STRAIGHT로 흡수한다.
     turn_radius_max: 30.0
-    # 차선변경은 헤딩이 아니라 횡변위로 판정한다. 헤딩 기준으로는 LANE_CHANGE 라벨의
-    # 횡변위 중앙값이 1.3m에 그쳐(차선폭 3.5m) 2/3가 차로 유지 중의 흔들림이었다.
-    lane_change_lat_min: 1.75
+    # 차선변경은 헤딩도 생(raw) 횡변위도 아닌 **곡선 성분을 뺀 잔차**로 판정한다.
+    # 시작 헤딩 기준 횡변위는 차로를 그대로 따라가도 곡선로에서 커지기 때문이다
+    # (반경 R을 θ만큼 돌면 R(1−cosθ)). 실측 scene-0105는 횡변위 1.81m 중 1.87m가
+    # 곡선 성분이라 실제 차로 이탈이 0에 가까웠는데도 차선변경으로 잡혔다.
+    lane_change_resid_min: 2.0
     lane_change_min_deg: 5.0
     lane_change_max_deg: 25.0
     lane_change_net_deg: 10.0

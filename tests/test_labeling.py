@@ -170,6 +170,23 @@ def test_maneuver_lane_change_left():
     assert infer_maneuver(pos, yaw, timestamps=t) == "LANE_CHANGE_LEFT"
 
 
+def test_maneuver_gentle_curve_is_not_lane_change():
+    """완만한 곡선로(R=200 m)는 차로를 그대로 따라가도 횡변위가 2 m 가까이 나온다.
+
+    시작 헤딩 기준 횡변위는 곡선에서 R(1−cosθ)만큼 자란다. 생(raw) 횡변위로 판정하면
+    이런 프레임이 전부 차선변경이 된다 — 실측 scene-0105가 그랬다(횡변위 1.81 m 중
+    1.87 m가 곡선 성분). 곡선 성분을 뺀 잔차는 0에 가까우므로 STRAIGHT여야 한다.
+    """
+    pos, yaw, t = _arc_track(+8, radius=200.0, n=13, dt=0.5)
+    # 생 횡변위는 차로 폭 절반을 넘지만
+    h = np.array([np.cos(yaw[0]), np.sin(yaw[0])])
+    n_vec = np.array([-h[1], h[0]])
+    raw_lat = abs(float(((pos - pos[0]) @ n_vec)[-1]))
+    assert raw_lat > 1.75, f"픽스처가 의도와 다르다 (횡변위 {raw_lat:.2f} m)"
+    # 잔차 기준에서는 차선변경이 아니다
+    assert infer_maneuver(pos, yaw, timestamps=t) == "STRAIGHT"
+
+
 def test_maneuver_lane_keeping_is_not_lane_change():
     """헤딩만 흔들리고 옆으로 움직이지 않으면 차선변경이 아니다.
 
