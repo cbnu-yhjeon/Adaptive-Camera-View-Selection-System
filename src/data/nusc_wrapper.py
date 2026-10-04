@@ -43,6 +43,30 @@ class NuscWrapper:
             self._can = None
 
     # ------------------------------------------------------------------
+    # 맵 (nuScenes-map-expansion) — 없으면 None을 돌려 궤적 규칙으로 물러난다
+    # ------------------------------------------------------------------
+    def has_map(self) -> bool:
+        return os.path.isdir(os.path.join(self.dataroot, "maps", "expansion"))
+
+    @lru_cache(maxsize=None)
+    def scene_location(self, scene_token: str) -> str:
+        scene = self.nusc.get("scene", scene_token)
+        return self.nusc.get("log", scene["log_token"])["location"]
+
+    def map_index(self, scene_token: str):
+        from src.data.map_index import get_index
+        return get_index(self.dataroot, self.scene_location(scene_token)) if self.has_map() else None
+
+    @lru_cache(maxsize=None)
+    def map_info(self, sample_token: str) -> dict | None:
+        """ego 위치의 맵 맥락 — {lane, connector, intersection, carpark} 또는 None."""
+        idx = self.map_index(self.sample_scene_token(sample_token))
+        if idx is None:
+            return None
+        x, y = self.get_ego_pose(sample_token)["translation"][:2]
+        return idx.query(x, y)
+
+    # ------------------------------------------------------------------
     # scene / sample 순회
     # ------------------------------------------------------------------
     def scene_tokens(self) -> list[str]:

@@ -76,6 +76,10 @@ label:
   # STOP·REVERSE는 '지금의 상태'라 현재 기준 ±1초로 따로 판정한다. 선제 창으로 보면
   # 5초 안에 출발·전진하는 프레임이 정지·후진에서 빠졌다(검수 카드 13·16, STOP 348건).
   maneuver_state_window_s: 1.0
+  # 회전·차선변경을 맵 확장(차로·교차로 폴리곤)으로 판정한다. 궤적만으로는 교차로를
+  # 지나며 생긴 옆 이동이 차선변경으로, 큰 교차로 회전이 곡선로로 잡혔다.
+  # 맵({dataroot}/maps/expansion)이 없으면 궤적 규칙(반경·횡이탈)으로 물러난다.
+  use_map: true
   maneuver:
     stop_speed: 0.5
     turn_deg: 25.0

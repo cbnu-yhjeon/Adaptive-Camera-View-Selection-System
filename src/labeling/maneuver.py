@@ -39,7 +39,8 @@ class ManeuverThresholds:
     lane_change_min_deg: float = 5.0  # peak 이탈 하한
     lane_change_max_deg: float = 25.0  # peak 이탈 상한
     lane_change_net_deg: float = 10.0  # net 이 이하이면 (되돌아옴) 차선변경
-    lane_change_resid_min: float = 2.0  # 곡선 성분을 뺀 횡이탈 하한(m)
+    lane_change_resid_min: float = 2.0  # 곡선 성분을 뺀 횡이탈 하한(m) — 맵이 없을 때
+    lane_change_resid_min_map: float = 1.0  # 맵이 차로 ID 변경을 확인했을 때의 하한(경계 떨림 제거용)
     reverse_dot: float = 0.0         # heading·velocity 내적 이 미만이면 REVERSE
     enable_lane_change: bool = True  # False면 차선변경을 TURN으로 흡수(v1 단순화)
 
@@ -52,7 +53,9 @@ def wrap_angle(a: float) -> float:
 def infer_maneuver(positions, yaws, timestamps=None, speeds=None,
                    gear: str | None = None,
                    th: ManeuverThresholds | None = None,
-                   check_state: bool = True) -> str:
+                   check_state: bool = True,
+                   on_lane=None,
+                   map_lane_change: bool | None = None) -> str:
     """ego 자세 시퀀스 → 기동 클래스 이름.
 
     Args:
@@ -66,6 +69,10 @@ def infer_maneuver(positions, yaws, timestamps=None, speeds=None,
                    STOP·REVERSE는 "지금의 상태"라 현재 기준 짧은 창으로 따로 판정해야 하는데,
                    선제 창(미래 5초)으로 보면 5초 안에 출발·전진하는 프레임이 정지·후진에서
                    빠진다(검수 카드 16: 후진 중인데 TURN_LEFT로 바뀌어 진행 방향이 전방이 됐다).
+        on_lane:   (T,) 프레임마다 ego가 **일반 차로 위**(교차로·연결부·주차장 밖)에 있는지.
+                   주면 TURN을 "일반 차로 밖에서 튼 각도"로 판정한다. 없으면 선회 반경으로 근사.
+        map_lane_change: 맵이 판정한 차선변경 여부 — 진행 방향으로 이어지지 않은 나란한
+                   차로로 차로 ID가 바뀌었는가. 주면 궤적만의 횡이탈 기준 대신 이것을 쓴다.
 
     Returns:
         constants.MANEUVERS 중 하나.
@@ -129,19 +136,38 @@ def infer_maneuver(positions, yaws, timestamps=None, speeds=None,
                if np.isfinite(radius) else 0.0)
     lat_resid = lat_end - float(lat_arc)
 
-    # --- TURN: net 이 크고, 선회 반경이 작다 ---
-    # 반경 조건이 없으면 곡선로 주행이 전부 TURN으로 들어온다. 도심 교차로 회전은
-    # R ≈ 6~25m인데, 반경 없이 |Δψ|만 보면 R 50~70m의 완만한 곡선까지 잡혀
-    # (실측 TURN 라벨의 43%가 R>30m) 차로를 벗어난 적 없는 프레임에 사각지대
-    # 보장 슬롯이 켜졌다.
-    if abs(net_deg) > th.turn_deg:
+    # --- TURN ---
+    if on_lane is not None and len(on_lane) == n:
+        # 맵 기준: 일반 차로 위에서 바뀐 헤딩은 곡선로를 따라간 것이고, 회전은 교차로·
+        # 연결부에서 일어난다. 반경으로 근사하면 큰 교차로에서 크게 도는 회전을 곡선로로
+        # 버렸다 — 반경 조건으로 STRAIGHT가 된 프레임은 방향 전환의 중앙값 33°가 교차로
+        # 안에서 일어났고 일반 차로 위에서는 1°였다. 반대로 scene-0054(반경 43 m)는
+        # −25.5° 전부가 일반 차로 위였다(곡선로).
+        turn_area = 0.0
+        for i in range(1, n):
+            if not (on_lane[i - 1] and on_lane[i]):
+                turn_area += np.degrees(wrap_angle(yaw[i] - yaw[i - 1]))
+        if abs(turn_area) > th.turn_deg:
+            return "TURN_LEFT" if turn_area > 0 else "TURN_RIGHT"
+        if abs(net_deg) > th.turn_deg:
+            return "STRAIGHT"   # 일반 차로 위의 곡선 — 사각지대가 생기지 않는다
+    elif abs(net_deg) > th.turn_deg:
+        # 맵이 없을 때: 선회 반경으로 교차로 회전(R 6~25 m)과 곡선로를 근사한다.
         if radius <= th.turn_radius_max:
             return "TURN_LEFT" if net_deg > 0 else "TURN_RIGHT"
-        return "STRAIGHT"       # 곡선로 주행 — 사각지대가 생기지 않는다
+        return "STRAIGHT"
 
-    # --- LANE_CHANGE: 곡선 성분을 뺀 뒤에도 한 차로만큼 옆으로 옮긴다 ---
+    # --- LANE_CHANGE ---
     if th.enable_lane_change:
-        if (abs(lat_resid) >= th.lane_change_resid_min
+        if map_lane_change is not None:
+            # 맵 기준: 이어지지 않은 나란한 차로로 차로 ID가 바뀌어야 한다. 궤적만으로는
+            # 교차로를 지나며 생기는 옆 이동이 차선변경으로 잡혔다 — 궤적 기준 LANE_CHANGE
+            # 라벨 중 맵으로 확인되는 것은 15.8%뿐이었고, 88.5%가 창 안에서 교차로를 지났다.
+            # 횡이탈 하한은 차로 경계에서 ID가 떨리는 경우만 거른다.
+            if (map_lane_change and abs(lat_resid) >= th.lane_change_resid_min_map
+                    and abs(net_deg) < th.lane_change_net_deg):
+                return "LANE_CHANGE_LEFT" if lat_resid > 0 else "LANE_CHANGE_RIGHT"
+        elif (abs(lat_resid) >= th.lane_change_resid_min
                 and abs(net_deg) < th.lane_change_net_deg
                 and abs(peak_deg) <= th.lane_change_max_deg):
             return "LANE_CHANGE_LEFT" if lat_resid > 0 else "LANE_CHANGE_RIGHT"

@@ -400,3 +400,35 @@ def test_multilabel_f1_ignores_channels_without_support():
     from src.eval.metrics import multilabel_f1
     t = np.array([[0, 1, 0, 0, 1, 0], [0, 0, 1, 0, 0, 0], [0, 1, 0, 0, 0, 0]], dtype=bool)
     assert multilabel_f1(t, t) == 1.0
+
+
+def test_maneuver_map_turn_counts_only_off_lane_heading():
+    """맵이 있으면 회전은 '일반 차로 밖(교차로·연결부)에서 튼 각도'로 판정한다.
+
+    같은 60° 궤적이라도 전부 일반 차로 위면 곡선로(STRAIGHT), 교차로 안에서 틀었으면 회전.
+    반경으로만 근사하면 큰 교차로 회전을 곡선로로 버렸다(교차로 안 전환 중앙값 33°).
+    """
+    pos, yaw, t = _arc_track(+60, radius=40.0)       # 반경 40 m — 반경 규칙이면 STRAIGHT
+    n = len(yaw)
+    assert infer_maneuver(pos, yaw, timestamps=t) == "STRAIGHT"
+    assert infer_maneuver(pos, yaw, timestamps=t, on_lane=[True] * n) == "STRAIGHT"
+    inter = [True] * 2 + [False] * (n - 4) + [True] * 2   # 가운데가 교차로
+    assert infer_maneuver(pos, yaw, timestamps=t, on_lane=inter) == "TURN_LEFT"
+
+
+def test_maneuver_map_lane_change_needs_lane_id_change():
+    """맵이 있으면 차선변경은 '차로 ID가 이웃 차로로 바뀌었는가'로 판정한다.
+
+    궤적만으로는 교차로를 지나며 생긴 옆 이동이 차선변경으로 잡혔다(맵 확인 15.8%뿐).
+    """
+    n, dt = 13, 0.5
+    t = np.arange(n) * dt
+    yaw = np.zeros(n)
+    lat = 3.5 * (1 - np.cos(np.pi * t / t[-1])) / 2
+    pos = np.stack([10 * t, lat], axis=1)            # 옆으로 3.5 m
+    on = [True] * n
+    assert infer_maneuver(pos, yaw, timestamps=t, on_lane=on, map_lane_change=True) == "LANE_CHANGE_LEFT"
+    assert infer_maneuver(pos, yaw, timestamps=t, on_lane=on, map_lane_change=False) == "STRAIGHT"
+    # 차로 ID는 바뀌었어도 옆으로 거의 안 움직였으면 경계에서 ID가 떨린 것
+    flat = np.stack([10 * t, np.full(n, 0.3)], axis=1)
+    assert infer_maneuver(flat, yaw, timestamps=t, on_lane=on, map_lane_change=True) == "STRAIGHT"

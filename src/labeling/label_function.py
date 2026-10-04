@@ -69,6 +69,7 @@ class LabelConfig:
     maneuver_window_fwd_s: float | None = 3.0    # 미래 방향 윈도우 (선제적 전환)
     maneuver_state_window_s: float = 1.0          # STOP·REVERSE 판정용 ±창 (현재 상태)
     maneuver_causal_back_s: float = 2.0           # 과거만 보는 기동 추정(B2c)의 창
+    use_map: bool = True                          # 맵 확장으로 회전·차선변경 판정(없으면 궤적 규칙)
     maneuver_th: ManeuverThresholds = field(default_factory=ManeuverThresholds)
 
     @classmethod
@@ -211,11 +212,11 @@ def infer_sample_maneuver(wrapper, sample_token, cfg: LabelConfig,
         yaw = np.array([wrapper.get_ego_yaw(tk) for tk in win])
         tim = np.array([wrapper.sample_timestamp(tk) for tk in win])
         spd = np.array([np.linalg.norm(wrapper.get_ego_velocity(tk)) for tk in win])
-        return pos, yaw, tim, spd
+        return pos, yaw, tim, spd, win
 
     # 1) 현재 상태 — STOP / REVERSE
     sw = cfg.maneuver_state_window_s
-    pos, yaw, tim, spd = window(-sw, 0.0 if causal else sw)
+    pos, yaw, tim, spd, _ = window(-sw, 0.0 if causal else sw)
     state = infer_maneuver(pos, yaw, timestamps=tim, speeds=spd, th=cfg.maneuver_th)
     if state in ("STOP", "REVERSE"):
         return state
@@ -226,11 +227,37 @@ def infer_sample_maneuver(wrapper, sample_token, cfg: LabelConfig,
     else:
         back = cfg.maneuver_window_s if cfg.maneuver_window_back_s is None else cfg.maneuver_window_back_s
         fwd = cfg.maneuver_window_s if cfg.maneuver_window_fwd_s is None else cfg.maneuver_window_fwd_s
-    pos, yaw, tim, spd = window(-back, fwd)
+    pos, yaw, tim, spd, win = window(-back, fwd)
     if len(yaw) < 2:
         return "STRAIGHT"
+    on_lane, map_lc = (map_evidence(wrapper, scene_token, win)
+                       if cfg.use_map and wrapper.has_map() else (None, None))
     return infer_maneuver(pos, yaw, timestamps=tim, speeds=spd,
-                          th=cfg.maneuver_th, check_state=False)
+                          th=cfg.maneuver_th, check_state=False,
+                          on_lane=on_lane, map_lane_change=map_lc)
+
+
+def map_evidence(wrapper, scene_token: str, win: list[str]):
+    """창 안 프레임들의 맵 근거 → (on_lane 목록, 차선변경 여부).
+
+    on_lane: 일반 차로 위인가(교차로·차로 연결부·주차장·차로 밖이 아님).
+    차선변경: 일반 차로 위의 두 프레임에서 차로 ID가 다르고, 두 차로가 진행 방향으로
+    이어져 있지 않으며(이어지는 다음 차로로 넘어간 게 아니라 나란한 이웃 차로로 옮겼다),
+    그 사이 프레임이 모두 일반 차로 위일 것(교차로를 지나며 생긴 어긋남이 아닐 것).
+    """
+    idx = wrapper.map_index(scene_token)
+    info = [wrapper.map_info(t) for t in win]
+    # 차로 연결부(lane_connector)는 교차로를 가로지르는 경로다. 차로 폴리곤과 경계에서 겹치므로
+    # 연결부에 걸치면 차로 밖으로 본다 — 그러지 않으면 회전 각도가 곡선로로 샌다.
+    on_lane = [bool(q and q["lane"] and not q["connector"] and not q["intersection"]
+                    and not q["carpark"]) for q in info]
+    lanes = [(i, q["lane"]) for i, q in enumerate(info) if on_lane[i]]
+    for a in range(len(lanes)):
+        i, la = lanes[a]
+        for j, lb in lanes[a + 1:]:
+            if lb != la and all(on_lane[i:j + 1]) and not idx.connected(la, lb):
+                return on_lane, True
+    return on_lane, False
 
 def _argmax_excl(scores: np.ndarray, excl: int) -> int:
     """primary(excl) 채널을 제외한 argmax → attention_view."""
