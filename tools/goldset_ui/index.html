@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>골드셋 검수</title>
+<style>
+:root{--paper:#f4f6f7;--surface:#fff;--surface-2:#eef1f3;--ink:#14181c;--muted:#5a646c;
+--rule:#d8dee2;--accent:#0d6b73;--accent-bg:#e2f0f0;--signal:#b8422a;--signal-bg:#f7e7e1;
+--f:"Malgun Gothic","맑은 고딕",system-ui,sans-serif;--m:Consolas,monospace}
+@media(prefers-color-scheme:dark){:root{--paper:#0f1316;--surface:#161b1f;--surface-2:#1c2227;
+--ink:#e6eaec;--muted:#98a3ab;--rule:#29323a;--accent:#4fbac1;--accent-bg:#11302f;
+--signal:#e08063;--signal-bg:#35211a}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font:14px/1.6 var(--f)}
+.wrap{max-width:1500px;margin:0 auto;padding:14px 18px 40px}
+header{display:flex;flex-wrap:wrap;gap:10px 22px;align-items:center;margin-bottom:10px}
+h1{font-size:18px;margin:0}
+.prog{flex:1;min-width:200px;height:8px;background:var(--surface-2);border:1px solid var(--rule)}
+.prog i{display:block;height:100%;background:var(--accent);width:0}
+.cnt{font-family:var(--m);font-size:13px;color:var(--muted)}
+.cnt b{color:var(--ink)}
+button{font:inherit;font-size:13px;padding:5px 12px;border:1px solid var(--rule);
+background:var(--surface);color:var(--ink);cursor:pointer}
+button:hover{border-color:var(--accent)}
+.bar{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;padding:8px 12px;
+background:var(--surface);border:1px solid var(--rule);margin-bottom:10px}
+.bar .meta{font-family:var(--m);font-size:12px;color:var(--muted)}
+.bar .frame b{color:var(--accent)}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.tile{position:relative;background:#000;border:3px solid transparent;cursor:pointer;
+user-select:none}
+.tile img{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:cover}
+.tile .lab{position:absolute;left:0;top:0;right:0;display:flex;justify-content:space-between;
+padding:4px 8px;font-size:12px;color:#fff;background:linear-gradient(#000a,#0000)}
+.tile .key{font-family:var(--m);font-weight:700;background:#0008;padding:0 6px}
+.tile.on{border-color:var(--signal)}
+.tile.on .lab{background:linear-gradient(var(--signal),#0000)}
+.tile.primary{cursor:not-allowed;border-color:var(--accent)}
+.tile.primary .lab{background:linear-gradient(var(--accent),#0000)}
+.tile.primary::after{content:"진행 방향 · 상시 표시";position:absolute;right:8px;bottom:6px;
+font-size:11px;color:#fff;background:var(--accent);padding:1px 6px}
+.answer{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:10px;
+padding:10px 12px;background:var(--surface);border:1px solid var(--rule)}
+.answer .state{font-weight:700;min-width:180px}
+.answer .state.none{color:var(--accent)}
+.answer .state.todo{color:var(--muted);font-weight:400}
+.answer input{flex:1;min-width:240px;font:inherit;padding:5px 9px;border:1px solid var(--rule);
+background:var(--surface);color:var(--ink)}
+.answer label{font-size:13px;color:var(--muted);display:flex;gap:5px;align-items:center}
+details{margin-top:12px;background:var(--surface);border:1px solid var(--rule);padding:8px 12px}
+summary{cursor:pointer;font-weight:700}
+details p,details li{color:var(--muted);font-size:13px}
+kbd{font-family:var(--m);font-size:12px;border:1px solid var(--rule);padding:0 5px;
+background:var(--surface-2)}
+#out{width:100%;height:140px;font-family:var(--m);font-size:12px;display:none;margin-top:8px;
+background:var(--surface);color:var(--ink);border:1px solid var(--rule)}
+.err{padding:20px;background:var(--signal-bg);border:1px solid var(--signal)}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>골드셋 검수</h1>
+  <div class="prog"><i id="prog"></i></div>
+  <span class="cnt">완료 <b id="ndone">0</b>/<b id="ntot">0</b> · 강조 불필요 <b id="nnone">0</b> · 애매 <b id="nhmm">0</b></span>
+  <button id="btnCopy">결과 복사</button>
+  <button id="btnSave">결과 저장(.json)</button>
+</header>
+
+<div class="bar">
+  <span class="meta" id="meta"></span>
+  <span class="frame" id="frame"></span>
+  <span class="meta">← → 이동 · <kbd>[</kbd> <kbd>]</kbd> 과거/현재 프레임</span>
+</div>
+
+<div class="grid" id="grid"></div>
+
+<div class="answer">
+  <span class="state todo" id="state">아직 판정하지 않음</span>
+  <label><input type="checkbox" id="hmm"> 애매 <kbd>H</kbd></label>
+  <input type="text" id="note" placeholder="메모 (선택) — 판단이 어려웠던 이유 등">
+  <button id="btnPrev">← 이전</button>
+  <button id="btnNext">다음 →</button>
+</div>
+<textarea id="out" readonly></textarea>
+
+<details open>
+  <summary>무엇을 고르는가</summary>
+  <p><b>"지금 오퍼레이터가 진행 방향 외에 추가로 봐야 할 화면"</b>을 고릅니다. 위험한 객체가 있거나,
+    곧 할 기동(회전·차선변경) 때문에 확인이 필요한 방향입니다. 여러 개를 골라도 되고, 볼 것이 없으면
+    <b>강조 불필요</b>로 표시합니다. 진행 방향 화면(초록 테두리)은 항상 보이므로 고르지 않습니다.</p>
+  <ul>
+    <li><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> 윗줄(좌전·전방·우전), <kbd>4</kbd><kbd>5</kbd><kbd>6</kbd> 아랫줄(좌후·후방·우후) — 켜고 끄기. 화면을 눌러도 됩니다</li>
+    <li><kbd>0</kbd> 강조 불필요 — 볼 것이 없다는 판정(미판정과 구분됩니다)</li>
+    <li><kbd>H</kbd> 애매 표시 · <kbd>Enter</kbd> 또는 <kbd>→</kbd> 다음 · <kbd>←</kbd> 이전</li>
+    <li><kbd>[</kbd> <kbd>]</kbd> 과거 프레임 보기 — 움직임 방향을 판단할 때 씁니다(현재 프레임 기준으로 답합니다)</li>
+  </ul>
+  <p>판정은 브라우저에 자동 저장됩니다. 다 끝나면 <b>결과 저장</b>으로 JSON을 받거나 <b>결과 복사</b>로 붙여넣어 주세요.
+    라벨·모델의 답은 일부러 보여주지 않습니다 — 독립적인 판정이어야 평가가 순환하지 않습니다.</p>
+</details>
+</div>
+
+<script src="manifest.js"></script>
+<script>
+(function () {
+  if (!window.GOLDSET) {
+    document.querySelector(".wrap").innerHTML =
+      '<div class="err">manifest.js를 찾지 못했습니다. index.html과 같은 폴더에 manifest.js와 img/가 있어야 합니다.</div>';
+    return;
+  }
+  const G = window.GOLDSET, ITEMS = G.items, CAMS = G.meta.cameras;
+  const GRID = ["CAM_FRONT_LEFT", "CAM_FRONT", "CAM_FRONT_RIGHT",
+                "CAM_BACK_LEFT", "CAM_BACK", "CAM_BACK_RIGHT"];
+  const KO = {CAM_FRONT_LEFT: "좌전측방", CAM_FRONT: "전방", CAM_FRONT_RIGHT: "우전측방",
+              CAM_BACK_LEFT: "좌후측방", CAM_BACK: "후방", CAM_BACK_RIGHT: "우후측방"};
+  const KEY = "goldset_" + G.meta.version + "_" + G.meta.split + "_" + G.meta.seed + "_" + ITEMS.length;
+  const load = () => { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { return {}; } };
+  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(A)); } catch (e) {} };
+  let A = load();
+  let idx = 0, fi = null;
+
+  const $ = (id) => document.getElementById(id);
+  $("ntot").textContent = ITEMS.length;
+
+  function firstTodo() {
+    const i = ITEMS.findIndex(it => !A[it.token] || !A[it.token].done);
+    return i < 0 ? 0 : i;
+  }
+
+  function render() {
+    const it = ITEMS[idx];
+    if (fi === null) fi = it.frames.length - 1;
+    const fr = it.frames[fi];
+    const ans = A[it.token] || {sel: [], done: false, none: false, hmm: false, note: ""};
+    const primaryCam = CAMS[it.primary];
+
+    $("grid").innerHTML = "";
+    GRID.forEach((cam, k) => {
+      const ci = CAMS.indexOf(cam);
+      const d = document.createElement("div");
+      d.className = "tile" + (cam === primaryCam ? " primary" : "") + (ans.sel.includes(ci) ? " on" : "");
+      d.innerHTML = `<img src="${fr.img[cam]}" alt="${cam}">
+        <div class="lab"><span>${KO[cam]} · ${cam.replace("CAM_", "")}</span><span class="key">${k + 1}</span></div>`;
+      d.onclick = () => toggle(ci);
+      $("grid").appendChild(d);
+    });
+
+    $("meta").textContent = `${idx + 1} / ${ITEMS.length} · ${it.scene} · ${it.token.slice(0, 8)}`;
+    $("frame").innerHTML = fi === it.frames.length - 1
+      ? "<b>현재 프레임</b>"
+      : `과거 프레임 <b>${fr.dt.toFixed(1)}초</b> (판정은 현재 기준)`;
+    const st = $("state");
+    if (!ans.done) { st.className = "state todo"; st.textContent = "아직 판정하지 않음"; }
+    else if (ans.none) { st.className = "state none"; st.textContent = "강조 불필요"; }
+    else { st.className = "state"; st.textContent = "강조: " + ans.sel.map(c => KO[CAMS[c]]).join(", "); }
+    $("hmm").checked = !!ans.hmm;
+    $("note").value = ans.note || "";
+
+    const done = ITEMS.filter(x => A[x.token] && A[x.token].done);
+    $("ndone").textContent = done.length;
+    $("nnone").textContent = done.filter(x => A[x.token].none).length;
+    $("nhmm").textContent = ITEMS.filter(x => A[x.token] && A[x.token].hmm).length;
+    $("prog").style.width = (100 * done.length / ITEMS.length) + "%";
+  }
+
+  function cur() {
+    const t = ITEMS[idx].token;
+    A[t] = A[t] || {sel: [], done: false, none: false, hmm: false, note: ""};
+    return A[t];
+  }
+  function toggle(ci) {
+    if (CAMS[ITEMS[idx].primary] === CAMS[ci]) return;          // 진행 방향은 고르지 않는다
+    const a = cur();
+    const i = a.sel.indexOf(ci);
+    if (i >= 0) a.sel.splice(i, 1); else a.sel.push(ci);
+    a.sel.sort();
+    a.none = false;
+    a.done = a.sel.length > 0;
+    save(); render();
+  }
+  function markNone() { const a = cur(); a.sel = []; a.none = true; a.done = true; save(); render(); }
+  function go(d) { idx = Math.max(0, Math.min(ITEMS.length - 1, idx + d)); fi = null; render(); }
+
+  document.addEventListener("keydown", (e) => {
+    if (e.target === $("note")) { if (e.key === "Enter") { $("note").blur(); go(1); } return; }
+    const n = parseInt(e.key, 10);
+    if (n >= 1 && n <= 6) { toggle(CAMS.indexOf(GRID[n - 1])); e.preventDefault(); return; }
+    if (e.key === "0") { markNone(); return; }
+    if (e.key === "h" || e.key === "H") { const a = cur(); a.hmm = !a.hmm; save(); render(); return; }
+    if (e.key === "ArrowRight" || e.key === "Enter") { go(1); e.preventDefault(); return; }
+    if (e.key === "ArrowLeft") { go(-1); e.preventDefault(); return; }
+    if (e.key === "[") { fi = Math.max(0, (fi ?? 0) - 1); render(); return; }
+    if (e.key === "]") { fi = Math.min(ITEMS[idx].frames.length - 1, (fi ?? 0) + 1); render(); return; }
+  });
+  $("hmm").onchange = () => { cur().hmm = $("hmm").checked; save(); render(); };
+  $("note").oninput = () => { cur().note = $("note").value; save(); };
+  $("btnPrev").onclick = () => go(-1);
+  $("btnNext").onclick = () => go(1);
+
+  function result() {
+    // 명세 형식: {sample_token: [정답 채널 인덱스]} — 빈 목록은 '강조 불필요'.
+    const gold = {}, meta = {};
+    ITEMS.forEach(it => {
+      const a = A[it.token];
+      if (!a || !a.done) return;
+      gold[it.token] = a.sel.slice();
+      meta[it.token] = {stratum: it.stratum, weight: it.weight, hmm: !!a.hmm, note: a.note || ""};
+    });
+    return {meta: {version: G.meta.version, split: G.meta.split, seed: G.meta.seed,
+                   n_items: ITEMS.length, n_done: Object.keys(gold).length,
+                   cameras: CAMS, saved_at: new Date().toISOString()},
+            gold, item_meta: meta};
+  }
+  $("btnSave").onclick = () => {
+    const blob = new Blob([JSON.stringify(result(), null, 1)], {type: "application/json"});
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "goldset_v1.json";
+    document.body.appendChild(a); a.click(); a.remove();
+  };
+  $("btnCopy").onclick = async () => {
+    const t = JSON.stringify(result());
+    try { await navigator.clipboard.writeText(t); $("btnCopy").textContent = "복사됨"; }
+    catch (e) { const o = $("out"); o.style.display = "block"; o.value = t; o.select(); }
+    setTimeout(() => $("btnCopy").textContent = "결과 복사", 1200);
+  };
+
+  idx = firstTodo();
+  render();
+})();
+</script>
+</body>
+</html>
