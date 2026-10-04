@@ -187,6 +187,17 @@ def test_maneuver_gentle_curve_is_not_lane_change():
     assert infer_maneuver(pos, yaw, timestamps=t) == "STRAIGHT"
 
 
+def test_maneuver_state_check_can_be_skipped():
+    """check_state=False면 STOP·REVERSE를 판정하지 않는다 — 선제 창 전용.
+
+    상태(STOP·REVERSE)는 현재 기준 짧은 창으로 따로 판정한다. 선제 창에서 상태까지
+    보면 5초 안에 출발하는 정지 프레임이 STRAIGHT가 되거나, 그 반대가 섞인다.
+    """
+    pos, yaw, t = _straight_track(speed=0.1)
+    assert infer_maneuver(pos, yaw, timestamps=t) == "STOP"
+    assert infer_maneuver(pos, yaw, timestamps=t, check_state=False) == "STRAIGHT"
+
+
 def test_maneuver_lane_keeping_is_not_lane_change():
     """헤딩만 흔들리고 옆으로 움직이지 않으면 차선변경이 아니다.
 

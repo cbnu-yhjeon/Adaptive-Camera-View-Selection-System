@@ -172,6 +172,8 @@ def main() -> int:
     ap.add_argument("--outdir", default="results/label_viz")
     ap.add_argument("--uniform", action="store_true",
                     help="기동별 층화 대신 균등 무작위 추출")
+    ap.add_argument("--tokens", default=None,
+                    help="검수할 keyframe 토큰 목록 파일(한 줄에 하나). 주면 추출 대신 이 목록을 쓴다")
     ap.add_argument("--min_risky", type=int, default=4,
                     help="min_TTC<3s인 위험 장면 최소 포함 수 (층화 시)")
     args = ap.parse_args()
@@ -184,7 +186,11 @@ def main() -> int:
                     require_image_files=base.get("require_image_files", True))
 
     rng = np.random.default_rng(args.seed)
-    if args.uniform:
+    if args.tokens:
+        want = [ln.strip() for ln in open(args.tokens, encoding="utf-8") if ln.strip()]
+        pos = {t: i for i, t in enumerate(df["sample_token"])}
+        idx = [pos[t] for t in want if t in pos]
+    elif args.uniform:
         idx = rng.choice(len(df), size=min(args.n, len(df)), replace=False)
     else:
         idx = _stratified_sample(df, args.n, args.min_risky, rng)

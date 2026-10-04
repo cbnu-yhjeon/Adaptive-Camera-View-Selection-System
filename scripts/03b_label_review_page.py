@@ -52,7 +52,16 @@ def evidence(w, cfg, token):
     h = np.array([np.cos(yaws[0]), np.sin(yaws[0])])
     n = np.array([-h[1], h[0]])
     lat = float(((pos - pos[0]) @ n)[-1])
+    # 판정 규칙과 같은 값을 보여준다 — 차선변경은 곡선 성분을 뺀 잔차로 판정한다.
+    th = np.radians(dev[-1])
+    R_arc = dist / abs(th) if abs(th) > 1e-3 else float("inf")
+    lat_arc = np.sign(th) * R_arc * (1 - np.cos(th)) if np.isfinite(R_arc) else 0.0
+    # 상태(STOP·REVERSE) 판정 창의 평균 속도
+    sw = cfg.maneuver_state_window_s
+    sw_toks = [tk for tk in toks if -sw <= w.sample_timestamp(tk) - t0 <= sw]
+    v_state = float(np.mean([np.linalg.norm(w.get_ego_velocity(tk)) for tk in sw_toks])) if sw_toks else 0.0
     return dict(scene=w.scene_name(sc), net=float(dev[-1]), R=R, lat=lat,
+                resid=float(lat - lat_arc), v_state=v_state,
                 speed=v, span=span, n_win=len(win))
 
 
@@ -126,6 +135,9 @@ def main() -> int:
     ap.add_argument("--viz", default="results/label_viz")
     ap.add_argument("--out", default="results/label_review/index.html")
     ap.add_argument("--version", default=None)
+    ap.add_argument("--prev", default=None, help="이전 라벨 parquet — 바뀐 기동을 카드에 표시")
+    ap.add_argument("--title", default="의사 라벨 검수 (M2 게이트)")
+    ap.add_argument("--subtitle", default=None)
     args = ap.parse_args()
 
     d = os.path.join(os.path.dirname(__file__), "..", "configs")
@@ -135,6 +147,7 @@ def main() -> int:
     version = args.version or base["version"]
 
     df = pd.read_parquet(f"data/labels_{version}.parquet")
+    prev = pd.read_parquet(args.prev).set_index("sample_token") if args.prev else None
     w = NuscWrapper(base["dataroot"], version,
                     require_image_files=base.get("require_image_files", True))
 
@@ -156,13 +169,20 @@ def main() -> int:
         Rtxt = "∞" if not ev or not np.isfinite(ev["R"]) else f"{ev['R']:.0f} m"
         evtxt = ("" if not ev else
                  f"Δψ <b>{ev['net']:+.1f}°</b> · 반경 <b>{Rtxt}</b> · "
-                 f"횡변위 <b>{ev['lat']:+.1f} m</b> · {ev['speed']:.1f} m/s")
+                 f"횡이탈(곡선 제거) <b>{ev['resid']:+.1f} m</b> · "
+                 f"현재 속도 <b>{ev['v_state']:.1f} m/s</b>")
+        prev_txt = ""
+        if prev is not None and r["sample_token"] in prev.index:
+            pm = prev.loc[r["sample_token"], "maneuver"]
+            if pm != mv:
+                prev_txt = f'<span class="sc">이전 <b>{pm}</b> →</span>'
+
         aux_txt = ", ".join(f"[{i}] {CAMERAS[i]}" for i in aux) or "없음"
         ttc = f"{r['min_ttc']:.1f}s" if r["min_ttc"] >= 0 else "없음"
         flag = " flag" if mv.startswith(("TURN", "LANE")) else ""
         cards.append(f"""<div class="card{flag}">
   <div class="hd"><span class="no">{no}</span>
-    <span class="mv {cls}">{mv}</span>
+    {prev_txt}<span class="mv {cls}">{mv}</span>
     <span class="sc">{ev['scene'] if ev else ''} · {pref}</span>
     <span class="ev">{evtxt}</span></div>
   <img src="{img_uri(os.path.join(args.viz, fn))}" alt="{fn}">
@@ -180,34 +200,40 @@ def main() -> int:
     trs = []
     for no, mv, ev, r in rows:
         if ev is None:
-            net_txt = r_txt = lat_txt = "—"
+            net_txt = r_txt = lat_txt = v_txt = "—"
         else:
             net_txt = f"{ev['net']:+.1f}°"
             r_txt = "∞" if not np.isfinite(ev["R"]) else f"{ev['R']:.0f}"
-            lat_txt = f"{ev['lat']:+.1f}"
-        trs.append(f"<tr><td>{no}</td><td>{mv}</td><td>{net_txt}</td>"
-                   f"<td>{r_txt}</td><td>{lat_txt}</td><td>{int(r['n_aux'])}</td></tr>")
+            lat_txt = f"{ev['resid']:+.1f}"
+            v_txt = f"{ev['v_state']:.1f}"
+        pm = (prev.loc[r["sample_token"], "maneuver"]
+              if prev is not None and r["sample_token"] in prev.index else "")
+        trs.append(f"<tr><td>{no}</td><td>{pm}</td><td>{mv}</td><td>{net_txt}</td>"
+                   f"<td>{r_txt}</td><td>{lat_txt}</td><td>{v_txt}</td><td>{int(r['n_aux'])}</td></tr>")
 
     html = f"""<!doctype html><html lang="ko"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>라벨 검수 — {version}</title><style>{CSS}</style></head><body><div class="wrap">
-<h1>의사 라벨 검수 (M2 게이트)</h1>
-<p class="sub">{version} · {len(df):,} keyframe 중 층화 추출 {len(rows)}장 ·
-기동 판정 규칙 수정 후 재생성</p>
+<h1>{args.title}</h1>
+<p class="sub">{args.subtitle or f"{version} · {len(df):,} keyframe 중 {len(rows)}장"}</p>
 
 <div class="note">
 <p><b>무엇을 봐야 하는가</b> — 기동 라벨이 영상 속 실제 상황과 맞는지입니다.
 특히 <b>TURN</b>과 <b>LANE_CHANGE</b>(붉은 테두리)는 보조 뷰를 무조건 켜므로,
 틀리면 그대로 오탐이 됩니다.</p>
-<p>각 카드 우측의 <b>Δψ</b>(누적 헤딩 변화) · <b>반경</b> · <b>횡변위</b>가 판정의 근거입니다.
-교차로 회전은 반경 {th.turn_radius_max:.0f} m 이하, 차선변경은 횡변위
-{th.lane_change_lat_min:.2f} m 이상이어야 합니다. 값이 기준에 맞는데 영상이 다르게 보이면
-알려주세요 — 규칙이 아니라 신호 자체를 봐야 합니다.</p>
+<p>각 카드 우측의 값이 판정 근거입니다. <b>정지·후진</b>은 현재 기준
+±{cfg.maneuver_state_window_s:g}초의 <b>현재 속도</b>로(정지 = {th.stop_speed:g} m/s 미만),
+<b>회전·차선변경</b>은 과거 {cfg.maneuver_window_back_s:g}초 ~ 미래 {cfg.maneuver_window_fwd_s:g}초
+궤적으로 판정합니다. 회전은 |Δψ| &gt; {th.turn_deg:g}° 이고 <b>반경</b> {th.turn_radius_max:.0f} m 이하,
+차선변경은 <b>곡선 제거 횡이탈</b> {th.lane_change_resid_min:g} m 이상이어야 합니다.</p>
+<p><b>미래를 보고 붙인 라벨</b>입니다 — 회전·차선변경은 그 프레임 시점엔 아직 시작 전일 수 있습니다.
+영상만으로 판단이 안 되면 "이 프레임 이후 몇 초 안에 그 기동을 하는가"로 봐주세요.
+값이 기준에 맞는데 영상이 다르게 보이면 알려주세요 — 규칙이 아니라 신호 자체를 봐야 합니다.</p>
 <p>보조 뷰(빨간 막대)에 실제로 봐야 할 것이 있는지도 함께 봐주세요.</p>
 </div>
 
-<table><thead><tr><th>번호</th><th>기동</th><th>누적 Δψ</th><th>선회반경(m)</th>
-<th>횡변위(m)</th><th>보조 뷰</th></tr></thead><tbody>{''.join(trs)}</tbody></table>
+<table><thead><tr><th>번호</th><th>이전 라벨</th><th>현재 라벨</th><th>누적 Δψ</th><th>선회반경(m)</th>
+<th>곡선 제거 횡이탈(m)</th><th>현재 속도(m/s)</th><th>보조 뷰</th></tr></thead><tbody>{''.join(trs)}</tbody></table>
 
 <div class="bar">
   <span class="cnt">판정 <b id="n">0</b>/{len(rows)} ·

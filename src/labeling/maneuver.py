@@ -51,7 +51,8 @@ def wrap_angle(a: float) -> float:
 
 def infer_maneuver(positions, yaws, timestamps=None, speeds=None,
                    gear: str | None = None,
-                   th: ManeuverThresholds | None = None) -> str:
+                   th: ManeuverThresholds | None = None,
+                   check_state: bool = True) -> str:
     """ego 자세 시퀀스 → 기동 클래스 이름.
 
     Args:
@@ -61,6 +62,10 @@ def infer_maneuver(positions, yaws, timestamps=None, speeds=None,
         speeds:    (T,) m/s 속도. 주면 STOP/REVERSE에 우선 사용.
         gear:      CAN 기어 문자열('reverse' 등). 있으면 REVERSE 우선 판정.
         th:        임계값. None이면 기본값.
+        check_state: False면 STOP/REVERSE 판정을 건너뛰고 기동(TURN/LANE_CHANGE)만 본다.
+                   STOP·REVERSE는 "지금의 상태"라 현재 기준 짧은 창으로 따로 판정해야 하는데,
+                   선제 창(미래 5초)으로 보면 5초 안에 출발·전진하는 프레임이 정지·후진에서
+                   빠진다(검수 카드 16: 후진 중인데 TURN_LEFT로 바뀌어 진행 방향이 전방이 됐다).
 
     Returns:
         constants.MANEUVERS 중 하나.
@@ -84,18 +89,19 @@ def infer_maneuver(positions, yaws, timestamps=None, speeds=None,
         step = np.linalg.norm(np.diff(pos, axis=0), axis=1)
         mean_speed = float(np.mean(step / dt))
 
-    # --- STOP (가장 먼저) ---
-    if mean_speed < th.stop_speed:
-        return "STOP"
+    if check_state:
+        # --- STOP (가장 먼저) ---
+        if mean_speed < th.stop_speed:
+            return "STOP"
 
-    # --- REVERSE: 진행 방향이 헤딩 반대 ---
-    if gear is not None and str(gear).lower().startswith("rev"):
-        return "REVERSE"
-    move = pos[-1] - pos[0]
-    if np.linalg.norm(move) > 1e-3:
-        heading_vec = np.array([np.cos(yaw[0]), np.sin(yaw[0])])
-        if float(np.dot(heading_vec, move)) < th.reverse_dot:
+        # --- REVERSE: 진행 방향이 헤딩 반대 ---
+        if gear is not None and str(gear).lower().startswith("rev"):
             return "REVERSE"
+        move = pos[-1] - pos[0]
+        if np.linalg.norm(move) > 1e-3:
+            heading_vec = np.array([np.cos(yaw[0]), np.sin(yaw[0])])
+            if float(np.dot(heading_vec, move)) < th.reverse_dot:
+                return "REVERSE"
 
     # --- 헤딩 변화 분석 ---
     dev = np.array([wrap_angle(y - yaw[0]) for y in yaw])  # 시작 대비 이탈(rad)

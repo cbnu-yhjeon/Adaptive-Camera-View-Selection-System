@@ -67,6 +67,7 @@ class LabelConfig:
     maneuver_window_s: float = 3.0      # 하위호환 — back/fwd를 주지 않으면 이 값을 양쪽에 씀
     maneuver_window_back_s: float | None = 1.0   # 과거 방향 윈도우
     maneuver_window_fwd_s: float | None = 3.0    # 미래 방향 윈도우 (선제적 전환)
+    maneuver_state_window_s: float = 1.0          # STOP·REVERSE 판정용 ±창 (현재 상태)
     maneuver_th: ManeuverThresholds = field(default_factory=ManeuverThresholds)
 
     @classmethod
@@ -183,29 +184,42 @@ def compute_channel_scores(wrapper, sample_token, cfg: LabelConfig):
 
 
 def infer_sample_maneuver(wrapper, sample_token, cfg: LabelConfig) -> str:
-    """비대칭 윈도우 [-back, +fwd] 초의 ego pose로 기동 추론 (미래 참조 허용).
+    """기동 추론 — **상태**와 **기동**을 서로 다른 창으로 판정한다 (미래 참조 허용).
 
-    미래를 보는 이유는 **선제적 전환**이다 — 회전 전에 미리 측방을 띄워야 쓸모가 있다.
-    과거를 같은 길이로 보면 그 반대 효과가 난다: 이미 끝난 기동의 꼬리가 따라붙어,
-    똑바로 가고 있는 프레임이 TURN으로 라벨된다(실측 scene-0415: t=0 시점에 헤딩
-    변화가 이미 완료됐는데 TURN_LEFT였고, 담장만 보이는 FRONT_LEFT가 강조됐다).
-    그래서 과거는 짧게, 미래는 길게 본다.
+    STOP·REVERSE는 "지금 어떤 상태인가"다. 현재 기준 ±state 창으로 본다.
+    TURN·LANE_CHANGE는 "곧 무엇을 할 것인가"다. 선제적 전환이 목적이므로 비대칭
+    창 [-back, +fwd]로 본다 — 과거를 길게 보면 끝난 기동의 꼬리가 붙고(scene-0415),
+    미래가 짧으면 4~6초짜리 차선변경이 절반만 담긴다.
+
+    두 판정을 한 창에 섞으면 선제 창이 상태를 덮는다: 5초 안에 다시 전진하는 후진
+    프레임이 TURN이 되고(검수 카드 16), 5초 안에 출발하는 정지 프레임이 STRAIGHT가
+    된다(trainval 348건).
     """
     scene_token = wrapper.sample_scene_token(sample_token)
     toks = wrapper.sample_tokens_in_scene(scene_token)
     t0 = wrapper.sample_timestamp(sample_token)
 
+    def window(lo, hi):
+        win = [tk for tk in toks if lo <= wrapper.sample_timestamp(tk) - t0 <= hi]
+        pos = np.array([wrapper.get_ego_pose(tk)["translation"][:2] for tk in win])
+        yaw = np.array([wrapper.get_ego_yaw(tk) for tk in win])
+        tim = np.array([wrapper.sample_timestamp(tk) for tk in win])
+        spd = np.array([np.linalg.norm(wrapper.get_ego_velocity(tk)) for tk in win])
+        return pos, yaw, tim, spd
+
+    # 1) 현재 상태 — STOP / REVERSE
+    sw = cfg.maneuver_state_window_s
+    pos, yaw, tim, spd = window(-sw, sw)
+    state = infer_maneuver(pos, yaw, timestamps=tim, speeds=spd, th=cfg.maneuver_th)
+    if state in ("STOP", "REVERSE"):
+        return state
+
+    # 2) 다가올 기동 — TURN / LANE_CHANGE / STRAIGHT
     back = cfg.maneuver_window_s if cfg.maneuver_window_back_s is None else cfg.maneuver_window_back_s
     fwd = cfg.maneuver_window_s if cfg.maneuver_window_fwd_s is None else cfg.maneuver_window_fwd_s
-    win = [tk for tk in toks
-           if -back <= wrapper.sample_timestamp(tk) - t0 <= fwd]
-    positions = np.array([wrapper.get_ego_pose(tk)["translation"][:2] for tk in win])
-    yaws = np.array([wrapper.get_ego_yaw(tk) for tk in win])
-    times = np.array([wrapper.sample_timestamp(tk) for tk in win])
-    speeds = np.array([np.linalg.norm(wrapper.get_ego_velocity(tk)) for tk in win])
-    return infer_maneuver(positions, yaws, timestamps=times, speeds=speeds,
-                          th=cfg.maneuver_th)
-
+    pos, yaw, tim, spd = window(-back, fwd)
+    return infer_maneuver(pos, yaw, timestamps=tim, speeds=spd,
+                          th=cfg.maneuver_th, check_state=False)
 
 def _argmax_excl(scores: np.ndarray, excl: int) -> int:
     """primary(excl) 채널을 제외한 argmax → attention_view."""
