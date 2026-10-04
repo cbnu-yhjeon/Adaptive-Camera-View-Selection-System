@@ -1,0 +1,14 @@
+{
+  "n": 5143,
+  "pseudo_f1": 0.4975,
+  "mean_aux": 0.9564,
+  "recall": 97.55,
+  "precision": 5.57,
+  "flicker": 0.7949,
+  "n_hazard": 774,
+  "top1": 0.5114,
+  "method": "b2c",
+  "split": "val",
+  "condition": "noisy-medium",
+  "ckpt": null
+}

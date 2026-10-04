@@ -68,6 +68,7 @@ class LabelConfig:
     maneuver_window_back_s: float | None = 1.0   # 과거 방향 윈도우
     maneuver_window_fwd_s: float | None = 3.0    # 미래 방향 윈도우 (선제적 전환)
     maneuver_state_window_s: float = 1.0          # STOP·REVERSE 판정용 ±창 (현재 상태)
+    maneuver_causal_back_s: float = 2.0           # 과거만 보는 기동 추정(B2c)의 창
     maneuver_th: ManeuverThresholds = field(default_factory=ManeuverThresholds)
 
     @classmethod
@@ -183,7 +184,8 @@ def compute_channel_scores(wrapper, sample_token, cfg: LabelConfig):
     return risk, len(contribs), min_ttc
 
 
-def infer_sample_maneuver(wrapper, sample_token, cfg: LabelConfig) -> str:
+def infer_sample_maneuver(wrapper, sample_token, cfg: LabelConfig,
+                          causal: bool = False) -> str:
     """기동 추론 — **상태**와 **기동**을 서로 다른 창으로 판정한다 (미래 참조 허용).
 
     STOP·REVERSE는 "지금 어떤 상태인가"다. 현재 기준 ±state 창으로 본다.
@@ -194,6 +196,10 @@ def infer_sample_maneuver(wrapper, sample_token, cfg: LabelConfig) -> str:
     두 판정을 한 창에 섞으면 선제 창이 상태를 덮는다: 5초 안에 다시 전진하는 후진
     프레임이 TURN이 되고(검수 카드 16), 5초 안에 출발하는 정지 프레임이 STRAIGHT가
     된다(trainval 348건).
+
+    causal=True면 **과거만** 본다 — 상태 창 [−state, 0], 기동 창 [−causal_back, 0].
+    라벨용이 아니라 규칙 기반 베이스라인(B2c)이 추론 시점에 알 수 있는 정보만으로
+    기동을 추정할 때 쓴다. 모델이 과거만 보므로 공정한 비교 대상이다.
     """
     scene_token = wrapper.sample_scene_token(sample_token)
     toks = wrapper.sample_tokens_in_scene(scene_token)
@@ -209,15 +215,20 @@ def infer_sample_maneuver(wrapper, sample_token, cfg: LabelConfig) -> str:
 
     # 1) 현재 상태 — STOP / REVERSE
     sw = cfg.maneuver_state_window_s
-    pos, yaw, tim, spd = window(-sw, sw)
+    pos, yaw, tim, spd = window(-sw, 0.0 if causal else sw)
     state = infer_maneuver(pos, yaw, timestamps=tim, speeds=spd, th=cfg.maneuver_th)
     if state in ("STOP", "REVERSE"):
         return state
 
     # 2) 다가올 기동 — TURN / LANE_CHANGE / STRAIGHT
-    back = cfg.maneuver_window_s if cfg.maneuver_window_back_s is None else cfg.maneuver_window_back_s
-    fwd = cfg.maneuver_window_s if cfg.maneuver_window_fwd_s is None else cfg.maneuver_window_fwd_s
+    if causal:
+        back, fwd = cfg.maneuver_causal_back_s, 0.0
+    else:
+        back = cfg.maneuver_window_s if cfg.maneuver_window_back_s is None else cfg.maneuver_window_back_s
+        fwd = cfg.maneuver_window_s if cfg.maneuver_window_fwd_s is None else cfg.maneuver_window_fwd_s
     pos, yaw, tim, spd = window(-back, fwd)
+    if len(yaw) < 2:
+        return "STRAIGHT"
     return infer_maneuver(pos, yaw, timestamps=tim, speeds=spd,
                           th=cfg.maneuver_th, check_state=False)
 

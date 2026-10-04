@@ -50,6 +50,19 @@ def item_rng(base_seed: int, index: int, epoch: int | None) -> np.random.Generat
     return np.random.default_rng([base_seed, epoch, index])
 
 
+_FRAME_SALT = 0x46524D   # 'FRM' — item_rng의 [seed, epoch, index]와 겹치지 않는 세 번째 값
+
+
+def frame_rng(base_seed: int, frame_index: int) -> np.random.Generator:
+    """평가용 **프레임** 난수 생성기 — 한 프레임의 검출 결과는 하나다.
+
+    아이템 단위로 노이즈를 뽑으면 같은 프레임이 어느 2초 창에 들어가느냐에 따라 다르게
+    손상된다. 학습 증강에는 그 다양성이 도움이 되지만, 평가에서는 "그 순간의 검출기 출력"이
+    하나여야 한다. 그래야 전체 이력을 쓰는 규칙(B2)과 4프레임을 보는 모델이 같은 세계를 본다.
+    """
+    return np.random.default_rng([base_seed, frame_index, _FRAME_SALT])
+
+
 class ViewSelectionDataset(Dataset):
     def __init__(self, wrapper, feature_cache, labels_df, label_cfg: LabelConfig,
                  scene_names: list[str], seq_len: int = 4,
@@ -73,6 +86,7 @@ class ViewSelectionDataset(Dataset):
         # scene별 시간순 토큰 + 평탄 인덱스
         self.scene_tokens: dict[str, list[str]] = {}
         self.flat: list[tuple[str, int]] = []      # (scene_token, pos)
+        self._frame_idx: dict[str, int] = {}        # 토큰 → 그 토큰이 현재 프레임인 평탄 인덱스
         for st in wrapper.scene_tokens():
             if wrapper.scene_name(st) not in name_set:
                 continue
@@ -82,6 +96,7 @@ class ViewSelectionDataset(Dataset):
                 continue
             self.scene_tokens[st] = toks
             for pos in range(len(toks)):
+                self._frame_idx[toks[pos]] = len(self.flat)
                 self.flat.append((st, pos))
 
         # 위험 기여 + CAN 특징. 디스크 캐시(contrib_cache.ContribCache)가 주어지면
@@ -100,6 +115,7 @@ class ViewSelectionDataset(Dataset):
                                  w_min_near=label_cfg.w_min_near,
                                  near_range=label_cfg.near_range)
         self._nc: dict[str, object] = {}     # 프리셋별 NoiseConfig 재사용
+        self._frame_risk: dict[tuple, np.ndarray] = {}   # 평가용 프레임 위험 메모
 
     def __len__(self):
         return len(self.flat)
@@ -160,6 +176,21 @@ class ViewSelectionDataset(Dataset):
         # 향후: source == "lidar" → LiDAR 검출기 contributors 사용
         raise ValueError(f"알 수 없는 risk_source: {source}")
 
+    def frame_risk(self, token: str, source: str | None = None,
+                   preset: str | None = None) -> np.ndarray:
+        """평가용 프레임 위험 벡터 — 프레임마다 고정된 손상(frame_rng).
+
+        모델의 아이템과 규칙 기반 베이스라인이 같은 함수를 거치므로, 한 프레임에는
+        방법과 무관하게 항상 같은 검출 결과가 들어간다.
+        """
+        source = source or self.risk_source
+        preset = preset or self.noise_preset
+        key = (token, source, preset)
+        if key not in self._frame_risk:
+            rng = frame_rng(self._base_seed, self._frame_idx[token])
+            self._frame_risk[key] = self._risk_vector(token, rng, source, preset)
+        return self._frame_risk[key]
+
     def __getitem__(self, i: int):
         scene_token, pos = self.flat[i]
         toks = self.scene_tokens[scene_token]
@@ -184,7 +215,12 @@ class ViewSelectionDataset(Dataset):
             feat, mask = self._get_can(tok)
             can[k, :len(feat)] = feat
             can[k, -1] = mask
-            risk[k] = self._risk_vector(tok, rng, source, preset)
+            if self.train_risk_noise:
+                # 학습 증강: 아이템·epoch마다 다른 실현 — 고정 손상을 암기하지 않게
+                risk[k] = self._risk_vector(tok, rng, source, preset)
+            else:
+                # 평가: 프레임마다 하나로 고정된 검출 결과
+                risk[k] = self.frame_risk(tok, source, preset)
             for ch in blackout:                     # 채널 결손: img_feat 0 (시퀀스 내내 유지)
                 img[k, ch] = 0.0
 
@@ -208,6 +244,10 @@ class ViewSelectionDataset(Dataset):
             "aux_target": torch.from_numpy(aux),
             "aux_mask": torch.from_numpy(aux_mask),
             "maneuver": str(row["maneuver"]),
+            # 평가용 식별자 — 같은 프레임의 위험 판정·과거 기동 추정에 맞추고,
+            # scene 시간순으로 flicker를 재기 위해 필요하다.
+            "sample_token": toks[pos],
+            "scene_token": scene_token,
         }
 
     # ------------------------------------------------------------------
@@ -230,5 +270,6 @@ def collate(batch: list[dict]) -> dict:
         out[key] = torch.stack([b[key] for b in batch])
     for key in ("attention_view", "primary_view", "layout"):
         out[key] = torch.tensor([b[key] for b in batch], dtype=torch.long)
-    out["maneuver"] = [b["maneuver"] for b in batch]
+    for key in ("maneuver", "sample_token", "scene_token"):
+        out[key] = [b[key] for b in batch]
     return out

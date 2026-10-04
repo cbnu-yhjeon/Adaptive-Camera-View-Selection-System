@@ -18,7 +18,7 @@ import numpy as np
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from src.data import contrib_cache  # noqa: E402
-from src.data.dataset import item_rng  # noqa: E402
+from src.data.dataset import frame_rng, item_rng  # noqa: E402
 from src.data.noise import apply_noise, make_noise_config  # noqa: E402
 from src.labeling.label_function import LabelConfig, risk_vector_from_contribs  # noqa: E402
 from src.utils.constants import CAN_FEATURES  # noqa: E402
@@ -148,6 +148,18 @@ def test_contrib_cache_rejects_stale_can_width():
         except ValueError:
             return
         raise AssertionError("폭 5짜리 옛 캐시를 그대로 받아들였다")
+
+
+def test_frame_rng_is_fixed_and_separate_from_item_streams():
+    """평가 프레임 난수는 결정적이고, 아이템·학습 난수열과 겹치지 않아야 한다.
+
+    겹치면 한 아이템의 블랙아웃 선택과 그 프레임의 검출 손상이 같은 난수를 공유한다.
+    """
+    a = frame_rng(42, 7).random(4)
+    assert np.allclose(a, frame_rng(42, 7).random(4))
+    assert not np.allclose(a, frame_rng(42, 8).random(4))
+    assert not np.allclose(a, item_rng(42, 7, None).random(4))
+    assert not np.allclose(a, item_rng(42, 7, 0).random(4))
 
 
 if __name__ == "__main__":

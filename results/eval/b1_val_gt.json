@@ -1,0 +1,13 @@
+{
+  "n": 5143,
+  "pseudo_f1": 0.0,
+  "mean_aux": 0.0,
+  "recall": 62.14,
+  "precision": 0.0,
+  "flicker": 0.0,
+  "n_hazard": 774,
+  "method": "b1",
+  "split": "val",
+  "condition": "gt",
+  "ckpt": null
+}

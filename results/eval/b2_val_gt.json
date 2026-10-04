@@ -1,0 +1,14 @@
+{
+  "n": 5143,
+  "pseudo_f1": 0.9783,
+  "mean_aux": 0.489,
+  "recall": 97.03,
+  "precision": 10.74,
+  "flicker": 0.5352,
+  "n_hazard": 774,
+  "top1": 0.9345,
+  "method": "b2",
+  "split": "val",
+  "condition": "gt",
+  "ckpt": null
+}

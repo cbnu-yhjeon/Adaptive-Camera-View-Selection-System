@@ -42,6 +42,11 @@ def multilabel_f1(pred: np.ndarray, target: np.ndarray,
         sel = m[:, c]
         if not sel.any():
             continue
+        # 정답·예측 모두 양성이 없는 채널은 F1이 정의되지 않는다 — 평균에서 뺀다.
+        # zero_division=0으로 넣으면 0점이 섞여, 집합이 100% 일치해도 F1이 0.83으로
+        # 나왔다(진행 방향인 전방 채널은 보조 뷰로 켜질 일이 거의 없다).
+        if not t[sel, c].any() and not p[sel, c].any():
+            continue
         f1s.append(f1_score(t[sel, c], p[sel, c], zero_division=0))
     return float(np.mean(f1s)) if f1s else 0.0
 

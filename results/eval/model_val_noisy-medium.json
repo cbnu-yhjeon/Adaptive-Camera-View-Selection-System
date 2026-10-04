@@ -1,0 +1,15 @@
+{
+  "n": 5143,
+  "pseudo_f1": 0.5861,
+  "mean_aux": 0.469,
+  "recall": 89.79,
+  "precision": 8.87,
+  "flicker": 0.5856,
+  "n_hazard": 774,
+  "top1": 0.523,
+  "threshold": 0.51,
+  "method": "model",
+  "split": "val",
+  "condition": "noisy-medium",
+  "ckpt": "results/proposed/20261004_183311/best.ckpt"
+}

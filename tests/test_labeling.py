@@ -390,3 +390,13 @@ if __name__ == "__main__":
             print(f"  ERROR {t.__name__}  {type(e).__name__}: {e}")
     print(f"\n{passed}/{len(tests)} passed")
     sys.exit(0 if passed == len(tests) else 1)
+
+
+def test_multilabel_f1_ignores_channels_without_support():
+    """정답·예측이 모두 비어 있는 채널은 평균에서 빠져야 한다.
+
+    빠지지 않으면 집합이 완전히 일치해도 F1이 1이 아니게 된다(실측 0.833).
+    """
+    from src.eval.metrics import multilabel_f1
+    t = np.array([[0, 1, 0, 0, 1, 0], [0, 0, 1, 0, 0, 0], [0, 1, 0, 0, 0, 0]], dtype=bool)
+    assert multilabel_f1(t, t) == 1.0
