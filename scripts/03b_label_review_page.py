@@ -211,6 +211,11 @@ def main() -> int:
         trs.append(f"<tr><td>{no}</td><td>{pm}</td><td>{mv}</td><td>{net_txt}</td>"
                    f"<td>{r_txt}</td><td>{lat_txt}</td><td>{v_txt}</td><td>{int(r['n_aux'])}</td></tr>")
 
+    # 판정 저장 키를 카드 구성마다 다르게 — 버전만 쓰면 1차·2차 페이지가 같은 키를 써서
+    # 번호가 겹치는 카드에 이전 판정이 그대로 묻어 나온다.
+    import hashlib
+    page_id = hashlib.sha1("|".join(r["sample_token"] for _, _, _, r in rows).encode()).hexdigest()[:10]
+
     html = f"""<!doctype html><html lang="ko"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>라벨 검수 — {version}</title><style>{CSS}</style></head><body><div class="wrap">
@@ -247,7 +252,7 @@ def main() -> int:
 {''.join(cards)}
 </div>
 <script>
-const KEY = "label_review_{version}";
+const KEY = "label_review_{version}_{page_id}";
 const load = () => {{ try {{ return JSON.parse(localStorage.getItem(KEY)) || {{}}; }}
                       catch (e) {{ return {{}}; }} }};
 const save = (v) => {{ try {{ localStorage.setItem(KEY, JSON.stringify(v)); }} catch (e) {{}} }};
