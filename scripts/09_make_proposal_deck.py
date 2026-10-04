@@ -35,6 +35,34 @@ from src.utils.slide_kit import (  # noqa: E402
 FIG = "results/figures"
 
 
+def load_numbers() -> dict:
+    """발표 수치를 results/*.json에서 읽는다 — 슬라이드에 손으로 박지 않는다(원칙 4).
+
+    손으로 옮긴 수치는 정의가 바뀔 때 갱신이 빠진다. '실제 위험 5.3%'가 위험 지평을
+    3초에서 5초로 바꾼 뒤에도 문서에 남아 있던 것이 그 예다.
+    """
+    import json
+    R = json.load(open("results/label_report.json", encoding="utf-8"))
+    C = json.load(open("results/operating_curve.json", encoding="utf-8"))
+    curve = sorted(C["curve"], key=lambda r: r["theta"])
+    op = next(r for r in curve if abs(r["theta"] - C["adopted"]) < 1e-9)
+    b1 = C["always_one"]
+    hz, gs, sg = R["hazard"], R["goldset"], R["signal"]["by_maneuver"]
+    return dict(
+        haz_pct=hz["frame_pct"], haz_ch=hz["channels"], haz_frames=hz["frames"],
+        rest_pct=round(100 - hz["frame_pct"], 1),
+        op=op, b1=b1, curve=curve,
+        load_drop=round(100 * (1 - op["load"] / b1["load"])),
+        recall_gain=op["recall"] - b1["recall"],
+        prec_x=op["precision"] / b1["precision"],
+        nat_n=round(gs["natural_300_hazard"]), nat_ci=gs["natural_ci_pp"],
+        strat_ci=gs["stratified_100_ci_pp"],
+        turn_l=sg["TURN_LEFT"]["same_pct"], turn_r=sg["TURN_RIGHT"]["same_pct"])
+
+
+N: dict = {}
+
+
 # ---------------------------------------------------------------- 공용 조각
 def stat(slide, x, y, w, value, label, *, color=ACCENT, vsize=30):
     """큰 수치 + 설명 한 줄."""
@@ -113,7 +141,7 @@ def s_summary(prs):
             "6채널이 같은 크기로 항상 떠 있다",
             "16화면에서 탐지 정확도 64%",
             "관제사는 27~62초마다 수동 전환",
-            "그런데 실제 위험은 프레임의 5.3%",
+            f"그런데 실제 위험은 프레임의 {N['haz_pct']}%",
         ]),
         ("무엇을 하는가", INK, [
             "강조할 보조 뷰 0~2개를 고른다",
@@ -231,7 +259,7 @@ def s_lever(prs):
     tf = sh.text_frame
     para(tf, "1.7  그런데 언제 강조할지가 비자명하다", size=13.5, bold=True,
          color=SIGNAL, first=True, space_after=10)
-    para(tf, "5.3%", size=34, bold=True, color=SIGNAL, space_after=4)
+    para(tf, f"{N['haz_pct']}%", size=34, bold=True, color=SIGNAL, space_after=4)
     para(tf, "본 프로젝트 측정상 ‘실제 위험’이 발생하는 프레임 비율", size=12,
          line=1.4, space_after=8)
     para(tf, "화면은 100% 켜져 있다.", size=13, bold=True, line=1.4)
@@ -239,7 +267,8 @@ def s_lever(prs):
     picture(s, f"{FIG}/fig2_hazard_rarity_nocap.png", MARGIN, y + 2.78,
             W - 2 * MARGIN, 1.60)
     tf = textbox(s, MARGIN, y + 4.52, 11.0, 0.26)
-    para(tf, "‘실제 위험’ = 5초 내 3 m 이내 최접근 (trainval 34,149 keyframe 기준 1,879 채널)",
+    para(tf, f"‘실제 위험’ = 5초 내 3 m 이내 최접근 (trainval 34,149 keyframe 기준 "
+             f"{N['haz_ch']:,} 채널 · {N['haz_frames']:,} 프레임)",
          size=9.5, color=MUTED, font=MONO, first=True)
     return s
 
@@ -332,7 +361,7 @@ def s_bg_to_form(prs):
         ["1.4", "수동 전환 주기 26.9~62.4초", "keyframe마다(0.5초) 갱신 — 사람이 못 내는 주기를 메운다"],
         ["1.5", "속도 · 경사 · 엔진음을 못 느낀다", "영상만이 아니라 CAN과 위험도를 함께 융합"],
         ["1.6", "부하는 내려가고 충돌률은 그대로", "‘부하 감소’는 목적, ‘안전 유지’는 제약으로 분리"],
-        ["1.7", "실제 위험은 프레임의 5.3%", "0장을 허용 — 매 프레임 강제하면 보조 뷰는 무시된다"],
+        ["1.7", f"실제 위험은 프레임의 {N['haz_pct']}%", "0장을 허용 — 매 프레임 강제하면 보조 뷰는 무시된다"],
     ]
     table(s, MARGIN, y, W - 2 * MARGIN, rows,
           col_w=[0.08, 0.36, 0.56], row_h=0.53, size=12)
@@ -435,7 +464,7 @@ def s_model(prs):
     y = slide_head(s, "5.3 연구 방법", "모델 — 0.46 M 경량 융합",
                    sub="과거 4 keyframe(약 2초)을 입력받는다. 백본 특징을 사전 캐시하므로 학습 시 원본 이미지를 읽지 않는다.")
     stages = [
-        ("입력 신호", ["6채널 영상 특징 (576-d)", "CAN 5종 + 결측 마스크", "채널별 위험도 벡터"], RULE),
+        ("입력 신호", ["6채널 영상 특징 (576-d)", "CAN 7종(지시등 포함) + 마스크", "채널별 위험도 벡터"], RULE),
         ("채널 토큰화 + Transformer", ["채널 6 + CAN 1 = 토큰 7개", "2층 · 4헤드 · d=128", "cross-view 상호 참조"], ACCENT),
         ("채널별 GRU", ["T=4 시간축 처리", "선제적 전환", "flicker 억제"], ACCENT),
         ("출력", ["채널별 강조 확률 (6)", "레이아웃 템플릿 (5-way)", "독립 sigmoid → 임계값 조절"], SIGNAL),
@@ -491,8 +520,8 @@ def s_eval(prs):
          first=True, space_after=9)
     para(tf, "위험 100 / 비직진 기동 100 / 무작위 100", size=12.5, bold=True,
          line=1.4, space_after=9)
-    para(tf, "자연 분포로 뽑으면 위험 장면이 16건뿐이라(5.3%) 재현율 신뢰구간이 "
-             "±20%p를 넘어 안전 관련 주장이 불가능하다. 위험 층 100건이면 ±8%p 수준이 된다.",
+    para(tf, f"자연 분포로 뽑으면 위험 장면이 약 {N['nat_n']}건이라 재현율 신뢰구간이 "
+             f"±{N['nat_ci']}%p다. 위험 층 100건이면 ±{N['strat_ci']}%p로 좁아진다.",
          size=11, color=MUTED, line=1.4, space_after=8)
     para(tf, "추출 확률을 기록해 역확률 가중으로 전체 분포 기준 추정치를 복원한다.",
          size=11, bold=True, line=1.4)
@@ -518,18 +547,19 @@ def s_prelim(prs):
     x = MARGIN + 6.95
     rows = [
         ["θ", "평균 표시", "포착률", "정밀도"],
-        ["0.06", "0.89", "96.4%", "7.9%"],
-        ["0.10", "0.67", "93.3%", "11.5%"],
-        ["0.12 ←", "0.60", "89.9%", "13.3%"],
-        ["0.20", "0.42", "69.7%", "20.0%"],
-        ["현행 1뷰", "1.00", "69.4%", "3.8%"],
+        *[[f"{r['theta']:.2f}" + (" ←" if r is N["op"] else ""), f"{r['load']:.2f}",
+           f"{r['recall']:.1f}%", f"{r['precision']:.1f}%"]
+          for r in N["curve"] if round(r["theta"], 2) in (0.06, 0.10, 0.12, 0.20)],
+        ["현행 1뷰", "1.00", f"{N['b1']['recall']:.1f}%", f"{N['b1']['precision']:.1f}%"],
     ]
     table(s, x, y, 5.15, rows, col_w=[0.28, 0.24, 0.24, 0.24], row_h=0.40, size=11.5)
 
     note(s, x, y + 2.52, 5.15, 1.72, "채택 운영점 — 임계값 0.12",
-         "표시 0.60장에서 포착률 89.9% · 정밀도 13.3%.\n"
-         "현행 고정 1뷰(1.00장 · 69.4% · 3.8%) 대비 "
-         "표시량 41%↓ · 포착률 +20.5%p · 정밀도 3.5배로 세 축 모두 우세하다. "
+         f"표시 {N['op']['load']:.2f}장에서 포착률 {N['op']['recall']:.1f}% · "
+         f"정밀도 {N['op']['precision']:.1f}%.\n"
+         f"현행 고정 1뷰(1.00장 · {N['b1']['recall']:.1f}% · {N['b1']['precision']:.1f}%) 대비 "
+         f"표시량 {N['load_drop']}%↓ · 포착률 +{N['recall_gain']:.1f}%p · "
+         f"정밀도 {N['prec_x']:.1f}배로 세 축 모두 우세하다. "
          "더 줄이면 포착률이 급격히 무너진다.",
          fill=SIGNAL_BG, edge=SIGNAL)
     return s
@@ -589,7 +619,8 @@ def s_risk(prs):
     rows = [
         ["위험", "대응"],
         ["강건성에서 규칙 기반에 우위를 보이지 못함", "① 학습 노이즈 강도를 평가 조건과 정합 ② A2로 영상 특징 기여분 확인 ③ 미달이면 ‘어떤 조건에서 규칙 기반이 무너지는가’를 분석 결과로 전환"],
-        ["위험 사건의 희소성 (5.3%)", "골드셋 층화로 신뢰구간 ±8%p 확보. 정밀도는 동일 표시량 조건의 비교로만 해석"],
+        [f"위험 사건의 희소성 ({N['haz_pct']}%)",
+         f"골드셋 층화로 신뢰구간 ±{N['strat_ci']}%p 확보. 정밀도는 동일 표시량 조건의 비교로만 해석"],
         ["골드셋 라벨의 주관성", "복수 정답 및 ‘강조 불필요’ 허용 + 검수 UI에 과거 프레임 제시"],
         ["CAN 신호 결손 scene", "공식 blacklist 21개 scene 제외, 결손 시 0 + 마스크 플래그"],
     ]
@@ -599,7 +630,7 @@ def s_risk(prs):
     tf = textbox(s, x, y, 5.65, 0.30)
     para(tf, "기대 효과 및 활용 방안", size=14, bold=True, first=True)
     bullets(s, x, y + 0.42, 5.65, [
-        ("관제 인지 부하 저감 — ", "6채널을 균등 탐색하는 대신 진행 방향과 제안된 주의 뷰에 집중. 예비 결과 기준 표시량 41% 감소."),
+        ("관제 인지 부하 저감 — ", "6채널을 균등 탐색하는 대신 진행 방향과 제안된 주의 뷰에 집중. 예비 결과 기준 표시량 " + f"{N['load_drop']}% 감소."),
         ("수동 뷰 전환의 대체 — ", "관제사가 30초~1분 주기로 수행하던 카메라 전환을 주행 상황에 맞춰 자동화."),
         ("검출기 요구 성능의 역산 — ", "강건성 곡선은 실제 차량에 탑재할 검출기의 요구 수준을 가늠하는 근거가 된다."),
         ("재현 가능한 실험 자산 — ", "라벨 규칙 · 분할 · 설정 · 평가 스크립트를 공개 가능한 형태로 정리."),
@@ -737,6 +768,7 @@ def main() -> int:
         print("그림이 없습니다 — scripts/export_figures.py 를 먼저 실행하세요:",
               ", ".join(missing))
         return 1
+    N.update(load_numbers())
 
     prs = Presentation()
     prs.slide_width, prs.slide_height = Inches(W), Inches(H)

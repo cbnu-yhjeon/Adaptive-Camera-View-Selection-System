@@ -512,7 +512,7 @@
 
   <div class="figures">
     <div class="fig"><b>34,149</b><span>학습·평가 keyframe (850 scene)</span></div>
-    <div class="fig"><b>5.3%</b><span>실제 위험이 존재하는 프레임 비율</span></div>
+    <div class="fig"><b>13.2%</b><span>실제 위험이 존재하는 프레임 비율</span></div>
     <div class="fig"><b>300</b><span>사람 검수 골드셋 keyframe</span></div>
     <div class="fig"><b>4 × 4</b><span>강건성 조건 (노이즈 유형 × 강도)</span></div>
   </div>
@@ -649,23 +649,23 @@
 
     <h3 class="indent">1.7 그런데 ‘언제’ 강조할지가 비자명하다</h3>
     <p>본 연구의 예비 분석에서 nuScenes 34,149 keyframe 중 실제 충돌 위험(5초 내 3 m 이내 최접근)이
-      존재하는 구간은 <strong>전체의 5.3%</strong>에 불과했다. 화면은 100% 켜져 있는데 주의를 요하는
-      사건은 5%에서만 발생한다. 이 불균형이 적응형 뷰 선택의 직접적 근거이며, 동시에
+      존재하는 구간은 <strong>전체의 13.2%</strong>에 불과했다. 화면은 100% 켜져 있는데 주의를 요하는
+      사건은 13%에서만 발생하고, 나머지 87%의 시간에는 강조할 위험이 없다. 이 불균형이 적응형 뷰 선택의 직접적 근거이며, 동시에
       <strong>규칙으로 고정하기 어려운 판단</strong>임을 보여준다.</p>
 
     <figure class="indent fig-block">
       <div class="chart">
         <svg viewBox="0 0 760 96" role="img"
-             aria-label="전체 34,149 keyframe 중 실제 위험이 존재하는 프레임은 5.3%">
+             aria-label="전체 34,149 keyframe 중 실제 위험이 존재하는 프레임은 13.2%">
           <text class="c-lbl" x="0" y="14">전체 34,149 keyframe</text>
-          <rect class="c-rest" x="42.4" y="30" width="717.6" height="34" rx="4"/>
-          <rect class="c-haz"  x="0" y="30" width="40.4" height="34" rx="4"/>
-          <text class="c-val" x="50.4" y="51">위험 있는 프레임 1,814 · 5.3%</text>
-          <text class="c-mut" x="760" y="90" text-anchor="end">나머지 94.7% 는 강조할 만한 일이 없는 구간</text>
+          <rect class="c-rest" x="102.3" y="30" width="657.7" height="34" rx="4"/>
+          <rect class="c-haz"  x="0" y="30" width="100.3" height="34" rx="4"/>
+          <text class="c-val" x="110.3" y="51">위험 있는 프레임 4,505 · 13.2%</text>
+          <text class="c-mut" x="760" y="90" text-anchor="end">나머지 86.8% 는 강조할 만한 일이 없는 구간</text>
         </svg>
       </div>
       <figcaption><strong>그림 2. 위험은 드물다.</strong> ‘실제 위험’(5초 내 3&nbsp;m 이내 최접근)이
-        존재하는 구간은 전체의 5.3%뿐이다. 고정 레이아웃은 나머지 94.7% 구간에서도
+        존재하는 구간은 전체의 13.2%뿐이다. 고정 레이아웃은 나머지 86.8% 구간에서도
         여섯 화면을 같은 비중으로 계속 띄운다.</figcaption>
     </figure>
 
@@ -865,7 +865,7 @@
               <td>“부하 감소”와 “안전 유지”를 각각 <strong>목적과 제약</strong>으로 분리한다:
                 <code>min E[Σ y<sub>t</sub>] s.t. 위험 사건 포착률 유지</code></td></tr>
             <tr><td class="key">1.7</td>
-              <td>실제 위험은 <strong>전체 프레임의 5.3%</strong>에서만 발생한다</td>
+              <td>실제 위험은 <strong>전체 프레임의 13.2%</strong>에서만 발생한다</td>
               <td><strong>0장을 허용</strong>한다. 매 프레임 한 장을 강제하면 대부분의 시간에 무의미한
                 강조가 켜져 오퍼레이터가 보조 뷰를 무시하게 된다</td></tr>
             <tr><td class="key">전제</td>
@@ -929,7 +929,7 @@
     <div class="note scope">
       <span class="label">정식화가 아닌 것</span>
       <p>본 문제는 <strong>충돌 경보(collision warning)가 아니다.</strong> 예비 분석에서 실제 위험은
-        전체 프레임의 5.3%에서만 발생하므로, 매 프레임 무언가를 강조하는 정책은 정밀도 상한이
+        전체 프레임의 13.2%에서만 발생하므로, 매 프레임 무언가를 강조하는 정책은 정밀도 상한이
         구조적으로 낮다. 본 연구의 출력은 “위험하다”는 경보가 아니라
         <strong>“지금은 이쪽을 보는 편이 낫다”는 주의 배분</strong>이며, 따라서 정밀도는 절대값이
         아니라 <strong>동일 표시량 조건에서의 비교</strong>로만 해석한다.</p>
@@ -1047,7 +1047,7 @@ s(c) = EMA(Σ_{i∈c} w_i) + λ · m(c),      λ = 0.4</div>
         <div class="flow">
           <div class="stage">
             <span class="t">입력 신호</span>
-            <span class="d">6채널 영상 특징 (576-d)<br>CAN 5종 + 결측 마스크<br>채널별 위험도 벡터</span>
+            <span class="d">6채널 영상 특징 (576-d)<br>CAN 7종(방향지시등 포함)<br>+ 결측 마스크<br>채널별 위험도 벡터</span>
           </div>
           <div class="arrow">▶</div>
           <div class="stage hl">
@@ -1104,7 +1104,7 @@ s(c) = EMA(Σ_{i∈c} w_i) + λ · m(c),      λ = 0.4</div>
             <div class="pl-cap">라벨 경로 — GT 허용</div>
             <div class="pl-box"><b>labeling/geometry</b><br><span>global→ego→camera 투영, 채널 귀속</span></div>
             <div class="pl-box"><b>labeling/ttc</b><br><span>최접근 TTC · DCA · 위험 가중 w</span></div>
-            <div class="pl-box"><b>labeling/maneuver</b><br><span>±3초 윈도우 → 기동 7클래스</span></div>
+            <div class="pl-box"><b>labeling/maneuver</b><br><span>[−1, +5]초 윈도우 · 선회반경·횡이탈 잔차 → 기동 7클래스</span></div>
             <div class="pl-box accent"><b>labeling/label_function</b><br>
               <span>risk(c)=EMA(Σw) · s=risk+λ·m<br>primary · aux 슬롯 · soft · layout</span></div>
             <div class="pl-arrow">▼</div>
@@ -1172,7 +1172,7 @@ s(c) = EMA(Σ_{i∈c} w_i) + λ · m(c),      λ = 0.4</div>
             <tr><td class="key">labeling/<br>label_function</td>
               <td>채널 귀속 → 채널 위험도 → s(c) → primary · aux 슬롯 · soft label ·
                 layout, scene 단위 EMA와 flicker 병합</td>
-              <td><strong>위험 항만 평활한다.</strong> 기동 상태는 이미 ±3초 윈도우로 추론된
+              <td><strong>위험 항만 평활한다.</strong> 기동 상태는 이미 수 초 윈도우로 추론된
                 안정 신호라 다시 평활하면 이중 스무딩이 되어 기동 경계에서 안전 기본값이
                 꺼진다</td></tr>
             <tr><td class="key">models/<br>proposed</td>
@@ -1190,11 +1190,11 @@ s(c) = EMA(Σ_{i∈c} w_i) + λ · m(c),      λ = 0.4</div>
 
     <div class="note">
       <span class="label">구현 현황 (계획서 작성 시점)</span>
-      <p><strong>완료</strong> — utils · data · labeling 전 계층(유닛테스트 47개 통과), 모델과
-        학습 루프(mini 스모크 통과), 의사 라벨 trainval 전 구간 생성.<br>
+      <p><strong>완료</strong> — utils · data · labeling 전 계층(유닛테스트 52개 통과), 의사 라벨
+        trainval 전 구간 생성과 사람 검수(M2 승인), trainval 특징·기여 캐시(M3),
+        채널별 sigmoid 헤드와 학습 루프.<br>
         <strong>남은 것</strong> — 규칙 기반 B2, 공통 평가 엔트리와 강건성 스크립트,
-        골드셋 검수 UI, 표·그림 생성 스크립트. 모델 헤드는 현재 6-way softmax이며
-        5.3절의 채널별 sigmoid로 교체해야 운영 곡선을 그릴 수 있다. 8절 일정 참조.</p>
+        골드셋 검수 UI, 표·그림 생성 스크립트. 8절 일정 참조.</p>
     </div>
   </section>
 
@@ -1206,8 +1206,9 @@ s(c) = EMA(Σ_{i∈c} w_i) + λ · m(c),      λ = 0.4</div>
     <div class="note">
       <span class="label">순환 평가 차단</span>
       <p>최종 성능표의 <strong>주 지표는 사람이 검수한 골드셋 300 keyframe</strong>으로 산출하고, 의사 라벨
-        시험셋 수치는 보조 열로만 병기한다. 실제 위험은 전체의 5.3%에 불과하므로 자연 분포로 300개를
-        뽑으면 위험 장면이 16건에 그쳐 안전 관련 주장이 불가능하다. 따라서
+        시험셋 수치는 보조 열로만 병기한다. 실제 위험은 test 분할의 13.1%이므로 자연 분포로
+        300개를 뽑으면 위험 장면이 약 39건이고, 재현율 신뢰구간이
+        ±9.4%p로 넓다. 따라서
         <strong>위험 100 / 비직진 기동 100 / 무작위 100</strong>으로 층화 추출하고, 추출 확률을 기록해
         <strong>역확률 가중으로 전체 분포 기준 추정치를 복원</strong>한다. 판단이 갈리는 장면을 위해
         복수 정답과 ‘강조 불필요’ 선택지를 허용한다.</p>
@@ -1253,8 +1254,8 @@ s(c) = EMA(Σ_{i∈c} w_i) + λ · m(c),      λ = 0.4</div>
               <td>진행 방향(primary)은 <strong>세지 않는다</strong> — 항상 켜져 있으므로 선택의
                 결과가 아니다. 표시 방식(하이라이트/전환)과 무관하게 계산된다</td></tr>
             <tr><td class="key">위험 사건 포착률<br>(재현율)</td>
-              <td>대상 1,879 채널 · 1,814 프레임<br>(trainval 34,149의 5.3%)<br>
-                test 분할 283 프레임</td>
+              <td>대상 4,852 채널 · 4,505 프레임<br>(trainval 34,149의 13.2%)<br>
+                test 분할 671 프레임</td>
               <td>위험 객체가 <strong>선택 뷰(primary ∪ aux)의 화각</strong>에 들어 있으면 포착으로
                 센다. 라벨이 아니라 <strong>GT 기하 투영</strong>으로 직접 판정하므로 순환이 없다</td></tr>
             <tr><td class="key">위험 슬롯 정밀도</td>
@@ -1285,8 +1286,8 @@ s(c) = EMA(Σ_{i∈c} w_i) + λ · m(c),      λ = 0.4</div>
           </tbody>
         </table>
         <caption>‘실제 위험’ 정의의 두 값은 실측으로 정했다. DCA를 4 m로 늘리면 옆 차선 통과가
-          대량 유입되고(프레임의 16.4%), 시간을 3초로 줄이면 test 분할 위험 프레임이 146개로
-          떨어져 통계가 서지 않는다. <strong>거리는 조이고 시간은 늘린다</strong> — 5초는 원격주행의
+          대량 유입되고(프레임의 13.2% → 30.3%), 시간을 3초로 줄이면 위험 프레임이
+          5.3%(test 286개)로 절반 이하가 된다. <strong>거리는 조이고 시간은 늘린다</strong> — 5초는 원격주행의
           전송 지연에 인지 · 판단 · 조작을 더한 최소치다.</caption>
       </div>
     </div>
@@ -1332,12 +1333,17 @@ s(c) = EMA(Σ_{i∈c} w_i) + λ · m(c),      λ = 0.4</div>
           <thead><tr><th style="width:170px">항목</th><th>확인 내용</th></tr></thead>
           <tbody>
             <tr><td class="key">데이터 확보</td><td>trainval 850 scene · 34,149 keyframe · 카메라 keyframe 204,894장 구축 완료</td></tr>
-            <tr><td class="key">의사 라벨 생성</td><td>전 구간 생성(약 135초). 강조 채널 최다 비율 38.2%로
+            <tr><td class="key">의사 라벨 생성</td><td>전 구간 생성(약 150초)과 사람 검수(층화 20장, M2 승인). 강조 채널 최다 비율 36.0%로
               <strong>특정 채널 편중 없음</strong></td></tr>
             <tr><td class="key">위험 정의 검증</td><td>radial TTC에서 위험량의 62.9%가 정지·주차 객체였고,
-              최접근 기하와 상태 계수를 도입해 보정. 유닛테스트 47개 통과</td></tr>
+              최접근 기하와 상태 계수를 도입해 보정. 유닛테스트 52개 통과</td></tr>
+            <tr><td class="key">기동 라벨 검증</td><td>헤딩 변화만 보던 규칙이 곡선로를 회전·차선변경으로 잡아
+              <strong>선회반경·곡선 제거 횡이탈</strong>로 교체. 독립 신호인 방향지시등(CAN)과 대조하면
+              TURN_LEFT 83.2% · TURN_RIGHT 74.7%가 같은 방향,
+              반대 방향 1.7% 이하</td></tr>
             <tr><td class="key">라벨 설계 비교</td><td>고정 1뷰 대비 적응형 0~2뷰 —
-              <strong>표시량 41%↓(1.00→0.59장), 위험 포착 69.4→89.4%, 정밀도 3.8→13.3%</strong></td></tr>
+              <strong>표시량 54%↓(1.00→0.46장), 위험 포착 93.9→96.3%,
+              정밀도 4.6→10.9%</strong></td></tr>
             <tr><td class="key">연산 소요 실측</td><td>백본 특징 추출 8,087 img/s, 학습 1 epoch 8.4초(trainval 환산) →
               전체 실험(제안 + 베이스라인 + ablation) 약 2시간</td></tr>
           </tbody>
@@ -1358,29 +1364,31 @@ s(c) = EMA(Σ_{i∈c} w_i) + λ · m(c),      λ = 0.4</div>
              aria-label="평균 표시 뷰 수에 따른 위험 사건 포착률과 위험 슬롯 정밀도의 운영 곡선">
           <line class="c-grid" x1="52" y1="288.0" x2="590" y2="288.0"/><text class="c-ax" x="44" y="292.0" text-anchor="end">0%</text><line class="c-grid" x1="52" y1="220.5" x2="590" y2="220.5"/><text class="c-ax" x="44" y="224.5" text-anchor="end">25%</text><line class="c-grid" x1="52" y1="153.0" x2="590" y2="153.0"/><text class="c-ax" x="44" y="157.0" text-anchor="end">50%</text><line class="c-grid" x1="52" y1="85.5" x2="590" y2="85.5"/><text class="c-ax" x="44" y="89.5" text-anchor="end">75%</text><line class="c-grid" x1="52" y1="18.0" x2="590" y2="18.0"/><text class="c-ax" x="44" y="22.0" text-anchor="end">100%</text><text class="c-ax" x="52.0" y="306" text-anchor="middle">0.0</text><text class="c-ax" x="186.5" y="306" text-anchor="middle">0.3</text><text class="c-ax" x="321.0" y="306" text-anchor="middle">0.6</text><text class="c-ax" x="455.5" y="306" text-anchor="middle">0.9</text><text class="c-ax" x="590.0" y="306" text-anchor="middle">1.2</text>
           <text class="c-ax" x="321" y="326" text-anchor="middle">평균 보조 뷰 수 (장)</text>
-          <path class="s-recall" d="M165.3 250.5 L176.2 215.9 L195.3 173.8 L213.7 138.1 L241.7 99.9 L284.2 63.3 L320.6 45.3 L353.1 36.1 L395.1 30.8 L452.3 27.8 L537.8 25.9"/>
-          <path class="s-prec" d="M165.3 167.1 L176.2 194.5 L195.3 215.4 L213.7 223.7 L241.7 234.1 L284.2 245.2 L320.6 252.1 L353.1 257.0 L395.1 261.9 L452.3 266.8 L537.8 271.4"/>
-          <circle class="d-recall" cx="537.8" cy="25.9" r="3.4"><title>θ=0.04 · 표시 1.08장 · 포착률 97.1%</title></circle><circle class="d-recall" cx="452.3" cy="27.8" r="3.4"><title>θ=0.06 · 표시 0.89장 · 포착률 96.4%</title></circle><circle class="d-recall" cx="395.1" cy="30.8" r="3.4"><title>θ=0.08 · 표시 0.77장 · 포착률 95.3%</title></circle><circle class="d-recall" cx="353.1" cy="36.1" r="3.4"><title>θ=0.10 · 표시 0.67장 · 포착률 93.3%</title></circle><circle class="d-recall" cx="320.6" cy="45.3" r="3.4"><title>θ=0.12 · 표시 0.60장 · 포착률 89.9%</title></circle><circle class="d-recall" cx="284.2" cy="63.3" r="3.4"><title>θ=0.15 · 표시 0.52장 · 포착률 83.2%</title></circle><circle class="d-recall" cx="241.7" cy="99.9" r="3.4"><title>θ=0.20 · 표시 0.42장 · 포착률 69.7%</title></circle><circle class="d-recall" cx="213.7" cy="138.1" r="3.4"><title>θ=0.25 · 표시 0.36장 · 포착률 55.5%</title></circle><circle class="d-recall" cx="195.3" cy="173.8" r="3.4"><title>θ=0.30 · 표시 0.32장 · 포착률 42.3%</title></circle><circle class="d-recall" cx="176.2" cy="215.9" r="3.4"><title>θ=0.40 · 표시 0.28장 · 포착률 26.7%</title></circle><circle class="d-recall" cx="165.3" cy="250.5" r="3.4"><title>θ=0.55 · 표시 0.25장 · 포착률 13.9%</title></circle><circle class="d-prec" cx="537.8" cy="271.4" r="3.4"><title>θ=0.04 · 표시 1.08장 · 정밀도 6.1%</title></circle><circle class="d-prec" cx="452.3" cy="266.8" r="3.4"><title>θ=0.06 · 표시 0.89장 · 정밀도 7.9%</title></circle><circle class="d-prec" cx="395.1" cy="261.9" r="3.4"><title>θ=0.08 · 표시 0.77장 · 정밀도 9.7%</title></circle><circle class="d-prec" cx="353.1" cy="257.0" r="3.4"><title>θ=0.10 · 표시 0.67장 · 정밀도 11.5%</title></circle><circle class="d-prec" cx="320.6" cy="252.1" r="3.4"><title>θ=0.12 · 표시 0.60장 · 정밀도 13.3%</title></circle><circle class="d-prec" cx="284.2" cy="245.2" r="3.4"><title>θ=0.15 · 표시 0.52장 · 정밀도 15.8%</title></circle><circle class="d-prec" cx="241.7" cy="234.1" r="3.4"><title>θ=0.20 · 표시 0.42장 · 정밀도 20.0%</title></circle><circle class="d-prec" cx="213.7" cy="223.7" r="3.4"><title>θ=0.25 · 표시 0.36장 · 정밀도 23.8%</title></circle><circle class="d-prec" cx="195.3" cy="215.4" r="3.4"><title>θ=0.30 · 표시 0.32장 · 정밀도 26.9%</title></circle><circle class="d-prec" cx="176.2" cy="194.5" r="3.4"><title>θ=0.40 · 표시 0.28장 · 정밀도 34.6%</title></circle><circle class="d-prec" cx="165.3" cy="167.1" r="3.4"><title>θ=0.55 · 표시 0.25장 · 정밀도 44.8%</title></circle>
-          <circle class="d-base" cx="500.3" cy="100.6" r="5"/>
-          <circle class="d-base" cx="500.3" cy="277.7" r="5"/>
-          <text class="c-mut" x="492.3" y="90.6" text-anchor="end">현행: 항상 1장</text>
-          <circle class="d-op" cx="320.6" cy="45.3" r="6"/>
-          <circle class="d-op" cx="320.6" cy="252.1" r="6"/>
-          <text class="s-lab-r" x="600" y="29.9">위험 사건 포착률</text>
-          <text class="s-lab-p" x="600" y="171.1">위험 슬롯 정밀도</text>
-          <text class="c-op" x="320.6" y="33.3" text-anchor="middle">채택 운영점</text>
+          <path class="s-recall" d="M494.0 19.9 L400.3 20.7 L337.4 22.0 L292.2 24.3 L257.0 28.0 L218.0 35.6 L172.4 51.6 L143.0 68.0 L125.2 80.5 L106.3 97.2 L96.2 110.0"/>
+          <path class="s-prec" d="M494.0 273.2 L400.3 269.4 L337.4 265.5 L292.2 262.0 L257.0 258.6 L218.0 254.7 L172.4 250.5 L143.0 249.8 L125.2 251.4 L106.3 258.3 L96.2 270.0"/>
+          <circle class="d-recall" cx="494.0" cy="19.9" r="3.4"><title>θ=0.04 · 표시 0.99장 · 포착률 99.3%</title></circle><circle class="d-recall" cx="400.3" cy="20.7" r="3.4"><title>θ=0.06 · 표시 0.78장 · 포착률 99.0%</title></circle><circle class="d-recall" cx="337.4" cy="22.0" r="3.4"><title>θ=0.08 · 표시 0.64장 · 포착률 98.5%</title></circle><circle class="d-recall" cx="292.2" cy="24.3" r="3.4"><title>θ=0.10 · 표시 0.54장 · 포착률 97.7%</title></circle><circle class="d-recall" cx="257.0" cy="28.0" r="3.4"><title>θ=0.12 · 표시 0.46장 · 포착률 96.3%</title></circle><circle class="d-recall" cx="218.0" cy="35.6" r="3.4"><title>θ=0.15 · 표시 0.37장 · 포착률 93.5%</title></circle><circle class="d-recall" cx="172.4" cy="51.6" r="3.4"><title>θ=0.20 · 표시 0.27장 · 포착률 87.6%</title></circle><circle class="d-recall" cx="143.0" cy="68.0" r="3.4"><title>θ=0.25 · 표시 0.20장 · 포착률 81.5%</title></circle><circle class="d-recall" cx="125.2" cy="80.5" r="3.4"><title>θ=0.30 · 표시 0.16장 · 포착률 76.9%</title></circle><circle class="d-recall" cx="106.3" cy="97.2" r="3.4"><title>θ=0.40 · 표시 0.12장 · 포착률 70.7%</title></circle><circle class="d-recall" cx="96.2" cy="110.0" r="3.4"><title>θ=0.55 · 표시 0.10장 · 포착률 65.9%</title></circle><circle class="d-prec" cx="494.0" cy="273.2" r="3.4"><title>θ=0.04 · 표시 0.99장 · 정밀도 5.5%</title></circle><circle class="d-prec" cx="400.3" cy="269.4" r="3.4"><title>θ=0.06 · 표시 0.78장 · 정밀도 6.9%</title></circle><circle class="d-prec" cx="337.4" cy="265.5" r="3.4"><title>θ=0.08 · 표시 0.64장 · 정밀도 8.3%</title></circle><circle class="d-prec" cx="292.2" cy="262.0" r="3.4"><title>θ=0.10 · 표시 0.54장 · 정밀도 9.6%</title></circle><circle class="d-prec" cx="257.0" cy="258.6" r="3.4"><title>θ=0.12 · 표시 0.46장 · 정밀도 10.9%</title></circle><circle class="d-prec" cx="218.0" cy="254.7" r="3.4"><title>θ=0.15 · 표시 0.37장 · 정밀도 12.4%</title></circle><circle class="d-prec" cx="172.4" cy="250.5" r="3.4"><title>θ=0.20 · 표시 0.27장 · 정밀도 13.9%</title></circle><circle class="d-prec" cx="143.0" cy="249.8" r="3.4"><title>θ=0.25 · 표시 0.20장 · 정밀도 14.1%</title></circle><circle class="d-prec" cx="125.2" cy="251.4" r="3.4"><title>θ=0.30 · 표시 0.16장 · 정밀도 13.6%</title></circle><circle class="d-prec" cx="106.3" cy="258.3" r="3.4"><title>θ=0.40 · 표시 0.12장 · 정밀도 11.0%</title></circle><circle class="d-prec" cx="96.2" cy="270.0" r="3.4"><title>θ=0.55 · 표시 0.10장 · 정밀도 6.7%</title></circle>
+          <circle class="d-base" cx="500.3" cy="34.5" r="5"/>
+          <circle class="d-base" cx="500.3" cy="275.5" r="5"/>
+          <text class="c-mut" x="492.3" y="52.5" text-anchor="end">현행: 항상 1장</text>
+          <circle class="d-op" cx="257.0" cy="28.0" r="6"/>
+          <circle class="d-op" cx="257.0" cy="258.6" r="6"/>
+          <text class="s-lab-r" x="600" y="23.9">위험 사건 포착률</text>
+          <text class="s-lab-p" x="600" y="267.2">위험 슬롯 정밀도</text>
+          <text class="c-op" x="257.0" y="50.0" text-anchor="middle">채택 운영점</text>
         </svg>
       </div>
       <figcaption><strong>그림 5. 표시량과 안전의 운영 곡선</strong> (trainval 34,149 keyframe).
         가로축은 평균 보조 뷰 수(인지 부하의 대리 지표), 세로축은 두 지표 모두 백분율이다.
         화면을 적게 띄울수록 정밀도는 오르고 포착률은 떨어진다. <strong>채택 운영점(θ=0.12)</strong>은
-        표시 0.60장에서 포착률 89.9% · 정밀도 13.3%로,
-        현행 고정 1뷰(표시 1.00장 · 포착 69.4% · 정밀도 3.8%) 대비
-        <strong>세 축 모두 우세</strong>하다. 더 줄이면 포착률이 급격히 무너진다.</figcaption>
+        표시 0.46장에서 포착률 96.3% · 정밀도 10.9%로,
+        현행 고정 1뷰(표시 1.00장 · 포착 93.9% · 정밀도 4.6%) 대비
+        <strong>세 축 모두 우세</strong>하다. 더 줄이면 포착률이 빠르게 떨어진다. 정밀도는
+        θ≈0.25에서 정점을 찍고 다시 내려가는데, 표시량이 줄면 남는 화면의 상당수가 위험이 아니라
+        기동 슬롯(안전 기본값)이기 때문이다.</figcaption>
       <div class="table-wrap" style="margin-top:2px">
         <table>
           <thead><tr><th>임계값 θ</th><th>평균 표시</th><th>포착률</th><th>정밀도</th><th>0장 비율</th></tr></thead>
-          <tbody><tr><td class="num">0.06</td><td class="num">0.89</td><td class="num">96.4%</td><td class="num">7.9%</td><td class="num">36%</td></tr><tr><td class="num">0.10</td><td class="num">0.67</td><td class="num">93.3%</td><td class="num">11.5%</td><td class="num">47%</td></tr><tr><td class="num">0.12 ← 채택</td><td class="num">0.60</td><td class="num">89.9%</td><td class="num">13.3%</td><td class="num">52%</td></tr><tr><td class="num">0.20</td><td class="num">0.42</td><td class="num">69.7%</td><td class="num">20.0%</td><td class="num">62%</td></tr><tr><td class="num">0.30</td><td class="num">0.32</td><td class="num">42.3%</td><td class="num">26.9%</td><td class="num">70%</td></tr><tr><td class="key">현행 1뷰</td><td class="num">1.00</td><td class="num">69.4%</td><td class="num">3.8%</td><td class="num">0%</td></tr></tbody>
+          <tbody><tr><td class="num">0.06</td><td class="num">0.78</td><td class="num">99.0%</td><td class="num">6.9%</td><td class="num">44%</td></tr><tr><td class="num">0.10</td><td class="num">0.54</td><td class="num">97.7%</td><td class="num">9.6%</td><td class="num">58%</td></tr><tr><td class="num">0.12 ← 채택</td><td class="num">0.46</td><td class="num">96.3%</td><td class="num">10.9%</td><td class="num">63%</td></tr><tr><td class="num">0.20</td><td class="num">0.27</td><td class="num">87.6%</td><td class="num">13.9%</td><td class="num">76%</td></tr><tr><td class="num">0.30</td><td class="num">0.16</td><td class="num">76.9%</td><td class="num">13.6%</td><td class="num">85%</td></tr><tr><td class="key">현행 1뷰</td><td class="num">1.00</td><td class="num">93.9%</td><td class="num">4.6%</td><td class="num">0%</td></tr></tbody>
         </table>
         <caption>그림 5의 값 (발췌). 전체 곡선은 θ 0.04–0.55 구간에서 측정했다.</caption>
       </div>
@@ -1481,8 +1489,9 @@ s(c) = EMA(Σ_{i∈c} w_i) + λ · m(c),      λ = 0.4</div>
                 A2(−위험도) 결과로 영상 특징의 기여분 확인 ③ 그래도 미달이면 <strong>‘어떤 조건에서 규칙 기반이
                 무너지는가’를 분석 결과로 전환</strong>해 보고. 10월 셋째 주를 대응 기간으로 확보</td></tr>
             <tr><td class="key">위험 사건의 희소성</td>
-              <td>실제 위험이 프레임의 5.3%뿐이라 표시 정책의 정밀도 상한이 구조적으로 낮다.
-                골드셋 층화 추출로 위험 층 100건을 확보해 재현율 신뢰구간을 ±8%p 수준으로 좁히고,
+              <td>실제 위험이 프레임의 13.2%뿐이라 표시 정책의 정밀도 상한이 구조적으로 낮다.
+                골드셋 층화 추출로 위험 층 100건을 확보해 재현율 신뢰구간을 ±5.9%p
+                수준으로 좁히고(자연 추출이면 ±9.4%p),
                 정밀도는 절대값이 아니라 <strong>동일 표시량 조건의 비교</strong>로만 해석한다</td></tr>
             <tr><td class="key">골드셋 라벨의 주관성</td>
               <td>복수 정답 및 ‘강조 불필요’ 허용 + 층화 추출. 판단 근거를 돕도록 검수 UI에 과거 프레임을 함께 제시</td></tr>
@@ -1498,7 +1507,7 @@ s(c) = EMA(Σ_{i∈c} w_i) + λ · m(c),      λ = 0.4</div>
     <div class="sec-head"><span class="sec-num">10</span><h2>기대 효과 및 활용 방안</h2></div>
     <ul>
       <li><strong>관제 인지 부하 저감</strong> — 오퍼레이터가 6채널을 균등 탐색하는 대신 진행 방향과
-        제안된 주의 뷰에 집중할 수 있다. 예비 결과 기준 표시량 41% 감소.</li>
+        제안된 주의 뷰에 집중할 수 있다. 예비 결과 기준 표시량 54% 감소.</li>
       <li><strong>수동 뷰 전환의 대체</strong> — 오퍼레이터가 평균 30초~1분 주기로 수행하던 카메라 전환을
         주행 상황에 맞춰 자동화한다. (채널별 중요도 점수는 전송 품질 배분에도 응용 가능하나,
         본 연구의 검증 범위에는 포함하지 않는다.)</li>

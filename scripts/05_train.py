@@ -1,7 +1,7 @@
 """학습 (CLAUDE.md M4).
 
 config 로드 → 학습 → best ckpt + metrics.json + config 사본 저장.
-early stopping(val macro-F1), cosine LR, WeightedRandomSampler, 재현 seed.
+early stopping(val macro-AP), cosine LR, WeightedRandomSampler, 재현 seed.
 
 사용:
     python scripts/05_train.py --config configs/train_proposed.yaml
@@ -222,7 +222,7 @@ def main() -> int:
             torch.save({"model": model.state_dict(), "mcfg": mcfg.__dict__,
                         "epoch": ep, "val": val}, os.path.join(out_dir, "best.ckpt"))
         elif ep - best_ep >= patience:
-            print(f"  early stopping (best ep{best_ep}, f1={best_f1:.3f})")
+            print(f"  early stopping (best ep{best_ep}, AP={best_f1:.3f})")
             break
 
     with open(os.path.join(out_dir, "metrics.json"), "w", encoding="utf-8") as f:
