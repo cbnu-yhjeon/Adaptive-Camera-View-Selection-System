@@ -351,9 +351,20 @@ layout         = 기동 상태 → 템플릿 매핑 (constants.LAYOUT_MAP, K=5)
 
 ### 입력 텐서 (배치 B, 시퀀스 T=4 keyframes ≈ 2초)
 - `img_feat`: (B, T, 6, D_f) — 캐시된 백본 특징 (MobileNetV3-small, D_f=576 GAP)
-- `can`: (B, T, d_can) — [speed, steering, accel_x, accel_y, yaw_rate] 정규화, d_can=5
+- `can`: (B, T, d_can) — [speed, steering, accel_x, accel_y, yaw_rate,
+  left_signal, right_signal] 정규화, d_can=7
 - `risk`: (B, T, 6) — 채널별 Σw(TTC) (risk_source 조건에 따라 gt/noisy/none)
-- 결측 CAN은 0 + 마스크 플래그 1차원 추가 (d_can=6)
+- 결측 CAN은 0 + 마스크 플래그 1차원 추가 (d_can=8)
+- **방향지시등 (2026-10 추가)**: CAN `vehicle_monitor.left_signal/right_signal`(0/1, 2 Hz).
+  운전자의 의도라 기동보다 먼저 켜진다 — 라벨이 최대 5초 앞서는 선제적 전환에서
+  과거 2초만 보는 모델에게 가장 직접적인 단서다. **시점 이하의 직전 값만** 쓴다
+  (2 Hz라 '가장 가까운' 값은 0.25초 미래일 수 있다).
+  - **라벨 판정에는 쓰지 않는다.** 라벨과 입력이 같은 신호를 공유하면 모델이 영상·위험도
+    대신 지시등만 베끼는 지름길을 배운다(원칙 1과 같은 구조).
+  - 대신 **라벨 검증 지표**로 쓴다 — 기하 기반 기동 라벨이 독립 신호와 맞는지.
+    실측(창 [−1s,+5s] 내 점등): TURN_LEFT 83.2% / TURN_RIGHT 74.7%가 같은 방향,
+    반대 방향 <2%. LANE_CHANGE는 같은 방향 25~39%·무점등 43~52%로 약하다.
+    STRAIGHT 31%·STOP 49%에도 점등 — 지시등만으로는 라벨을 만들 수 없다.
 
 ### 구조
 ```

@@ -21,6 +21,7 @@ from src.data import contrib_cache  # noqa: E402
 from src.data.dataset import item_rng  # noqa: E402
 from src.data.noise import apply_noise, make_noise_config  # noqa: E402
 from src.labeling.label_function import LabelConfig, risk_vector_from_contribs  # noqa: E402
+from src.utils.constants import CAN_FEATURES  # noqa: E402
 
 
 def _contribs(n=20, seed=0):
@@ -76,7 +77,7 @@ class _FakeWrapper:
     """get_can_features만 필요한 최소 스텁."""
 
     def get_can_features(self, token):
-        return np.arange(5, dtype=np.float32), 1.0
+        return np.arange(len(CAN_FEATURES), dtype=np.float32), 1.0
 
 
 def test_contrib_cache_roundtrip():
@@ -105,7 +106,7 @@ def test_contrib_cache_roundtrip():
                     assert (g["ttc"] == e["ttc"]) if np.isinf(e["ttc"]) \
                         else abs(g["ttc"] - e["ttc"]) < 1e-4
             feat, mask = cache.can("tok_a")
-            assert mask == 1.0 and len(feat) == 5
+            assert mask == 1.0 and len(feat) == len(CAN_FEATURES)
     finally:
         contrib_cache.channel_risk_contributors = original
 
@@ -117,6 +118,36 @@ def test_contrib_cache_key_ignores_irrelevant_fields():
     diff = LabelConfig(tau=8.0)                                   # w를 바꿈
     assert contrib_cache.cache_key(base) == contrib_cache.cache_key(same)
     assert contrib_cache.cache_key(base) != contrib_cache.cache_key(diff)
+
+
+def test_contrib_cache_key_tracks_can_schema():
+    """CAN 특징 구성이 바뀌면 캐시 키도 바뀌어야 한다.
+
+    키가 라벨 설정만 보면, 특징을 늘려도 옛 캐시가 재사용돼 새 특징이 에러 없이
+    0으로 들어간다 — 방향지시등을 추가할 때 실제로 그럴 뻔했다.
+    """
+    k_now = contrib_cache.cache_key(LabelConfig())
+    saved = list(contrib_cache.CAN_FEATURES)
+    try:
+        contrib_cache.CAN_FEATURES.append("_probe")
+        assert contrib_cache.cache_key(LabelConfig()) != k_now
+    finally:
+        contrib_cache.CAN_FEATURES[:] = saved
+
+
+def test_contrib_cache_rejects_stale_can_width():
+    """폭이 다른 옛 캐시를 읽으면 조용히 쓰지 말고 즉시 실패해야 한다."""
+    with tempfile.TemporaryDirectory() as d:
+        path = os.path.join(d, "old.npz")
+        np.savez(path, tokens=np.array(["t"]), offsets=np.array([0, 0]),
+                 vis_mask=np.zeros(0, np.int32), obj_r=np.zeros(0), obj_ttc=np.zeros(0),
+                 obj_w=np.zeros(0), can_feat=np.zeros((1, 5), np.float32),
+                 can_mask=np.ones(1, np.float32))
+        try:
+            contrib_cache.ContribCache(path)
+        except ValueError:
+            return
+        raise AssertionError("폭 5짜리 옛 캐시를 그대로 받아들였다")
 
 
 if __name__ == "__main__":

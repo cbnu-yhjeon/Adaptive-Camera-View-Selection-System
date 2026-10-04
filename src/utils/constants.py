@@ -44,16 +44,25 @@ MANEUVER_INDEX: dict[str, int] = {m: i for i, m in enumerate(MANEUVERS)}
 
 # =====================================================================
 # CAN 특징 정규화 상수 (모델 입력 can 토큰용)
-#   순서: [speed, steering, accel_x, accel_y, yaw_rate]
+#   순서: [speed, steering, accel_x, accel_y, yaw_rate, left_signal, right_signal]
 #   대략적인 스케일로 나눠 대략 [-1,1]에 오도록 (정확할 필요는 없음).
+#
+#   방향지시등은 운전자의 **의도**라 기동보다 먼저 켜진다. 기동 라벨이 최대 5초 앞서
+#   붙으므로(선제적 전환) 과거 2초만 보는 모델에게 가장 직접적인 단서다.
+#   라벨 판정에는 쓰지 않는다 — 라벨과 입력이 같은 신호를 공유하면 모델이 영상·위험도
+#   대신 지시등만 베끼는 지름길을 배운다(원칙 1과 같은 구조). 라벨 검증 지표로만 쓴다.
+#   실측: TURN_LEFT의 83%, TURN_RIGHT의 75%가 같은 방향 지시등과 일치(반대 <2%).
 # =====================================================================
-CAN_FEATURES: list[str] = ["speed", "steering", "accel_x", "accel_y", "yaw_rate"]
+CAN_FEATURES: list[str] = ["speed", "steering", "accel_x", "accel_y", "yaw_rate",
+                           "left_signal", "right_signal"]
 CAN_NORM: dict[str, float] = {
     "speed": 30.0,      # m/s
     "steering": 600.0,  # steeranglefeedback value
     "accel_x": 10.0,    # m/s^2
     "accel_y": 10.0,
     "yaw_rate": 2.0,    # rad/s
+    "left_signal": 1.0,   # 0/1
+    "right_signal": 1.0,  # 0/1
 }
 D_CAN: int = len(CAN_FEATURES) + 1                    # +1 = CAN 결측 마스크
 

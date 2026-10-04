@@ -29,6 +29,7 @@ from src.data.feature_cache import FeatureCache, build_feature_cache  # noqa: E4
 from src.data.nusc_wrapper import NuscWrapper  # noqa: E402
 from src.data.splits import load_split, split_for_names  # noqa: E402
 from src.labeling.label_function import LabelConfig  # noqa: E402
+from src.utils.constants import D_CAN  # noqa: E402
 import pandas as pd  # noqa: E402
 
 
@@ -105,7 +106,7 @@ def main() -> int:
         print(f"  {k:<14} {tuple(batch[k].shape)}  예시 {batch[k][:6].tolist()}")
     B = batch["img_feat"].shape[0]
     assert batch["img_feat"].shape == (B, 4, 6, fc.feat_dim)
-    assert batch["can"].shape[-1] == 6
+    assert batch["can"].shape[-1] == D_CAN, f"CAN 폭 {batch['can'].shape[-1]} ≠ {D_CAN}"
     assert batch["risk"].shape == (B, 4, 6)
     # 다중 선택 타깃 — 진행 방향은 마스크로 제외되고 그 채널의 타깃은 0이어야 한다.
     assert batch["aux_target"].shape == (B, 6)

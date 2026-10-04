@@ -20,7 +20,7 @@ tau를 바꾸면 w가 달라지므로 새 캐시가 되지만, ema_alpha·T_soft
     obj_rho  (m,)    float32 상태·경로 계수 ρ — 노이즈 재계산 시 그대로 재사용
     obj_dca  (m,)    float32 최접근 거리 — '임박 위험' 판정과 평가 지표에 사용
     obj_floor(m,)    float32 근접 보정 실효 하한 (진행 방향 조건 반영)
-    can_feat (n,5)   float32 정규화된 CAN 특징
+    can_feat (n,F)   float32 정규화된 CAN 특징 (F = len(CAN_FEATURES))
     can_mask (n,)    float32 1=CAN 존재
 """
 
@@ -34,7 +34,7 @@ import time
 import numpy as np
 
 from src.labeling.label_function import LabelConfig, channel_risk_contributors
-from src.utils.constants import NUM_CAMERAS
+from src.utils.constants import CAN_FEATURES, NUM_CAMERAS
 
 # contributors 값에 실제로 영향을 주는 필드만 캐시 키에 넣는다.
 _KEY_FIELDS = ("categories", "max_range", "tau", "w_type",
@@ -44,7 +44,10 @@ _KEY_FIELDS = ("categories", "max_range", "tau", "w_type",
 
 
 def cache_key(cfg: LabelConfig) -> str:
-    payload = json.dumps({k: getattr(cfg, k) for k in _KEY_FIELDS},
+    # CAN 특징 구성도 키에 넣는다. 없으면 특징을 늘려도 옛 캐시가 그대로 재사용돼
+    # 새 특징이 에러 없이 0으로 들어간다(지시등 추가 때 실제로 그럴 뻔했다).
+    payload = json.dumps({**{k: getattr(cfg, k) for k in _KEY_FIELDS},
+                          "can_features": CAN_FEATURES},
                          sort_keys=True, ensure_ascii=False)
     return hashlib.sha1(payload.encode("utf-8")).hexdigest()[:8]
 
@@ -66,7 +69,7 @@ def build(wrapper, tokens: list[str], cfg: LabelConfig, path: str,
     rho_l: list[float] = []
     dca_l: list[float] = []
     floor_l: list[float] = []
-    can_feat = np.zeros((n, 5), dtype=np.float32)
+    can_feat = np.zeros((n, len(CAN_FEATURES)), dtype=np.float32)
     can_mask = np.zeros(n, dtype=np.float32)
 
     t0 = time.time()
@@ -127,6 +130,10 @@ class ContribCache:
         self.obj_dca = z["obj_dca"] if "obj_dca" in z else np.zeros_like(z["obj_w"])
         self.obj_floor = z["obj_floor"] if "obj_floor" in z else np.zeros_like(z["obj_w"])
         self.can_feat = z["can_feat"]
+        if self.can_feat.shape[1] != len(CAN_FEATURES):
+            raise ValueError(
+                f"기여 캐시의 CAN 특징 폭 {self.can_feat.shape[1]} ≠ 현재 구성 "
+                f"{len(CAN_FEATURES)} ({path}) — 캐시를 다시 만들어야 한다")
         self.can_mask = z["can_mask"]
 
     def __contains__(self, token: str) -> bool:
