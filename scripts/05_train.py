@@ -25,6 +25,8 @@ from torch.utils.data import DataLoader
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
+from src.utils.config import load_cfgs  # noqa: E402
+
 from src.data import contrib_cache  # noqa: E402
 from src.data.dataset import ViewSelectionDataset, collate  # noqa: E402
 from src.data.feature_cache import FeatureCache  # noqa: E402
@@ -37,17 +39,6 @@ from src.labeling.label_function import LabelConfig  # noqa: E402
 from src.models.proposed import (  # noqa: E402
     LossWeights, ModelConfig, ViewSelector, compute_loss, select_views,
 )
-
-
-def load_cfgs(train_cfg_path):
-    d = os.path.join(os.path.dirname(__file__), "..", "configs")
-    with open(os.path.join(d, "base.yaml"), encoding="utf-8") as f:
-        base = yaml.safe_load(f)
-    with open(os.path.join(d, "label_v1.yaml"), encoding="utf-8") as f:
-        lab = yaml.safe_load(f)
-    with open(train_cfg_path, encoding="utf-8") as f:
-        tc = yaml.safe_load(f)
-    return base, lab, tc
 
 
 def set_seed(seed):
@@ -77,7 +68,8 @@ def build_datasets(base, lab, tc, args):
             risk_source=tr.get("risk_source", "gt"),
             noise_preset=tr.get("noise_preset", "clean"),
             train_risk_noise=(is_train and tr.get("risk_noise", False)),
-            seed=base.get("seed", 42), contrib_cache=cc)
+            seed=base.get("seed", 42), contrib_cache=cc,
+            train_noise_mix=tuple(tr.get("noise_mix", ["light", "medium"])))
 
     return fc, mk(split["train"], True), mk(split["val"], False)
 

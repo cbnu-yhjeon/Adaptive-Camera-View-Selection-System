@@ -1,0 +1,5 @@
+# A5 − temporal consistency 항 (β=0)
+inherit: train_proposed.yaml
+exp_name: ablation_a5_no_temporal
+loss:
+  beta: 0.0

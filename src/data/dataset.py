@@ -68,7 +68,8 @@ class ViewSelectionDataset(Dataset):
                  scene_names: list[str], seq_len: int = 4,
                  risk_source: str = "gt", noise_preset: str = "clean",
                  train_risk_noise: bool = False, seed: int = 42,
-                 contrib_cache=None):
+                 contrib_cache=None,
+                 train_noise_mix: tuple[str, ...] = ("light", "medium")):
         self.w = wrapper
         self.fc = feature_cache
         self.cfg = label_cfg
@@ -76,6 +77,10 @@ class ViewSelectionDataset(Dataset):
         self.risk_source = risk_source
         self.noise_preset = noise_preset
         self.train_risk_noise = train_risk_noise
+        # 학습 증강에서 아이템마다 고를 검출 품질. clean을 넣으면 깨끗한 입력도 보게 되고,
+        # heavy를 넣으면 심한 손상도 본다 — light·medium만 쓰면 평가 clean에서 규칙보다
+        # 6%p 낮았다(모델이 깨끗한 입력을 본 적이 없다).
+        self.train_noise_mix = tuple(train_noise_mix)
         self.feat_dim = feature_cache.feat_dim
         self._base_seed = seed
         self._epoch = 0
@@ -152,7 +157,7 @@ class ViewSelectionDataset(Dataset):
         preset = self.noise_preset
         if self.train_risk_noise:                  # 학습 증강: 노이즈 강제
             source = "noisy"
-            preset = str(rng.choice(["light", "medium"]))
+            preset = str(rng.choice(list(self.train_noise_mix)))
 
         blackout: list[int] = []
         if source == "noisy":

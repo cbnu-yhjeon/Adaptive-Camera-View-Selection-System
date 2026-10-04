@@ -1,0 +1,6 @@
+# B3 영상 단일 (CLAUDE.md B.7) — CAN·위험도 토큰을 빼고 영상 특징만 본다.
+inherit: train_proposed.yaml
+exp_name: b3_img_only
+model:
+  use_can: false
+  use_risk: false

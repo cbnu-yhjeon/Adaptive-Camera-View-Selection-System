@@ -1,0 +1,8 @@
+# B4 단일 프레임 (CLAUDE.md B.7) — GRU를 빼고 현재 프레임 하나만 본다.
+# ablation A3(−GRU, T=1)과 정의가 같아 A3는 이 실행 결과를 그대로 쓴다.
+inherit: train_proposed.yaml
+exp_name: b4_single_frame
+model:
+  use_gru: false
+train:
+  seq_len: 1

@@ -1,0 +1,6 @@
+# A2 − 위험도 토큰. 검출이 망가졌을 때 모델이 규칙보다 나을 근거는 영상 특징뿐이다 —
+# 이 실행이 영상 특징의 기여를 보여준다(B.9 대응 ②).
+inherit: train_proposed.yaml
+exp_name: ablation_a2_no_risk
+model:
+  use_risk: false

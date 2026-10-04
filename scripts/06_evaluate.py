@@ -42,6 +42,8 @@ from torch.utils.data import DataLoader
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
+from src.utils.config import load_cfgs  # noqa: E402
+
 from src.baselines.rule_based import FixedFront, RuleBased, as_arrays  # noqa: E402
 from src.data import contrib_cache  # noqa: E402
 from src.data.dataset import ViewSelectionDataset, collate  # noqa: E402
@@ -57,17 +59,6 @@ from src.utils.constants import NUM_CAMERAS  # noqa: E402
 
 TENSORS = ("img_feat", "can", "risk", "pad_mask", "soft_label", "aux_target", "aux_mask",
            "attention_view", "primary_view", "layout")
-
-
-def load_cfgs(train_cfg: str):
-    d = os.path.join(os.path.dirname(__file__), "..", "configs")
-    with open(os.path.join(d, "base.yaml"), encoding="utf-8") as f:
-        base = yaml.safe_load(f)
-    with open(os.path.join(d, "label_v1.yaml"), encoding="utf-8") as f:
-        lab = yaml.safe_load(f)
-    with open(train_cfg, encoding="utf-8") as f:
-        tc = yaml.safe_load(f)
-    return base, lab, tc
 
 
 class Env:
@@ -254,9 +245,21 @@ def recall_at_load(pts, load):
     return float(np.interp(load, xs, ys))
 
 
-def latest_ckpt(exp="proposed"):
-    runs = sorted(glob.glob(f"results/{exp}/20*/best.ckpt"))
-    return runs[-1] if runs else None
+def latest_ckpt(exp="proposed", version=None):
+    """해당 데이터 버전으로 학습한 가장 최근 체크포인트.
+
+    버전으로 거르지 않으면 mini 스모크 실행이 trainval 모델보다 최근이라 그쪽을 집는다.
+    """
+    for ck in sorted(glob.glob(f"results/{exp}/20*/best.ckpt"), reverse=True):
+        cfg_path = os.path.join(os.path.dirname(ck), "config.yaml")
+        try:
+            with open(cfg_path, encoding="utf-8") as f:
+                ran = yaml.safe_load(f)["base"]["version"]
+        except (OSError, KeyError, TypeError):
+            continue
+        if version is None or ran == version:
+            return ck
+    return None
 
 
 def main() -> int:
@@ -279,7 +282,7 @@ def main() -> int:
     env = Env(base, lab, tc, version, args.splits)
     device = "cuda" if torch.cuda.is_available() else "cpu"
     methods = ["b1", "b2", "b2c", "model"] if args.all else [args.method]
-    ckpt = args.ckpt or latest_ckpt(tc.get("exp_name", "proposed"))
+    ckpt = args.ckpt or latest_ckpt(tc.get("exp_name", "proposed"), version)
 
     os.makedirs(args.out_dir, exist_ok=True)
     cond = f"{args.risk_source}-{args.noise}" if args.risk_source == "noisy" else args.risk_source

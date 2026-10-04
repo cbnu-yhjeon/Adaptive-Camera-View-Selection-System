@@ -1,0 +1,5 @@
+# A4 − cross-view attention (Transformer → 채널별 독립 MLP + CAN 가산)
+inherit: train_proposed.yaml
+exp_name: ablation_a4_no_xview
+model:
+  use_transformer: false

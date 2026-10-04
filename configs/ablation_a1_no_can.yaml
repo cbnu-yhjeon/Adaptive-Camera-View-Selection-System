@@ -1,0 +1,5 @@
+# A1 − CAN 토큰 (방향지시등 포함)
+inherit: train_proposed.yaml
+exp_name: ablation_a1_no_can
+model:
+  use_can: false

@@ -28,4 +28,7 @@ train:
   risk_source: noisy  # 평가/학습 기본 입력
   noise_preset: medium
   risk_noise: true    # 학습 증강(noise.py) — 강건성의 핵심
+  # 아이템마다 고르는 검출 품질. light·medium만 쓰면 평가 clean에서 규칙보다 6%p 낮고
+  # heavy에서야 규칙과 동률이었다(2026-10 val). clean·heavy까지 섞는다.
+  noise_mix: [clean, light, medium, heavy]
   balanced_sampler: true
