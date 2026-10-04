@@ -150,8 +150,8 @@
 | 모듈 | 하는 일 | 핵심 판단 |
 |---|---|---|
 | `ttc.py` | 최접근(CPA) 기반 TTC와 DCA, 위험 가중 `w`, 경로 계수 `ρ_path`, 상태 감쇠 예외 `ρ_attr_eff`, 진행방향 게이트 근접 보정 | radial 정의(`r/v_r`)는 옆으로 스쳐 갈 객체를 충돌 임박으로 오판한다. 실측상 위험량의 62.9%가 정지·주차 객체에서 나왔다. `ttc_mode: radial`로 되돌릴 수 있고 ablation 항목으로 쓴다 |
-| `maneuver.py` | ±3초 ego 자세 윈도우로 7개 기동 상태 규칙 판정 | 라벨 생성은 오프라인이므로 미래 pose를 봐도 된다 |
-| `label_function.py` | 채널 귀속 → 채널 위험도 → `s(c) = risk(c) + λ·m(c)` → primary · aux 슬롯 · soft label · layout, scene 단위 EMA 평활과 flicker 병합 | **위험 항만 평활한다.** 기동 상태는 이미 ±3초 윈도우로 추론된 안정 신호라 다시 평활하면 이중 스무딩이 되어, 기동 경계에서 안전 기본값이 꺼진다 |
+| `maneuver.py` | [−1초, +5초] ego 자세 윈도우로 7개 기동 상태 규칙 판정. TURN은 **선회반경 ≤ 30 m**, 차선변경은 **곡선 성분을 뺀 횡이탈 잔차 ≥ 2.0 m** | 헤딩 변화만 보면 곡선로가 TURN·차선변경으로 잡힌다(TURN 라벨의 43%가 R > 30 m였다). 방향지시등과 대조해 검증: TURN 75~83% 일치, 반대 방향 <2% |
+| `label_function.py` | 채널 귀속 → 채널 위험도 → `s(c) = risk(c) + λ·m(c)` → primary · aux 슬롯 · soft label · layout, scene 단위 EMA 평활과 flicker 병합 | **위험 항만 평활한다.** 기동 상태는 이미 수 초 윈도우로 추론된 안정 신호라 다시 평활하면 이중 스무딩이 되어, 기동 경계에서 안전 기본값이 꺼진다 |
 
 `is_hazard()` 는 **'실제 위험'의 단일 정의**(`TTC < 5s AND DCA < 3m`)이며 라벨·평가·골드셋이
 모두 이 함수를 공유한다. 정의가 갈라지면 재현율과 정밀도가 서로 다른 모집단을 가리킨다.
@@ -160,7 +160,7 @@
 
 | 모듈 | 하는 일 |
 |---|---|
-| `proposed.py` | 채널 토큰 6개 + CAN 토큰 1개 → Transformer(2층·4헤드·d=128) → 채널별 GRU → Head1(뷰) / Head2(레이아웃). 손실은 focal CE + KL(soft) + layout CE + temporal consistency. **ablation은 별도 모델이 아니라 같은 코드의 플래그**(`use_can` · `use_risk` · `use_transformer` · `use_gru`)로 구성 |
+| `proposed.py` | 채널 토큰 6개 + CAN 토큰 1개 → Transformer(2층·4헤드·d=128) → 채널별 GRU → Head1(뷰) / Head2(레이아웃). Head1은 **채널별 독립 sigmoid**(다중 선택 0~2장). 손실은 focal BCE + KL(soft) + layout CE + temporal consistency. 모델 선택은 임계값 무관한 macro-AP. **ablation은 별도 모델이 아니라 같은 코드의 플래그**(`use_can` · `use_risk` · `use_transformer` · `use_gru`)로 구성 |
 | `metrics.py` | Top-1, 복수 정답 Top-k, Macro-F1, scene 시간순 flicker rate |
 
 ### 실행 순서
@@ -196,8 +196,9 @@ python -m pytest tests/ -q
 
 | 계층 | 상태 |
 |---|---|
-| utils · data · labeling | 구현 완료 — 유닛테스트 47개 통과 |
-| models · 학습 루프 | 구현 완료 (mini 스모크 통과). **모델 헤드는 아직 6-way softmax**이며, 계획서 §5.3의 채널별 sigmoid + BCE로 교체 예정 |
+| utils · data · labeling | 구현 완료 — 유닛테스트 52개 통과. **M2 승인(2026-10-04)** |
+| 특징·데이터 캐시 | trainval 특징 캐시(204,894장, 473 MB) · 기여 캐시 완료 — **M3 완료** |
+| models · 학습 루프 | 채널별 sigmoid + focal BCE, macro-AP 모델 선택. trainval 본 학습 진행 중 (M4) |
 | `baselines/rule_based.py` (B2) | 미구현 — M5 |
 | `eval/evaluate.py` · `eval/robustness.py` | 미구현 — M6 · M7 |
 | `tools/goldset_ui/` | 미구현 — M6 |
@@ -222,19 +223,22 @@ python -m pytest tests/ -q
 img_feat (MobileNetV3-small GAP, D_f=576, 사전 캐시) ┐
 camera positional embedding (6채널)                  ├→ 채널 토큰 6개 (d=128)
 risk 벡터 (채널별 Σw(TTC))                            ┘
-CAN (speed, steering, accel_x, accel_y, yaw_rate)  → CAN 토큰 1개
+CAN (speed, steering, accel_x, accel_y, yaw_rate,
+     left_signal, right_signal)                    → CAN 토큰 1개
   → TransformerEncoder(layers=2, heads=4, d=128, ff=256)
   → 채널별 GRU (시간축 처리)
-  → Head1: 보조 뷰 로짓 (6채널)
+  → Head1: 채널별 독립 sigmoid (6) — 보조 뷰 0~2장 다중 선택
   → Head2: 레이아웃 (K=5-way)
 ```
 
-> 현재 Head1은 6-way softmax다. 계획서 §5.3의 **채널별 독립 sigmoid + BCE**로 교체 예정이며,
-> 그래야 추론 임계값을 쓸어가며 표시량-안전의 운영 곡선을 그릴 수 있다.
-
-- **손실**: `CE_focal(main) + α·KL(soft_label) + γ_l·CE(layout) + β·temporal_consistency`
-- **학습**: AdamW(lr=1e-4), cosine decay, focal loss + WeightedRandomSampler,
-  early stopping(val macro-F1). **`train.risk_noise: true`(검출 오류 증강)가 기본** — 강건성의 핵심.
+- **방향지시등**은 운전자의 의도라 기동보다 먼저 켜진다 — 라벨이 최대 5초 앞서는 선제적
+  전환의 단서. 시점 이하의 직전 값만 쓰고, **라벨 판정에는 쓰지 않는다**(모델이 지시등만
+  베끼는 지름길을 막기 위해). 라벨 검증 지표로만 쓴다.
+- **손실**: `BCE_focal(aux, mask) + α·KL(soft_label) + γ_l·CE(layout) + β·temporal_consistency`
+  — 진행 방향 채널은 마스크로 제외(타깃 0으로 두면 "앞은 끄는 것"을 배운다)
+- **학습**: AdamW(lr=1e-4), cosine decay, WeightedRandomSampler, early stopping(**val macro-AP**).
+  F1·표시량은 라벨과 같은 표시량이 되도록 임계값을 맞춘 뒤 읽는다.
+  **`train.risk_noise: true`(검출 오류 증강)가 기본** — 강건성의 핵심.
 
 ## 🏷️ 의사 라벨 생성 (weak supervision)
 
@@ -254,7 +258,7 @@ aux      = 슬롯 배정 (최대 2장)
 
 **왜 슬롯을 역할로 나누는가**: 하나의 임계값을 합산 `s(c)`에 걸면 기동 항이 슬롯을 독점해
 실제 위험이 밀려난다(차선변경 중 위험 커버 60.6%). 역할 분리 후 70.5%.
-**왜 0장을 허용하는가**: 실제 위험은 프레임의 5.3%뿐이다. 매 프레임 한 장을 강제하면
+**왜 0장을 허용하는가**: 실제 위험은 프레임의 13.2%뿐이다. 매 프레임 한 장을 강제하면
 대부분의 시간에 무의미한 강조가 켜져 오퍼레이터가 보조 뷰를 무시하게 된다.
 
 > **뷰 정책 (v1)**: 이동체는 진행 방향을 항상 주시해야 하므로 primary(진행방향)를 UI 메인에
@@ -265,7 +269,8 @@ aux      = 슬롯 배정 (최대 2장)
   radial 정의(`r/v_r`)는 옆으로 스쳐 갈 객체를 충돌 임박으로 오판해 위험량의 62.9%가
   정지·주차 객체에서 나왔다. `ttc_mode: radial`로 되돌릴 수 있으며 ablation 항목이다.
 - **'실제 위험'의 단일 정의**: `TTC < 5s AND DCA < 3m` (`label_function.is_hazard`) —
-  라벨·평가·골드셋이 같은 함수를 공유한다. trainval 기준 프레임의 5.3%.
+  라벨·평가·골드셋이 같은 함수를 공유한다. trainval 기준 4,852채널 / 프레임의 13.2%
+  (`scripts/02c_label_report.py` → `results/label_report.json`).
 - **기동 상태**: `{STRAIGHT, TURN_L/R, LANE_CHANGE_L/R, REVERSE, STOP}`
   (ego pose 시퀀스 + CAN으로 규칙 추론, 라벨 생성 시에만 미래 pose 참조 허용)
 - **레이아웃**: 기동 클래스 → 사전 정의 템플릿(K=5) 결정적 매핑
@@ -313,9 +318,9 @@ pip install nuscenes-devkit timm opencv-python-headless pandas pyarrow \
 
 각 마일스톤의 완료 조건(✅)을 통과하기 전에는 다음 단계로 넘어가지 않는다.
 
-- [ ] **M1** — 데이터 접근·탐색 (`nusc_wrapper.py`, `01_explore_data.py`)
-- [ ] **M2** ★ — 의사 라벨 파이프라인 (`geometry/ttc/maneuver/label_function`) + 시각화 검수
-- [ ] **M3** — Dataset/로더 + 특징 캐시
+- [x] **M1** — 데이터 접근·탐색 (`nusc_wrapper.py`, `01_explore_data.py`)
+- [x] **M2** ★ — 의사 라벨 파이프라인 (`geometry/ttc/maneuver/label_function`) + 시각화 검수
+- [x] **M3** — Dataset/로더 + 특징 캐시
 - [ ] **M4** — 모델 + 학습
 - [ ] **M5** — 베이스라인 (B1~B4)
 - [ ] **M6** — 평가 + 골드셋(사용자 직접 라벨링) → `results/table1.md`
@@ -362,7 +367,7 @@ pip install nuscenes-devkit timm opencv-python-headless pandas pyarrow \
 - [ ] `data/nusc_wrapper.py` — scene 순회, 이미지 경로, GT 박스(ego 변환), CAN, blacklist 처리
 - [ ] `scripts/01_explore_data.py` — mini 10 scene 무에러 실행 (✅ M1)
 - [ ] `utils/geometry.py` 투영 유틸 + 단위테스트 5케이스
-- [ ] `labeling/ttc.py` — radial TTC, box_velocity NaN 폴백
+- [ ] `labeling/ttc.py` — 최접근(CPA) TTC·DCA, box_velocity NaN 폴백
 - [ ] `labeling/maneuver.py` — 7개 기동 상태 규칙 추론
 - [ ] `labeling/label_function.py` — `s(c)` 계산 → primary/attention/soft/layout → parquet
 - [ ] `scripts/02_generate_labels.py` + `03_visualize_labels.py`
@@ -376,7 +381,7 @@ pip install nuscenes-devkit timm opencv-python-headless pandas pyarrow \
 - [ ] `data/dataset.py` — 시퀀스 조립, scene 경계 패딩, risk_source 분기, WeightedRandomSampler
 - [ ] `scripts/04_build_cache.py` + shape 검증 + 1 epoch <1분 (✅ M3)
 - [ ] `models/proposed.py` — 토큰화 → Transformer(2층) → 채널별 GRU → Head1/Head2 (ablation 플래그 공용)
-- [ ] 손실: focal + KL + layout CE + temporal consistency
+- [ ] 손실: focal BCE + KL + layout CE + temporal consistency
 - [ ] `scripts/05_train.py` — config 로드, best ckpt, metrics.json, tensorboard
 - [ ] mini 과적합 sanity check (train Top-1 >95%)
 - [ ] 🚦 **trainval 확보범위 확인 후 본 학습 (✅ M4)**
@@ -385,7 +390,7 @@ pip install nuscenes-devkit timm opencv-python-headless pandas pyarrow \
 
 - [ ] `baselines/rule_based.py` — B2 (label_function 재사용 + risk_source 입력)
 - [ ] B1 상수 예측기 + B3/B4 config (모델 플래그 재사용)
-- [ ] `eval/metrics.py` — Top-1/2, Macro-F1, flicker, 위험객체 가시화율 + 단위테스트 3케이스
+- [ ] `eval/metrics.py` — Top-1/2, Macro-F1, flicker, 위험 포착률·슬롯 정밀도 + 단위테스트 3케이스
 - [ ] `eval/evaluate.py` — 모든 모델 공통 평가 엔트리
 - [ ] 골드셋 300개 층화 추출 + `tools/goldset_ui/` 제작
 - [ ] 🚦 **사용자 직접 골드셋 라벨링** (Claude는 UI만 제작)

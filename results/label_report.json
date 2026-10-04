@@ -1,0 +1,141 @@
+{
+  "version": "v1.0-trainval",
+  "n_keyframes": 34149,
+  "hazard": {
+    "ttc": 5.0,
+    "dca": 3.0,
+    "channels": 4852,
+    "frames": 4505,
+    "frame_pct": 13.2,
+    "by_split": {
+      "train": 3114,
+      "val": 720,
+      "test": 671
+    },
+    "n_by_split": {
+      "train": 23898,
+      "val": 5143,
+      "test": 5108
+    }
+  },
+  "alt_defs": [
+    {
+      "ttc": 3.0,
+      "dca": 2.0,
+      "frame_pct": 1.1,
+      "test_frames": 67
+    },
+    {
+      "ttc": 3.0,
+      "dca": 3.0,
+      "frame_pct": 5.3,
+      "test_frames": 286
+    },
+    {
+      "ttc": 3.0,
+      "dca": 4.0,
+      "frame_pct": 19.8,
+      "test_frames": 1034
+    },
+    {
+      "ttc": 5.0,
+      "dca": 2.0,
+      "frame_pct": 6.2,
+      "test_frames": 290
+    },
+    {
+      "ttc": 5.0,
+      "dca": 3.0,
+      "frame_pct": 13.2,
+      "test_frames": 671
+    },
+    {
+      "ttc": 5.0,
+      "dca": 4.0,
+      "frame_pct": 30.3,
+      "test_frames": 1540
+    }
+  ],
+  "labels": {
+    "mean_aux": 0.457,
+    "aux_share": {
+      "0": 63.0,
+      "1": 28.2,
+      "2": 8.8
+    },
+    "maneuver": {
+      "STRAIGHT": 25257,
+      "TURN_LEFT": 1111,
+      "TURN_RIGHT": 1211,
+      "LANE_CHANGE_LEFT": 250,
+      "LANE_CHANGE_RIGHT": 503,
+      "REVERSE": 1,
+      "STOP": 5816
+    },
+    "max_channel_pct": 36.0,
+    "flicker_aux_set": 0.446
+  },
+  "goldset": {
+    "test_hazard_pct": 13.1,
+    "natural_300_hazard": 39.4,
+    "natural_ci_pp": 9.4,
+    "stratified_100_ci_pp": 5.9
+  },
+  "signal": {
+    "window": [
+      -1.0,
+      5.0
+    ],
+    "by_maneuver": {
+      "LANE_CHANGE_LEFT": {
+        "n": 240,
+        "none_pct": 42.5,
+        "any_pct": 57.5,
+        "same_pct": 39.2,
+        "opposite_pct": 11.2
+      },
+      "LANE_CHANGE_RIGHT": {
+        "n": 492,
+        "none_pct": 52.0,
+        "any_pct": 48.0,
+        "same_pct": 24.6,
+        "opposite_pct": 14.4
+      },
+      "REVERSE": {
+        "n": 1,
+        "none_pct": 0.0,
+        "any_pct": 100.0,
+        "same_pct": null,
+        "opposite_pct": null
+      },
+      "STOP": {
+        "n": 5788,
+        "none_pct": 51.5,
+        "any_pct": 48.5,
+        "same_pct": null,
+        "opposite_pct": null
+      },
+      "STRAIGHT": {
+        "n": 24731,
+        "none_pct": 69.3,
+        "any_pct": 30.7,
+        "same_pct": null,
+        "opposite_pct": null
+      },
+      "TURN_LEFT": {
+        "n": 1070,
+        "none_pct": 11.7,
+        "any_pct": 88.3,
+        "same_pct": 83.2,
+        "opposite_pct": 1.7
+      },
+      "TURN_RIGHT": {
+        "n": 1189,
+        "none_pct": 20.5,
+        "any_pct": 79.5,
+        "same_pct": 74.7,
+        "opposite_pct": 1.3
+      }
+    }
+  }
+}
