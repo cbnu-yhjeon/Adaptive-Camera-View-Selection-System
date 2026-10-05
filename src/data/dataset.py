@@ -51,6 +51,27 @@ def item_rng(base_seed: int, index: int, epoch: int | None) -> np.random.Generat
 
 
 _FRAME_SALT = 0x46524D   # 'FRM' — item_rng의 [seed, epoch, index]와 겹치지 않는 세 번째 값
+_SCENE_SALT = 0x53434E   # 'SCN' — 평가용 scene 단위 카메라 고장
+
+# 강건성 실험(M7)의 유형별 노이즈. "강도:유형" 프리셋은 그 유형의 파라미터만 남긴다.
+NOISE_TYPES = {
+    "miss": ("p_miss",),
+    "fp": ("lambda_fp",),
+    "pos": ("sigma_pos", "sigma_ttc_rel"),
+    "drop": (),                         # 검출 잡음 없음 — 카메라 고장만
+}
+_DETECTION_FIELDS = ("p_miss", "lambda_fp", "sigma_pos", "sigma_ttc_rel")
+DROP_CAMERAS = {"clean": 0, "light": 1, "medium": 2, "heavy": 3}
+
+
+def split_preset(preset: str) -> tuple[str, str | None]:
+    """'medium' → ('medium', None),  'medium:fp' → ('medium', 'fp')."""
+    if ":" in preset:
+        level, typ = preset.split(":", 1)
+        if typ not in NOISE_TYPES:
+            raise ValueError(f"알 수 없는 노이즈 유형: {typ}")
+        return level, typ
+    return preset, None
 
 
 def frame_rng(base_seed: int, frame_index: int) -> np.random.Generator:
@@ -92,6 +113,8 @@ class ViewSelectionDataset(Dataset):
         self.scene_tokens: dict[str, list[str]] = {}
         self.flat: list[tuple[str, int]] = []      # (scene_token, pos)
         self._frame_idx: dict[str, int] = {}        # 토큰 → 그 토큰이 현재 프레임인 평탄 인덱스
+        self._frame_scene: dict[str, str] = {}      # 토큰 → scene
+        self._scene_idx: dict[str, int] = {}        # scene → 고정 번호 (scene 단위 난수용)
         for st in wrapper.scene_tokens():
             if wrapper.scene_name(st) not in name_set:
                 continue
@@ -100,8 +123,10 @@ class ViewSelectionDataset(Dataset):
             if not toks:
                 continue
             self.scene_tokens[st] = toks
+            self._scene_idx[st] = len(self._scene_idx)
             for pos in range(len(toks)):
                 self._frame_idx[toks[pos]] = len(self.flat)
+                self._frame_scene[toks[pos]] = st
                 self.flat.append((st, pos))
 
         # 위험 기여 + CAN 특징. 디스크 캐시(contrib_cache.ContribCache)가 주어지면
@@ -141,10 +166,17 @@ class ViewSelectionDataset(Dataset):
         return self._cache.can(token) if self._cache is not None else self._can[token]
 
     def _noise_config(self, preset: str):
-        """프리셋별 NoiseConfig. 블랙아웃은 아이템 단위로 따로 다루므로 여기선 끈다."""
+        """프리셋별 NoiseConfig. 블랙아웃은 따로 다루므로 여기선 끈다.
+
+        "강도:유형"이면 그 유형의 검출 잡음만 남기고 나머지는 0으로 둔다.
+        """
         if preset not in self._nc:
-            self._nc[preset] = make_noise_config(
-                preset, risk_params=self._risk_params, n_blackout=0)
+            level, typ = split_preset(preset)
+            over = {"n_blackout": 0}
+            if typ is not None:
+                keep = NOISE_TYPES[typ]
+                over.update({f: 0.0 for f in _DETECTION_FIELDS if f not in keep})
+            self._nc[preset] = make_noise_config(level, risk_params=self._risk_params, **over)
         return self._nc[preset]
 
     def _item_noise(self, rng: np.random.Generator):
@@ -161,11 +193,39 @@ class ViewSelectionDataset(Dataset):
 
         blackout: list[int] = []
         if source == "noisy":
-            n_blk = make_noise_config(preset, risk_params=self._risk_params).n_blackout
+            n_blk, _ = self._blackout_spec(preset)
             if n_blk > 0:
                 blackout = [int(c) for c in rng.choice(
                     NUM_CAMERAS, size=min(n_blk, NUM_CAMERAS), replace=False)]
         return source, preset, blackout
+
+    def _blackout_spec(self, preset: str) -> tuple[int, bool]:
+        """(고장 카메라 수, 그 채널의 검출도 지우는가).
+
+        채널 드롭 유형은 카메라 고장이다 — 영상이 사라지면 그 카메라로 하던 검출도 사라진다.
+        섞인 프리셋(heavy 등)의 블랙아웃은 기존대로 영상만 지운다.
+        """
+        level, typ = split_preset(preset)
+        if typ == "drop":
+            return DROP_CAMERAS[level], True
+        if typ is not None:
+            return 0, False
+        return int(make_noise_config(level, risk_params=self._risk_params).n_blackout), False
+
+    def _scene_blackout(self, scene_token: str, source: str, preset: str) -> tuple[list[int], bool]:
+        """평가용 카메라 고장 — scene 내내 같은 카메라가 고장이다.
+
+        아이템마다 고장 카메라를 다시 뽑으면, 전체 이력을 쓰는 규칙과 2초 창을 보는 모델이
+        서로 다른 고장을 본다. 실제 카메라 고장도 한 주행 동안 유지된다.
+        """
+        if source != "noisy":
+            return [], False
+        k, zero_risk = self._blackout_spec(preset)
+        if k <= 0:
+            return [], False
+        rng = np.random.default_rng([self._base_seed, self._scene_idx[scene_token], _SCENE_SALT])
+        chs = [int(c) for c in rng.choice(NUM_CAMERAS, size=min(k, NUM_CAMERAS), replace=False)]
+        return chs, zero_risk
 
     def _risk_vector(self, token: str, rng: np.random.Generator,
                      source: str, preset: str) -> np.ndarray:
@@ -193,7 +253,11 @@ class ViewSelectionDataset(Dataset):
         key = (token, source, preset)
         if key not in self._frame_risk:
             rng = frame_rng(self._base_seed, self._frame_idx[token])
-            self._frame_risk[key] = self._risk_vector(token, rng, source, preset)
+            r = np.array(self._risk_vector(token, rng, source, preset), dtype=np.float32)
+            chs, zero_risk = self._scene_blackout(self._frame_scene[token], source, preset)
+            if zero_risk:
+                r[chs] = 0.0                     # 고장 카메라로는 아무것도 검출되지 않는다
+            self._frame_risk[key] = r
         return self._frame_risk[key]
 
     def __getitem__(self, i: int):
@@ -202,6 +266,9 @@ class ViewSelectionDataset(Dataset):
         # 학습 증강일 때만 epoch를 시드에 섞는다(위 '노이즈 난수 정책' 참조).
         rng = item_rng(self._base_seed, i, self._epoch if self.train_risk_noise else None)
         source, preset, blackout = self._item_noise(rng)
+        if not self.train_risk_noise:
+            # 평가: 카메라 고장은 scene 단위로 고정 (frame_risk와 같은 고장)
+            blackout, _ = self._scene_blackout(scene_token, source, preset)
 
         T = self.seq_len
         img = np.zeros((T, NUM_CAMERAS, self.feat_dim), dtype=np.float32)

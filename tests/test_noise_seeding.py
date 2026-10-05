@@ -162,6 +162,24 @@ def test_frame_rng_is_fixed_and_separate_from_item_streams():
     assert not np.allclose(a, item_rng(42, 7, 0).random(4))
 
 
+def test_typed_noise_presets_keep_only_their_parameters():
+    """'강도:유형' 프리셋은 그 유형의 검출 잡음만 남겨야 유형별 열화 곡선이 성립한다."""
+    from src.data.dataset import ViewSelectionDataset, split_preset
+    assert split_preset("medium") == ("medium", None)
+    assert split_preset("heavy:fp") == ("heavy", "fp")
+    ds = ViewSelectionDataset.__new__(ViewSelectionDataset)
+    ds._risk_params = {}
+    ds._nc = {}
+    fp = ds._noise_config("medium:fp")
+    assert fp.lambda_fp > 0 and fp.p_miss == 0 and fp.sigma_pos == 0 and fp.sigma_ttc_rel == 0
+    miss = ds._noise_config("medium:miss")
+    assert miss.p_miss > 0 and miss.lambda_fp == 0
+    drop = ds._noise_config("heavy:drop")
+    assert drop.p_miss == 0 and drop.lambda_fp == 0 and drop.n_blackout == 0
+    assert ds._blackout_spec("heavy:drop") == (3, True)      # 카메라 3대 고장, 검출도 사라짐
+    assert ds._blackout_spec("light:fp") == (0, False)
+
+
 if __name__ == "__main__":
     tests = [v for k, v in sorted(globals().items())
              if k.startswith("test_") and callable(v)]
