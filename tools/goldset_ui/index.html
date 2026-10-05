@@ -34,11 +34,16 @@ background:var(--surface);border:1px solid var(--rule);margin-bottom:10px}
 .side .kv{display:grid;grid-template-columns:auto 1fr;gap:4px 10px;margin-top:8px;font-size:13px}
 .side .kv b{font-family:var(--m)}
 .side .hint{font-size:12px;color:var(--muted);margin-top:8px;line-height:1.5}
-.strip{display:flex;gap:4px;margin-top:8px;flex-wrap:wrap}
-.strip span{font-family:var(--m);font-size:11px;padding:1px 6px;border:1px solid var(--rule);
-cursor:pointer;color:var(--muted)}
+.side .kvcap{font-size:11px;color:var(--muted);margin-top:2px}
+.strip{display:grid;grid-template-columns:repeat(auto-fill,minmax(50px,1fr));gap:4px;margin-top:8px}
+.strip span{font-family:var(--m);font-size:11px;padding:2px 1px;border:1px solid var(--rule);
+cursor:pointer;color:var(--muted);display:flex;flex-direction:column;align-items:center;line-height:1.3}
+.strip span i{font-style:normal;color:var(--ink)}
+.strip span em{font-style:normal;color:var(--signal);min-height:1.3em}
 .strip span.cur{background:var(--accent);color:#fff;border-color:var(--accent)}
+.strip span.cur i,.strip span.cur em{color:#fff}
 .strip span.now{font-weight:700}
+.strip span.ext{border-style:dashed}
 .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
 .grid.future .tile{opacity:.92}
 .tile{position:relative;background:#000;border:3px solid transparent;cursor:pointer;
@@ -95,9 +100,13 @@ background:var(--surface);color:var(--ink);border:1px solid var(--rule)}
       <span>속도</span><b id="spd">—</b>
       <span>방향지시등</span><b id="sig">—</b>
     </div>
+    <div class="kvcap" id="kvcap"></div>
     <div class="strip" id="strip"></div>
-    <p class="hint">회색 = 지난 1초, 청록 = 앞으로 5초. 노란 영역은 교차로, 하늘색은 주차장.
-      아래 시각을 누르거나 <kbd>[</kbd> <kbd>]</kbd>로 앞뒤 프레임을 볼 수 있습니다.</p>
+    <p class="hint">아래 칸은 프레임마다 시각 · 속도(km/h) · 지시등(◀ 좌, ▶ 우, ◀▶ 비상)입니다.
+      칸을 누르거나 <kbd>[</kbd> <kbd>]</kbd>로 그 프레임을 봅니다.
+      점선 칸은 시간상 바로 이어지는 다음(또는 이전) 구간에서 가져온 프레임입니다.
+      경로도의 회색 선은 지난 1초, 청록 선은 앞으로 <span class="fs">10</span>초입니다. 노란 영역은 교차로, 하늘색은 주차장입니다.
+      주행 기록이 끝나는 장면은 미래 프레임이 짧을 수 있습니다.</p>
   </aside>
 </div>
 
@@ -122,7 +131,7 @@ background:var(--surface);color:var(--ink);border:1px solid var(--rule)}
     <li><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> 윗줄(좌전·전방·우전), <kbd>4</kbd><kbd>5</kbd><kbd>6</kbd> 아랫줄(좌후·후방·우후) — 켜고 끄기. 화면을 눌러도 됩니다</li>
     <li><kbd>0</kbd> 강조 불필요 — 볼 것이 없다는 판정(미판정과 구분됩니다)</li>
     <li><kbd>H</kbd> 애매 표시 · <kbd>Enter</kbd> 또는 <kbd>→</kbd> 다음 · <kbd>←</kbd> 이전</li>
-    <li><kbd>[</kbd> <kbd>]</kbd> 이전·이후 프레임 보기(과거 1초 ~ 미래 5초) — 판정은 언제나 <b>현재 프레임 기준</b>입니다</li>
+    <li><kbd>[</kbd> <kbd>]</kbd> 이전·이후 프레임 보기(과거 1초 ~ 미래 <span class="fs">10</span>초) — 판정은 언제나 <b>현재 프레임 기준</b>입니다</li>
   </ul>
   <p>판정은 브라우저에 자동 저장됩니다. 다 끝나면 <b>결과 저장</b>으로 JSON을 받거나 <b>결과 복사</b>로 붙여넣어 주세요.
     라벨·모델의 답은 일부러 보여주지 않습니다 — 독립적인 판정이어야 평가가 순환하지 않습니다.</p>
@@ -150,6 +159,10 @@ background:var(--surface);color:var(--ink);border:1px solid var(--rule)}
 
   const $ = (id) => document.getElementById(id);
   $("ntot").textContent = ITEMS.length;
+  if (G.meta.future_s) document.querySelectorAll(".fs").forEach(e => { e.textContent = G.meta.future_s; });
+  const GLYPH = {"좌": "◀", "우": "▶", "비상": "◀▶", "꺼짐": ""};
+  const spdText = (v) => v == null ? "—" : (v < 0 ? `후진 ${(-v).toFixed(1)}` : v.toFixed(1)) + " km/h";
+  const tLabel = (f) => (f.dt > 0 ? "+" : "") + f.dt.toFixed(1) + "s";
 
   function firstTodo() {
     const i = ITEMS.findIndex(it => !A[it.token] || !A[it.token].done);
@@ -182,13 +195,20 @@ background:var(--surface);color:var(--ink);border:1px solid var(--rule)}
         + " (판정은 현재 기준)";
     $("grid").classList.toggle("future", fi > now);
     if (it.route) $("route").src = it.route;
-    $("spd").textContent = it.speed_kmh != null ? `${it.speed_kmh} km/h` : "—";
-    $("sig").textContent = it.signal || "정보 없음";
+    // 속도·지시등은 지금 보고 있는 프레임의 값 — 현재 값만 고정해 두면 미래 프레임에서
+    // 차가 움직이는데 0 km/h로 보이는 혼동이 생긴다
+    $("spd").textContent = spdText(fr.speed_kmh);
+    $("sig").textContent = fr.signal || "정보 없음";
+    $("kvcap").textContent = fi === now ? "현재 프레임의 값" : `${tLabel(fr)} 프레임의 값`;
     $("strip").innerHTML = "";
     it.frames.forEach((f, j) => {
       const sp = document.createElement("span");
-      sp.textContent = j === now ? "현재" : (f.dt > 0 ? "+" : "") + f.dt.toFixed(1) + "s";
-      sp.className = (j === fi ? "cur " : "") + (j === now ? "now" : "");
+      const v = f.speed_kmh == null ? "—" : Math.round(f.speed_kmh);
+      const g = f.signal == null ? "?" : GLYPH[f.signal];
+      sp.innerHTML = `${j === now ? "현재" : tLabel(f)}<i>${v}</i><em>${g}</em>`;
+      sp.title = `${j === now ? "현재" : tLabel(f)} · ${spdText(f.speed_kmh)} · 지시등 ${f.signal || "정보 없음"}`
+        + (f.scene ? ` · 이어지는 구간(${f.scene})` : "");
+      sp.className = (j === fi ? "cur " : "") + (j === now ? "now " : "") + (f.scene ? "ext" : "");
       sp.onclick = () => { fi = j; render(); };
       $("strip").appendChild(sp);
     });

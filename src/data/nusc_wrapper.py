@@ -22,6 +22,19 @@ import numpy as np
 from src.utils.constants import CAMERAS
 
 
+def held_signal(msgs: list, utime: int, hold_s: float):
+    """vehicle_monitor 메시지 목록에서 utime 직전 hold_s초 안에 점등이 있었는지 → (left, right).
+
+    구간에 메시지가 없으면 None. NuscWrapper.signal_state의 본체 — scene을 이어 붙여
+    메시지를 합쳐 볼 때(골드셋 화면)도 같은 판정을 쓰도록 함수로 둔다.
+    """
+    win = [m for m in msgs if utime - hold_s * 1e6 < m["utime"] <= utime]
+    if not win:
+        return None
+    return (float(any(m.get("left_signal") for m in win)),
+            float(any(m.get("right_signal") for m in win)))
+
+
 class NuscWrapper:
     def __init__(self, dataroot: str, version: str = "v1.0-mini",
                  require_image_files: bool = True, verbose: bool = False):
@@ -237,20 +250,29 @@ class NuscWrapper:
         utime = int(self.nusc.get("sample", sample_token)["timestamp"])
         pose = self._nearest_can(scene_token, "pose", utime)
         steer = self._nearest_can(scene_token, "steeranglefeedback", utime)
-        # 지시등은 2 Hz라 '가장 가까운' 메시지가 최대 0.25초 미래일 수 있다.
-        # 의도 신호를 미래에서 가져오면 선제성이 거저 생기므로, 직전 값만 쓴다.
-        vm = self._latest_can(scene_token, "vehicle_monitor", utime)
+        # 지시등은 시점 이하의 메시지만 본다 — 2 Hz라 '가장 가까운' 메시지가 최대 0.25초
+        # 미래일 수 있고, 의도 신호를 미래에서 가져오면 선제성이 거저 생긴다.
+        sig = self.signal_state(scene_token, utime)
         speed = pose["vel"][0] if pose and "vel" in pose else speed_fallback
         accel = pose["accel"] if pose and "accel" in pose else [0.0, 0.0, 0.0]
         yaw_rate = pose["rotation_rate"][2] if pose and "rotation_rate" in pose else 0.0
         steering = steer["value"] if steer and "value" in steer else 0.0
-        left = float(vm.get("left_signal", 0)) if vm else 0.0
-        right = float(vm.get("right_signal", 0)) if vm else 0.0
+        left, right = sig if sig else (0.0, 0.0)
         raw = {"speed": speed, "steering": steering, "accel_x": accel[0],
                "accel_y": accel[1], "yaw_rate": yaw_rate,
                "left_signal": left, "right_signal": right}
         feat = np.array([raw[k] / CAN_NORM[k] for k in CAN_FEATURES], dtype=np.float32)
         return feat, 1.0
+
+    def signal_state(self, scene_token: str, utime: int, hold_s: float | None = None):
+        """방향지시등 (left, right) ∈ {0,1} — utime 직전 hold_s초 안에 점등이 있었으면 1.
+
+        신호 값은 램프 점멸 상태라 켜 둔 동안에도 깜빡인다(constants.SIGNAL_HOLD_S).
+        시점 이하의 메시지만 보는 인과적 판정. CAN이 없거나 구간에 메시지가 없으면 None.
+        """
+        from src.utils.constants import SIGNAL_HOLD_S
+        hold = SIGNAL_HOLD_S if hold_s is None else hold_s
+        return held_signal(self.get_can_messages(scene_token, "vehicle_monitor"), utime, hold)
 
     def _nearest_can(self, scene_token: str, message: str, utime: int):
         """utime(마이크로초)에 가장 가까운 CAN 메시지."""

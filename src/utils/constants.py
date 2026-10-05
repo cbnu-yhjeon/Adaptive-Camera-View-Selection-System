@@ -51,7 +51,7 @@ MANEUVER_INDEX: dict[str, int] = {m: i for i, m in enumerate(MANEUVERS)}
 #   붙으므로(선제적 전환) 과거 2초만 보는 모델에게 가장 직접적인 단서다.
 #   라벨 판정에는 쓰지 않는다 — 라벨과 입력이 같은 신호를 공유하면 모델이 영상·위험도
 #   대신 지시등만 베끼는 지름길을 배운다(원칙 1과 같은 구조). 라벨 검증 지표로만 쓴다.
-#   실측: TURN_LEFT의 83%, TURN_RIGHT의 75%가 같은 방향 지시등과 일치(반대 <2%).
+#   일치도 수치는 results/label_report.json의 signal (scripts/02c_label_report.py).
 # =====================================================================
 CAN_FEATURES: list[str] = ["speed", "steering", "accel_x", "accel_y", "yaw_rate",
                            "left_signal", "right_signal"]
@@ -65,6 +65,14 @@ CAN_NORM: dict[str, float] = {
     "right_signal": 1.0,  # 0/1
 }
 D_CAN: int = len(CAN_FEATURES) + 1                    # +1 = CAN 결측 마스크
+
+# 방향지시등 유지 시간(초). vehicle_monitor의 left/right_signal은 레버 위치가 아니라
+# **램프 점멸 상태**를 2 Hz로 찍은 값이라, 지시등을 켠 동안에도 1,1,0,0으로 깜빡인다
+# (약 1.5 Hz 점멸이 2 Hz 샘플링에 겹친 에일리어싱). 점등 사이의 소등 구간은 2샘플(1초)
+# 이하가 약 98%다. 직전 메시지 하나만 보면 켠 시간의 절반가량을 '꺼짐'으로 읽으므로
+# (수치는 results/can_check.json), 직전 1.5초(3샘플) 안에 한 번이라도 점등이면 켜짐으로
+# 본다 — 인과적.
+SIGNAL_HOLD_S: float = 1.5
 
 
 # =====================================================================

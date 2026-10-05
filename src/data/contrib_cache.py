@@ -34,7 +34,7 @@ import time
 import numpy as np
 
 from src.labeling.label_function import LabelConfig, channel_risk_contributors
-from src.utils.constants import CAN_FEATURES, NUM_CAMERAS
+from src.utils.constants import CAN_FEATURES, NUM_CAMERAS, SIGNAL_HOLD_S
 
 # contributors 값에 실제로 영향을 주는 필드만 캐시 키에 넣는다.
 _KEY_FIELDS = ("categories", "max_range", "tau", "w_type",
@@ -46,8 +46,10 @@ _KEY_FIELDS = ("categories", "max_range", "tau", "w_type",
 def cache_key(cfg: LabelConfig) -> str:
     # CAN 특징 구성도 키에 넣는다. 없으면 특징을 늘려도 옛 캐시가 그대로 재사용돼
     # 새 특징이 에러 없이 0으로 들어간다(지시등 추가 때 실제로 그럴 뻔했다).
+    # 특징의 '정의'가 바뀌어도 마찬가지라 지시등 유지 시간도 넣는다.
     payload = json.dumps({**{k: getattr(cfg, k) for k in _KEY_FIELDS},
-                          "can_features": CAN_FEATURES},
+                          "can_features": CAN_FEATURES,
+                          "signal_hold_s": SIGNAL_HOLD_S},
                          sort_keys=True, ensure_ascii=False)
     return hashlib.sha1(payload.encode("utf-8")).hexdigest()[:8]
 

@@ -182,6 +182,9 @@ python scripts/03_visualize_labels.py --n 20
 # 4) 백본 특징 · 위험 기여 캐시 + 로더 검증
 python scripts/04_build_cache.py --version v1.0-mini
 
+# 4b) CAN 입력 검증 — 모델이 받는 속도·지시등을 원자료와 대조 → results/can_check.json
+python scripts/02d_can_check.py
+
 # 5) 학습
 python scripts/05_train.py --config configs/train_proposed.yaml
 python scripts/05_train.py --config configs/train_proposed.yaml --limit_samples 100   # 드라이런
@@ -197,14 +200,15 @@ python -m pytest tests/ -q
 
 | 계층 | 상태 |
 |---|---|
-| utils · data · labeling | 구현 완료 — 유닛테스트 57개. **M2 승인** (1차 20장 2026-10-04, 2차 표적 16장 2026-10-06, 맵 기준) |
-| 특징·데이터 캐시 | trainval 특징 캐시(204,894장, 473 MB) · 기여 캐시(CAN 7종) — **M3 완료** |
+| utils · data · labeling | 구현 완료 — 유닛테스트 62개(pytest). **M2 승인** (1차 20장 2026-10-04, 2차 표적 16장 2026-10-06, 맵 기준) |
+| 특징·데이터 캐시 | trainval 특징 캐시(204,894장, 473 MB) · 기여 캐시(CAN 7종, 지시등 점멸 보정 2026-10-06) — **M3 완료** |
 | models · 학습 루프 | 채널별 sigmoid + focal BCE, macro-AP 모델 선택, 지시등 입력 (M4) |
 | `baselines/rule_based.py` | B1·B2(오라클 기동)·B2c(과거만) — M5 |
 | `scripts/06_evaluate.py` | 공통 평가 + `--curve` 운영 곡선(같은 표시량 비교) — M5·M6 |
 | `scripts/06b_goldset_sample.py` · `tools/goldset_ui/` | 골드셋 300장 층화 추출 + 검수 UI — M6 (사용자 라벨링 대기) |
 | `configs/` B3·B4·A1·A2·A4·A5 | `inherit:` 상속 설정 — M7 |
-| `eval/robustness.py` · `scripts/07~08` | 미구현 — M7·M8 |
+| `scripts/07_robustness.py` | 유형별(누락·오검출·위치·카메라 고장) 강건성, 같은 표시량의 포착률 — M7 |
+| `scripts/08_make_figures.py` | 미구현 — M8 |
 | `data/interpolation.py` (2Hz→12Hz) | 선택 항목, 미구현 |
 
 ## 🗂️ 데이터셋
@@ -234,8 +238,10 @@ CAN (speed, steering, accel_x, accel_y, yaw_rate,
 ```
 
 - **방향지시등**은 운전자의 의도라 기동보다 먼저 켜진다 — 라벨이 최대 5초 앞서는 선제적
-  전환의 단서. 시점 이하의 직전 값만 쓰고, **라벨 판정에는 쓰지 않는다**(모델이 지시등만
+  전환의 단서. 시점 이하의 메시지만 쓰고, **라벨 판정에는 쓰지 않는다**(모델이 지시등만
   베끼는 지름길을 막기 위해). 라벨 검증 지표로만 쓴다.
+  CAN 값은 램프 점멸 상태라 켜 둔 동안에도 깜빡이므로 **직전 1.5초 안에 점등이 있으면 켜짐**으로
+  본다. 직전 값 하나만 쓰면 켜진 시간의 절반을 놓친다(`scripts/02d_can_check.py`).
 - **손실**: `BCE_focal(aux, mask) + α·KL(soft_label) + γ_l·CE(layout) + β·temporal_consistency`
   — 진행 방향 채널은 마스크로 제외(타깃 0으로 두면 "앞은 끄는 것"을 배운다)
 - **학습**: AdamW(lr=1e-4), cosine decay, WeightedRandomSampler, early stopping(**val macro-AP**).
