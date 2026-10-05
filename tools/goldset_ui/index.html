@@ -27,7 +27,20 @@ button:hover{border-color:var(--accent)}
 background:var(--surface);border:1px solid var(--rule);margin-bottom:10px}
 .bar .meta{font-family:var(--m);font-size:12px;color:var(--muted)}
 .bar .frame b{color:var(--accent)}
+.main{display:grid;grid-template-columns:1fr 300px;gap:10px;align-items:start}
+@media(max-width:1000px){.main{grid-template-columns:1fr}}
+.side{background:var(--surface);border:1px solid var(--rule);padding:10px}
+.side img{display:block;width:100%;height:auto;background:#fff}
+.side .kv{display:grid;grid-template-columns:auto 1fr;gap:4px 10px;margin-top:8px;font-size:13px}
+.side .kv b{font-family:var(--m)}
+.side .hint{font-size:12px;color:var(--muted);margin-top:8px;line-height:1.5}
+.strip{display:flex;gap:4px;margin-top:8px;flex-wrap:wrap}
+.strip span{font-family:var(--m);font-size:11px;padding:1px 6px;border:1px solid var(--rule);
+cursor:pointer;color:var(--muted)}
+.strip span.cur{background:var(--accent);color:#fff;border-color:var(--accent)}
+.strip span.now{font-weight:700}
 .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.grid.future .tile{opacity:.92}
 .tile{position:relative;background:#000;border:3px solid transparent;cursor:pointer;
 user-select:none}
 .tile img{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:cover}
@@ -71,10 +84,22 @@ background:var(--surface);color:var(--ink);border:1px solid var(--rule)}
 <div class="bar">
   <span class="meta" id="meta"></span>
   <span class="frame" id="frame"></span>
-  <span class="meta">← → 이동 · <kbd>[</kbd> <kbd>]</kbd> 과거/현재 프레임</span>
+  <span class="meta">← → 장면 이동 · <kbd>[</kbd> <kbd>]</kbd> 이전/이후 프레임</span>
 </div>
 
-<div class="grid" id="grid"></div>
+<div class="main">
+  <div><div class="grid" id="grid"></div></div>
+  <aside class="side">
+    <img id="route" alt="경로도">
+    <div class="kv">
+      <span>속도</span><b id="spd">—</b>
+      <span>방향지시등</span><b id="sig">—</b>
+    </div>
+    <div class="strip" id="strip"></div>
+    <p class="hint">회색 = 지난 1초, 청록 = 앞으로 5초. 노란 영역은 교차로, 하늘색은 주차장.
+      아래 시각을 누르거나 <kbd>[</kbd> <kbd>]</kbd>로 앞뒤 프레임을 볼 수 있습니다.</p>
+  </aside>
+</div>
 
 <div class="answer">
   <span class="state todo" id="state">아직 판정하지 않음</span>
@@ -90,11 +115,14 @@ background:var(--surface);color:var(--ink);border:1px solid var(--rule)}
   <p><b>"지금 오퍼레이터가 진행 방향 외에 추가로 봐야 할 화면"</b>을 고릅니다. 위험한 객체가 있거나,
     곧 할 기동(회전·차선변경) 때문에 확인이 필요한 방향입니다. 여러 개를 골라도 되고, 볼 것이 없으면
     <b>강조 불필요</b>로 표시합니다. 진행 방향 화면(초록 테두리)은 항상 보이므로 고르지 않습니다.</p>
+  <p><b>오퍼레이터는 자기가 어디로 갈지 안다고 가정합니다.</b> 오른쪽 경로도와 이후 프레임
+    (<kbd>]</kbd>)으로 차량이 실제로 어디로 갔는지 확인한 뒤, 그 계획을 가진 운전자가
+    <b>현재 프레임 시점에</b> 무엇을 확인해야 하는지로 판단해 주세요.</p>
   <ul>
     <li><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> 윗줄(좌전·전방·우전), <kbd>4</kbd><kbd>5</kbd><kbd>6</kbd> 아랫줄(좌후·후방·우후) — 켜고 끄기. 화면을 눌러도 됩니다</li>
     <li><kbd>0</kbd> 강조 불필요 — 볼 것이 없다는 판정(미판정과 구분됩니다)</li>
     <li><kbd>H</kbd> 애매 표시 · <kbd>Enter</kbd> 또는 <kbd>→</kbd> 다음 · <kbd>←</kbd> 이전</li>
-    <li><kbd>[</kbd> <kbd>]</kbd> 과거 프레임 보기 — 움직임 방향을 판단할 때 씁니다(현재 프레임 기준으로 답합니다)</li>
+    <li><kbd>[</kbd> <kbd>]</kbd> 이전·이후 프레임 보기(과거 1초 ~ 미래 5초) — 판정은 언제나 <b>현재 프레임 기준</b>입니다</li>
   </ul>
   <p>판정은 브라우저에 자동 저장됩니다. 다 끝나면 <b>결과 저장</b>으로 JSON을 받거나 <b>결과 복사</b>로 붙여넣어 주세요.
     라벨·모델의 답은 일부러 보여주지 않습니다 — 독립적인 판정이어야 평가가 순환하지 않습니다.</p>
@@ -130,7 +158,8 @@ background:var(--surface);color:var(--ink);border:1px solid var(--rule)}
 
   function render() {
     const it = ITEMS[idx];
-    if (fi === null) fi = it.frames.length - 1;
+    const now = (it.now_index ?? it.frames.length - 1);
+    if (fi === null) fi = now;
     const fr = it.frames[fi];
     const ans = A[it.token] || {sel: [], done: false, none: false, hmm: false, note: ""};
     const primaryCam = CAMS[it.primary];
@@ -147,9 +176,22 @@ background:var(--surface);color:var(--ink);border:1px solid var(--rule)}
     });
 
     $("meta").textContent = `${idx + 1} / ${ITEMS.length} · ${it.scene} · ${it.token.slice(0, 8)}`;
-    $("frame").innerHTML = fi === it.frames.length - 1
-      ? "<b>현재 프레임</b>"
-      : `과거 프레임 <b>${fr.dt.toFixed(1)}초</b> (판정은 현재 기준)`;
+    $("frame").innerHTML = fi === now
+      ? "<b>현재 프레임</b> — 판정 기준"
+      : (fr.dt < 0 ? `과거 <b>${fr.dt.toFixed(1)}초</b>` : `이후 <b>+${fr.dt.toFixed(1)}초</b>`)
+        + " (판정은 현재 기준)";
+    $("grid").classList.toggle("future", fi > now);
+    if (it.route) $("route").src = it.route;
+    $("spd").textContent = it.speed_kmh != null ? `${it.speed_kmh} km/h` : "—";
+    $("sig").textContent = it.signal || "정보 없음";
+    $("strip").innerHTML = "";
+    it.frames.forEach((f, j) => {
+      const sp = document.createElement("span");
+      sp.textContent = j === now ? "현재" : (f.dt > 0 ? "+" : "") + f.dt.toFixed(1) + "s";
+      sp.className = (j === fi ? "cur " : "") + (j === now ? "now" : "");
+      sp.onclick = () => { fi = j; render(); };
+      $("strip").appendChild(sp);
+    });
     const st = $("state");
     if (!ans.done) { st.className = "state todo"; st.textContent = "아직 판정하지 않음"; }
     else if (ans.none) { st.className = "state none"; st.textContent = "강조 불필요"; }

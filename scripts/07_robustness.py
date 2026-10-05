@@ -42,6 +42,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from src.baselines.rule_based import RuleBased  # noqa: E402
 from src.models.proposed import ModelConfig, ViewSelector  # noqa: E402
 from src.utils.config import load_cfgs  # noqa: E402
+from src.utils.plotting import use_korean_font  # noqa: E402
 
 _spec = importlib.util.spec_from_file_location(
     "ev", os.path.join(os.path.dirname(__file__), "06_evaluate.py"))
@@ -101,7 +102,15 @@ def main() -> int:
     ap.add_argument("--extra_name", default="A2")
     ap.add_argument("--types", default=",".join(TYPES))
     ap.add_argument("--out_dir", default="results/robustness")
+    ap.add_argument("--plot_only", action="store_true", help="저장된 json으로 표·그림만 다시 만든다")
     args = ap.parse_args()
+
+    stem = os.path.join(args.out_dir, f"robustness_{args.split}")
+    if args.plot_only:
+        with open(stem + ".json", encoding="utf-8") as f:
+            out = json.load(f)
+        write_report(out, args, stem)
+        return 0
 
     base, lab, tc = load_cfgs(args.config)
     version = base["version"]
@@ -143,15 +152,19 @@ def main() -> int:
         print(f"  {typ:5s} {lv:6s}  {s}")
 
     os.makedirs(args.out_dir, exist_ok=True)
-    stem = os.path.join(args.out_dir, f"robustness_{args.split}")
     with open(stem + ".json", "w", encoding="utf-8") as f:
         json.dump(out, f, ensure_ascii=False, indent=2)
+    write_report(out, args, stem)
+    return 0
 
+
+def write_report(out, args, stem):
+    load, ckpt = out["load"], out["ckpt"]
     # ---- 표 ----
     names = list(out["results"][0]["at_load"].keys())
     clean = out["results"][0]["at_load"]
-    lines = [f"# 강건성 — {args.split} 분할, 같은 표시량({load:.2f}장)에서의 위험 사건 포착률\n",
-             f"모델: `{ckpt}`" + (f" · {args.extra_name}: `{args.extra_ckpt}`" if args.extra_ckpt else "") + "\n"]
+    lines = [f"# 강건성 — {out['split']} 분할, 같은 표시량({load:.2f}장)에서의 위험 사건 포착률\n",
+             f"모델: `{ckpt}`" + (f" · {args.extra_name}: `{out['extra']}`" if out.get("extra") else "") + "\n"]
     for typ in args.types.split(","):
         rows = [out["results"][0]] + [r for r in out["results"] if r["type"] == typ]
         lines.append(f"\n## {TYPE_KO[typ]} ({typ})\n")
@@ -176,7 +189,7 @@ def main() -> int:
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
-    plt.rcParams["font.family"] = ["Malgun Gothic", "NanumGothic", "DejaVu Sans"]
+    use_korean_font()
     types = args.types.split(",")
     fig, axes = plt.subplots(1, len(types), figsize=(4.2 * len(types), 3.6), sharey=True)
     axes = np.atleast_1d(axes)
@@ -198,7 +211,6 @@ def main() -> int:
     fig.tight_layout()
     fig.savefig(stem + ".png", dpi=150)
     print(f"\n✅ {stem}.json · .md · .png")
-    return 0
 
 
 if __name__ == "__main__":
