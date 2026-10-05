@@ -1,0 +1,8 @@
+# 입력 시간 확장 실험 — 2초(4프레임) → 5초(10프레임).
+# 강건성 val에서 모델이 clean 입력에서도 규칙보다 7%p 낮았다(91.0 vs 98.1%). 규칙은 scene 전체
+# 이력으로 위험을 평균하는데 모델은 2초만 본다 — 이 차이가 원인인지 확인한다.
+# 효과가 확인되면 train_proposed의 seq_len과 명세 B.5(T=4)를 바꾼다.
+inherit: train_proposed.yaml
+exp_name: proposed_t10
+train:
+  seq_len: 10

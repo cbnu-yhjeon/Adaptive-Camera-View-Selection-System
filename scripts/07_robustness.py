@@ -103,9 +103,10 @@ def main() -> int:
     ap.add_argument("--types", default=",".join(TYPES))
     ap.add_argument("--out_dir", default="results/robustness")
     ap.add_argument("--plot_only", action="store_true", help="저장된 json으로 표·그림만 다시 만든다")
+    ap.add_argument("--tag", default="", help="결과 파일 이름 꼬리표 (예: t10) — 다른 실험 결과를 덮어쓰지 않게")
     args = ap.parse_args()
 
-    stem = os.path.join(args.out_dir, f"robustness_{args.split}")
+    stem = os.path.join(args.out_dir, f"robustness_{args.split}" + (f"_{args.tag}" if args.tag else ""))
     if args.plot_only:
         with open(stem + ".json", encoding="utf-8") as f:
             out = json.load(f)
