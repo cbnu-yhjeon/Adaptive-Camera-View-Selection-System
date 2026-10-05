@@ -26,3 +26,6 @@ results/figures/
 # 골드셋 UI 생성물 — 이미지·목록은 06b_goldset_sample.py가 다시 만든다
 tools/goldset_ui/img/
 tools/goldset_ui/manifest.js
+
+# 실행 로그 (결과는 results/에 metrics.json으로 남는다)
+logs/
