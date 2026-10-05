@@ -1,0 +1,3024 @@
+{
+  "meta": {
+    "version": "v1.0-trainval",
+    "split": "test",
+    "seed": 42,
+    "per_stratum": 100,
+    "stratum_sizes": {
+      "S3_rest": 3991,
+      "S1_hazard": 671,
+      "S2_maneuver": 446
+    },
+    "cameras": [
+      "CAM_FRONT",
+      "CAM_FRONT_RIGHT",
+      "CAM_BACK_RIGHT",
+      "CAM_BACK",
+      "CAM_BACK_LEFT",
+      "CAM_FRONT_LEFT"
+    ],
+    "n": 300
+  },
+  "items": [
+    {
+      "token": "1726d8492bf34087bcfe3698d50ba220",
+      "stratum": "S1_hazard",
+      "n_stratum": 671,
+      "weight": 6.71,
+      "scene": "scene-0861",
+      "scene_token": "748894952b00431186308b387c2f424c",
+      "timestamp": 1538986191.197642,
+      "primary": 0
+    },
+    {
+      "token": "4bf2c99759564d06b8d96b64afeac092",
+      "stratum": "S1_hazard",
+      "n_stratum": 671,
+      "weight": 6.71,
+      "scene": "scene-0418",
+      "scene_token": "b526c20f7eed49f0886cdb4ba6b733e8",
+      "timestamp": 1538034020.697084,
+      "primary": 0
+    },
+    {
+      "token": "f353dcfe913d4c5ea950989e2bfc7be2",
+      "stratum": "S3_rest",
+      "n_stratum": 3991,
+      "weight": 39.91,
+      "scene": "scene-0803",
+      "scene_token": "5560a973257e407b8d5bf9fb92b1e0f3",
+      "timestamp": 1537298858.651103,
+      "primary": 0
+    },
+    {
+      "token": "2da5b4573e734cc698798e40cfe542f0",
+      "stratum": "S3_rest",
+      "n_stratum": 3991,
+      "weight": 39.91,
+      "scene": "scene-0648",
+      "scene_token": "a6fae4900f8e46cba689b59b5bc8a2ab",
+      "timestamp": 1537296509.299507,
+      "primary": 0
+    },
+    {
+      "token": "ca2ccf8ad7aa4da183fcd9c96d75e21e",
+      "stratum": "S1_hazard",
+      "n_stratum": 671,
+      "weight": 6.71,
+      "scene": "scene-0708",
+      "scene_token": "fe3aa64e4339456186c38c6308f5fb1a",
+      "timestamp": 1535573375.047749,
+      "primary": 0
+    },
+    {
+      "token": "93f86b5f03374b2f886e3e51ccd2be71",
+      "stratum": "S3_rest",
+      "n_stratum": 3991,
+      "weight": 39.91,
+      "scene": "scene-0240",
+      "scene_token": "d865cb18632040fdb4cb06b6e3331cdb",
+      "timestamp": 1532708698.198271,
+      "primary": 0
+    },
+    {
+      "token": "410dea74acf640189bdf89c5b0f64265",
+      "stratum": "S3_rest",
+      "n_stratum": 3991,
+      "weight": 39.91,
+      "scene": "scene-0016",
+      "scene_token": "efa5c96f05594f41a2498eb9f2e7ad99",
+      "timestamp": 1531885619.448111,
+      "primary": 0
+    },
+    {
+      "token": "38ff62778a064f7baaf323a2dc994eb9",
+      "stratum": "S3_rest",
+      "n_stratum": 3991,
+      "weight": 39.91,
+      "scene": "scene-0994",
+      "scene_token": "e71f69d57d944b6cb0ffc516a88b6104",
+      "timestamp": 1542193171.448557,
+      "primary": 0
+    },
+    {
+      "token": "b7054aad1b4d4bc59ecde0d0d0acd369",
+      "stratum": "S1_hazard",
+      "n_stratum": 671,
+      "weight": 6.71,
+      "scene": "scene-0016",
+      "scene_token": "efa5c96f05594f41a2498eb9f2e7ad99",
+      "timestamp": 1531885628.449199,
+      "primary": 0
+    },
+    {
+      "token": "d64e599dc5c64226895649debdd49793",
+      "stratum": "S2_maneuver",
+      "n_stratum": 446,
+      "weight": 4.46,
+      "scene": "scene-0016",
+      "scene_token": "efa5c96f05594f41a2498eb9f2e7ad99",
+      "timestamp": 1531885614.44935,
+      "primary": 0
+    },
+    {
+      "token": "52f2da122cdf459a8dbb57278e3cdf25",
+      "stratum": "S1_hazard",
+      "n_stratum": 671,
+      "weight": 6.71,
+      "scene": "scene-0398",
+      "scene_token": "b519ec833e23450a8bd3340b67f2516b",
+      "timestamp": 1535731415.897916,
+      "primary": 0
+    },
+    {
+      "token": "5527b3b156854b79b051338b7fe6a23d",
+      "stratum": "S2_maneuver",
+      "n_stratum": 446,
+      "weight": 4.46,
+      "scene": "scene-0379",
+      "scene_token": "90d616aaefc4429380388205ebb23398",
+      "timestamp": 1533281191.199049,
+      "primary": 0
+    },
+    {
+      "token": "28f2c9aaface4824947f887d6fcb744b",
+      "stratum": "S2_maneuver",
+      "n_stratum": 446,
+      "weight": 4.46,
+      "scene": "scene-0769",
+      "scene_token": "1e9283d1ce98428aaa3b851487eb4f58",
+      "timestamp": 1535657483.69952,
+      "primary": 0
+    },
+    {
+      "token": "9fd26782b9cd4fa19a53354c0400be76",
+      "stratum": "S2_maneuver",
+      "n_stratum": 446,
+      "weight": 4.46,
+      "scene": "scene-0998",
+      "scene_token": "242ac1b59fec4e0c9c200ffca81775e2",
+      "timestamp": 1542193276.64981,
+      "primary": 0
+    },
+    {
+      "token": "a131cf4a62db40988f518d63e3f35d36",
+      "stratum": "S1_hazard",
+      "n_stratum": 671,
+      "weight": 6.71,
+      "scene": "scene-0797",
+      "scene_token": "f24b4682fbb9482aba149534deed1cc9",
+      "timestamp": 1538448771.697498,
+      "primary": 0
+    },
+    {
+      "token": "b72f2f5db001422aad91c243b2cbb716",
+      "stratum": "S1_hazard",
+      "n_stratum": 671,
+      "weight": 6.71,
+      "scene": "scene-0066",
+      "scene_token": "30e77a3561ce4f1bb4fd90e322ea29d7",
+      "timestamp": 1533153412.447154,
+      "primary": 0
+    },
+    {
+      "token": "01a54c09e5db4487b8b9f7c9baa8403a",
+      "stratum": "S3_rest",
+      "n_stratum": 3991,
+      "weight": 39.91,
+      "scene": "scene-0383",
+      "scene_token": "e0a22086a94f48e5bbd4c4e7916b2106",
+      "timestamp": 1533281532.65095,
+      "primary": 0
+    },
+    {
+      "token": "fcd522474ba34412acebe1a90a7ab181",
+      "stratum": "S1_hazard",
+      "n_stratum": 671,
+      "weight": 6.71,
+      "scene": "scene-0398",
+      "scene_token": "b519ec833e23450a8bd3340b67f2516b",
+      "timestamp": 1535731409.449284,
+      "primary": 0
+    },
+    {
+      "token": "3a0095caaf5b4db2aa0defac74872531",
+      "stratum": "S1_hazard",
+      "n_stratum": 671,
+      "weight": 6.71,
+      "scene": "scene-0369",
+      "scene_token": "a1b51c02d8414856a86c0c37e4789c2f",
+      "timestamp": 1533280086.149947,
+      "primary": 0
+    },
+    {
+      "token": "56083b0f7e544fdba33c40488103653e",
+      "stratum": "S2_maneuver",
+      "n_stratum": 446,
+      "weight": 4.46,
+      "scene": "scene-0386",
+      "scene_token": "11058d54abcd4829828523040372ce05",
+      "timestamp": 1533281890.550035,
+      "primary": 0
+    },
+    {
+      "token": "4523fb98c35940f1a47555072262965d",
+      "stratum": "S1_hazard",
+      "n_stratum": 671,
+      "weight": 6.71,
+      "scene": "scene-0275",
+      "scene_token": "8377abf77f464a9cb62eacf63f383422",
+      "timestamp": 1531281862.648709,
+      "primary": 0
+    },
+    {
+      "token": "9a851ada7d2c408eb7c0a2b1951ea039",
+      "stratum": "S2_maneuver",
+      "n_stratum": 446,
+      "weight": 4.46,
+      "scene": "scene-0149",
+      "scene_token": "1fbcc26ebf6948bb964d3ae74939e8ea",
+      "timestamp": 1533114267.697383,
+      "primary": 0
+    },
+    {
+      "token": "e961b547d4514eb3bab9debf6191bff0",
+      "stratum": "S1_hazard",
+      "n_stratum": 671,
+      "weight": 6.71,
+      "scene": "scene-0068",
+      "scene_token": "b0b26c1e5a1140e69598422f12ae1dc0",
+      "timestamp": 1533153466.89717,
+      "primary": 0
+    },
+    {
+      "token": "a565248e672a4ceabf14578c92d52ed8",
+      "stratum": "S3_rest",
+      "n_stratum": 3991,
+      "weight": 39.91,
+      "scene": "scene-0994",
+      "scene_token": "e71f69d57d944b6cb0ffc516a88b6104",
+      "timestamp": 1542193170.448832,
+      "primary": 0
+    },
+    {
+      "token": "b8aa35510eae475f98cdbdf67e8531da",
+      "stratum": "S2_maneuver",
+      "n_stratum": 446,
+      "weight": 4.46,
+      "scene": "scene-1069",
+      "scene_token": "d29527ec841045d18d04a933e7a0afd2",
+      "timestamp": 1542799623.148151,
+      "primary": 0
+    },
+    {
+      "token": "db58db60c9cb4c2ab38c643b5de332ec",
+      "stratum": "S1_hazard",
+      "n_stratum": 671,
+      "weight": 6.71,
+      "scene": "scene-0246",
+      "scene_token": "d1ac8e27ba8944a4a42a488cf2fedd74",
+      "timestamp": 1534867233.79949,
+      "primary": 0
+    },
+    {
+      "token": "7f611811c7d14a8193cd183412e23960",
+      "stratum": "S1_hazard",
+      "n_stratum": 671,
+      "weight": 6.71,
+      "scene": "scene-0856",
+      "scene_token": "5dd272b76c3f4e2582040a91f2be2dde",
+      "timestamp": 1538986052.697688,
+      "primary": 0
+    },
+    {
+      "token": "58f7c0b5ec254ceaaa5ace8bd71b416e",
+      "stratum": "S1_hazard",
+      "n_stratum": 671,
+      "weight": 6.71,
+      "scene": "scene-0379",
+      "scene_token": "90d616aaefc4429380388205ebb23398",
+      "timestamp": 1533281198.301273,
+      "primary": 0
+    },
+    {
+      "token": "cc8d4c547001442dad2c46fa7f2306c4",
+      "stratum": "S1_hazard",
+      "n_stratum": 671,
+      "weight": 6.71,
+      "scene": "scene-0926",
+      "scene_token": "c4df079d260241ff8015218e29b42ea7",
+      "timestamp": 1538984959.897143,
+      "primary": 0
+    },
+    {
+      "token": "b6288b6da11144fea3dd42b7255b3021",
+      "stratum": "S2_maneuver",
+      "n_stratum": 446,
+      "weight": 4.46,
+      "scene": "scene-0379",
+      "scene_token": "90d616aaefc4429380388205ebb23398",
+      "timestamp": 1533281192.64891,
+      "primary": 0
+    },
+    {
+      "token": "77b6b67d28e0452fa935055d4afccdd2",
+      "stratum": "S1_hazard",
+      "n_stratum": 671,
+      "weight": 6.71,
+      "scene": "scene-1092",
+      "scene_token": "d2db9f5df62c4d338d3bed43f616b954",
+      "timestamp": 1542800802.647385,
+      "primary": 0
+    },
+    {
+      "token": "79bba29228ba4b42909ab5782955cda7",
+      "stratum": "S3_rest",
+      "n_stratum": 3991,
+      "weight": 39.91,
+      "scene": "scene-0994",
+      "scene_token": "e71f69d57d944b6cb0ffc516a88b6104",
+      "timestamp": 1542193162.148907,
+      "primary": 0
+    },
+    {
+      "token": "f697b219e40544059d8ed14c3b74abae",
+      "stratum": "S2_maneuver",
+      "n_stratum": 446,
+      "weight": 4.46,
+      "scene": "scene-0558",
+      "scene_token": "952cb0bcd89b4ca4b904cdcbbf595523",
+      "timestamp": 1535730322.198768,
+      "primary": 0
+    },
+    {
+      "token": "4eb7e90e9c9b4a978114a83f3a825d6b",
+      "stratum": "S1_hazard",
+      "n_stratum": 671,
+      "weight": 6.71,
+      "scene": "scene-0397",
+      "scene_token": "fd2d419d4cf84a2d84922b9b7d2cea4d",
+      "timestamp": 1535731398.199309,
+      "primary": 0
+    },
+    {
+      "token": "edfef5d57bc04907a10cdba6837ccd5c",
+      "stratum": "S3_rest",
+      "n_stratum": 3991,
+      "weight": 39.91,
+      "scene": "scene-0220",
+      "scene_token": "81227a12571240e0b9d537165f57e177",
+      "timestamp": 1532707826.050374,
+      "primary": 0
+    },
+    {
+      "token": "9a008c40488c4a5db2e0bb9420fcc1b3",
+      "stratum": "S2_maneuver",
+      "n_stratum": 446,
+      "weight": 4.46,
+      "scene": "scene-0369",
+      "scene_token": "a1b51c02d8414856a86c0c37e4789c2f",
+      "timestamp": 1533280088.149995,
+      "primary": 0
+    },
+    {
+      "token": "60f69450e83440ca822610054f48e17e",
+      "stratum": "S2_maneuver",
+      "n_stratum": 446,
+      "weight": 4.46,
+      "scene": "scene-0636",
+      "scene_token": "19d97841d6f64eba9f6eb9b6e8c257dc",
+      "timestamp": 1537296126.949538,
+      "primary": 0
+    },
+    {
+      "token": "4e56a7a63b984597844eb55df9a2ba21",
+      "stratum": "S2_maneuver",
+      "n_stratum": 446,
+      "weight": 4.46,
+      "scene": "scene-0971",
+      "scene_token": "64bfc5edd71147858ce7446892d7f864",
+      "timestamp": 1537853020.198834,
+      "primary": 0
+    },
+    {
+      "token": "a7137102e2b5484cafb4004e341b218d",
+      "stratum": "S3_rest",
+      "n_stratum": 3991,
+      "weight": 39.91,
+      "scene": "scene-0710",
+      "scene_token": "0c13be31e9854d97960d1af570db433f",
+      "timestamp": 1535573425.549058,
+      "primary": 0
+    },
+    {
+      "token": "311d52bcf034477d9bd1fd3bc50b51df",
+      "stratum": "S1_hazard",
+      "n_stratum": 671,
+      "weight": 6.71,
+      "scene": "scene-0797",
+      "scene_token": "f24b4682fbb9482aba149534deed1cc9",
+      "timestamp": 1538448776.198048,
+      "primary": 0
+    },
+    {
+      "token": "976b81713430463b9ffeb99f8d3ed874",
+      "stratum": "S2_maneuver",
+      "n_stratum": 446,
+      "weight": 4.46,
+      "scene": "scene-0627",
+      "scene_token": "5301151d8b6a42b0b252e95634bd3995",
+      "timestamp": 1537295891.148975,
+      "primary": 0
+    },
+    {
+      "token": "06475e803e614d958b79c9c28ab40e38",
+      "stratum": "S3_rest",
+      "n_stratum": 3991,
+      "weight": 39.91,
+      "scene": "scene-0373",
+      "scene_token": "10dfdae842b543938a230f25a1e9f934",
+      "timestamp": 1533280297.400511,
+      "primary": 0
+    },
+    {
+      "token": "78989332f49b47ada534ecfe51c78dd5",
+      "stratum": "S2_maneuver",
+      "n_stratum": 446,
+      "weight": 4.46,
+      "scene": "scene-0926",
+      "scene_token": "c4df079d260241ff8015218e29b42ea7",
+      "timestamp": 1538984951.947803,
+      "primary": 0
+    },
+    {
+      "token": "4afe649e7e4344f79923264b7bc32c21",
+      "stratum": "S3_rest",
+      "n_stratum": 3991,
+      "weight": 39.91,
+      "scene": "scene-1071",
+      "scene_token": "0dae482684ce4cd69a7258f55bc98d73",
+      "timestamp": 1542799664.647828,
+      "primary": 0
+    },
+    {
+      "token": "f545dfb9637b4e7293b9418e167c9698",
+      "stratum": "S2_maneuver",
+      "n_stratum": 446,
+      "weight": 4.46,
+      "scene": "scene-0856",
+      "scene_token": "5dd272b76c3f4e2582040a91f2be2dde",
+      "timestamp": 1538986051.19805,
+      "primary": 0
+    },
+    {
+      "token": "171c637d2681463fad3bf01068fab647",
+      "stratum": "S1_hazard",
+      "n_stratum": 671,
+      "weight": 6.71,
+      "scene": "scene-0052",
+      "scene_token": "37b32e4e8cf846679b2c0cb342dbd4aa",
+      "timestamp": 1532402326.147237,
+      "primary": 0
+    },
+    {
+      "token": "4ba9d5d36136413b8c6c61490f09fdac",
+      "stratum": "S1_hazard",
+      "n_stratum": 671,
+      "weight": 6.71,
+      "scene": "scene-0797",
+      "scene_token": "f24b4682fbb9482aba149534deed1cc9",
+      "timestamp": 1538448775.698168,
+      "primary": 0
+    },
+    {
+      "token": "8df9376254584396bdfaa521242b4757",
+      "stratum": "S3_rest",
+      "n_stratum": 3991,
+      "weight": 39.91,
+      "scene": "scene-0002",
+      "scene_token": "c3e0e9f6ee8d4170a3d22a6179f1ca3a",
+      "timestamp": 1531883737.949919,
+      "primary": 0
+    },
+    {
+      "token": "ceea95b1bc5444c9a258f02eb1ab6986",
+      "stratum": "S3_rest",
+      "n_stratum": 3991,
+      "weight": 39.91,
+      "scene": "scene-0384",
+      "scene_token": "25f40f7316954a3e978e24d691e1a117",
+      "timestamp": 1533281605.699745,
+      "primary": 0
+    },
+    {
+      "token": "ec26895cc1f04ad990d04fc1f1a426fa",
+      "stratum": "S2_maneuver",
+      "n_stratum": 446,
+      "weight": 4.46,
+      "scene": "scene-0415",
+      "scene_token": "3be5ff913abf449bac92ce2d2a4cffa0",
+      "timestamp": 1538033965.197018,
+      "primary": 0
+    },
+    {
+      "token": "4087adbc4baa4e9fa22cceda297da3c0",
+      "stratum": "S2_maneuver",
+      "n_stratum": 446,
+      "weight": 4.46,
+      "scene": "scene-0475",
+      "scene_token": "8b60e7e47cde43e0a7fbd66d926de14f",
+      "timestamp": 1537290168.399162,
+      "primary": 0
+    },
+    {
+      "token": "e6e8246bd341467aa059457737cdfa7a",
+      "stratum": "S3_rest",
+      "n_stratum": 3991,
+      "weight": 39.91,
+      "scene": "scene-0771",
+      "scene_token": "21a7ba093614493b83838b9656b3558d",
+      "timestamp": 1535657569.949148,
+      "primary": 0
+    },
+    {
+      "token": "7da6789f862e4dafb190347ef02f3af5",
+      "stratum": "S2_maneuver",
+      "n_stratum": 446,
+      "weight": 4.46,
+      "scene": "scene-0415",
+      "scene_token": "3be5ff913abf449bac92ce2d2a4cffa0",
+      "timestamp": 1538033952.797434,
+      "primary": 0
+    },
+    {
+      "token": "03cfc7933cca4d72ad1509263818e9fc",
+      "stratum": "S3_rest",
+      "n_stratum": 3991,
+      "weight": 39.91,
+      "scene": "scene-0821",
+      "scene_token": "64ca274b5f69458bb5d21e0e2e071902",
+      "timestamp": 1537299507.400153,
+      "primary": 0
+    },
+    {
+      "token": "6e75580faac94693acd7ece6419dcb88",
+      "stratum": "S1_hazard",
+      "n_stratum": 671,
+      "weight": 6.71,
+      "scene": "scene-0275",
+      "scene_token": "8377abf77f464a9cb62eacf63f383422",
+      "timestamp": 1531281863.148586,
+      "primary": 0
+    },
+    {
+      "token": "d5e1e84049a34a268eeb39ba3b6d415e",
+      "stratum": "S2_maneuver",
+      "n_stratum": 446,
+      "weight": 4.46,
+      "scene": "scene-0052",
+      "scene_token": "37b32e4e8cf846679b2c0cb342dbd4aa",
+      "timestamp": 1532402342.39816,
+      "primary": 0
+    },
+    {
+      "token": "c0e66c7dcc9545d1a08c22fb5c7980f8",
+      "stratum": "S2_maneuver",
+      "n_stratum": 446,
+      "weight": 4.46,
+      "scene": "scene-0157",
+      "scene_token": "d0b2d916178a402a842c88f394d7d7e8",
+      "timestamp": 1533115036.89718,
+      "primary": 0
+    },
+    {
+      "token": "f6c4cb03fbb44ccfb19d19fae99480c8",
+      "stratum": "S2_maneuver",
+      "n_stratum": 446,
+      "weight": 4.46,
+      "scene": "scene-0636",
+      "scene_token": "19d97841d6f64eba9f6eb9b6e8c257dc",
+      "timestamp": 1537296129.950981,
+      "primary": 0
+    },
+    {
+      "token": "c68e879286184edf81a76add0f68f824",
+      "stratum": "S2_maneuver",
+      "n_stratum": 446,
+      "weight": 4.46,
+      "scene": "scene-0386",
+      "scene_token": "11058d54abcd4829828523040372ce05",
+      "timestamp": 1533281891.65043,
+      "primary": 0
+    },
+    {
+      "token": "9c72dd90b3254063b7f0e3e1132c16eb",
+      "stratum": "S1_hazard",
+      "n_stratum": 671,
+      "weight": 6.71,
+      "scene": "scene-0178",
+      "scene_token": "f4395dd8e4004f12a8dec3079a93d804",
+      "timestamp": 1532662717.049232,
+      "primary": 0
+    },
+    {
+      "token": "b11185c9e7aa48b1931a347e972b707d",
+      "stratum": "S2_maneuver",
+      "n_stratum": 446,
+      "weight": 4.46,
+      "scene": "scene-0627",
+      "scene_token": "5301151d8b6a42b0b252e95634bd3995",
+      "timestamp": 1537295876.898117,
+      "primary": 0
+    },
+    {
+      "token": "5756a94c98264ba781f923da0e3cd5c6",
+      "stratum": "S3_rest",
+      "n_stratum": 3991,
+      "weight": 39.91,
+      "scene": "scene-0182",
+      "scene_token": "2c1f2e5096434cd78919b2ae442d4ba4",
+      "timestamp": 1532662859.449201,
+      "primary": 0
+    },
+    {
+      "token": "5654ba942df44de2906fef8b6e7a80ad",
+      "stratum": "S1_hazard",
+      "n_stratum": 671,
+      "weight": 6.71,
+      "scene": "scene-1051",
+      "scene_token": "bc5daf905b854dbc8944811c4b7c319d",
+      "timestamp": 1542798852.648246,
+      "primary": 0
+    },
+    {
+      "token": "835b3413b9674cbbb52a3f7649012668",
+      "stratum": "S1_hazard",
+      "n_stratum": 671,
+      "weight": 6.71,
+      "scene": "scene-1092",
+      "scene_token": "d2db9f5df62c4d338d3bed43f616b954",
+      "timestamp": 1542800788.947817,
+      "primary": 0
+    },
+    {
+      "token": "0bff0ec75b73403884dd3d00ad31f252",
+      "stratum": "S2_maneuver",
+      "n_stratum": 446,
+      "weight": 4.46,
+      "scene": "scene-0654",
+      "scene_token": "9056ac9944e846109b00e31cc96259cb",
+      "timestamp": 1535385052.650668,
+      "primary": 0
+    },
+    {
+      "token": "bd569e1b8f1343829ce6268af899ee59",
+      "stratum": "S1_hazard",
+      "n_stratum": 671,
+      "weight": 6.71,
+      "scene": "scene-0397",
+      "scene_token": "fd2d419d4cf84a2d84922b9b7d2cea4d",
+      "timestamp": 1535731397.197351,
+      "primary": 0
+    },
+    {
+      "token": "76f6776b1cee45e08e16e6333b56f979",
+      "stratum": "S1_hazard",
+      "n_stratum": 671,
+      "weight": 6.71,
+      "scene": "scene-0362",
+      "scene_token": "4098aaf3c7074e7d87285e2fc95369e0",
+      "timestamp": 1533279684.700252,
+      "primary": 0
+    },
+    {
+      "token": "aeaa12755c71497d9f542c238746b3c5",
+      "stratum": "S1_hazard",
+      "n_stratum": 671,
+      "weight": 6.71,
+      "scene": "scene-1092",
+      "scene_token": "d2db9f5df62c4d338d3bed43f616b954",
+      "timestamp": 1542800790.397086,
+      "primary": 0
+    },
+    {
+      "token": "422aa6bc1fd842969a9e463a5665e081",
+      "stratum": "S1_hazard",
+      "n_stratum": 671,
+      "weight": 6.71,
+      "scene": "scene-0810",
+      "scene_token": "717053dec2ef4baa913ba1e24c09edff",
+      "timestamp": 1537299006.199173,
+      "primary": 0
+    },
+    {
+      "token": "d15f47e4e0224101ada8ab632200a78e",
+      "stratum": "S3_rest",
+      "n_stratum": 3991,
+      "weight": 39.91,
+      "scene": "scene-0696",
+      "scene_token": "c133e78e55ae487c821803a3b183d1ab",
+      "timestamp": 1535573089.948541,
+      "primary": 0
+    },
+    {
+      "token": "f7bcdb210c3848d49713f6a813e1b680",
+      "stratum": "S2_maneuver",
+      "n_stratum": 446,
+      "weight": 4.46,
+      "scene": "scene-0369",
+      "scene_token": "a1b51c02d8414856a86c0c37e4789c2f",
+      "timestamp": 1533280088.649314,
+      "primary": 0
+    },
+    {
+      "token": "e3d9eb19e11543629c860c1511e48f10",
+      "stratum": "S2_maneuver",
+      "n_stratum": 446,
+      "weight": 4.46,
+      "scene": "scene-0383",
+      "scene_token": "e0a22086a94f48e5bbd4c4e7916b2106",
+      "timestamp": 1533281524.200053,
+      "primary": 0
+    },
+    {
+      "token": "e6f61ee48e3e4c69ba2731eb14fe806c",
+      "stratum": "S1_hazard",
+      "n_stratum": 671,
+      "weight": 6.71,
+      "scene": "scene-0397",
+      "scene_token": "fd2d419d4cf84a2d84922b9b7d2cea4d",
+      "timestamp": 1535731392.199692,
+      "primary": 0
+    },
+    {
+      "token": "c43f484292584b2d8837d673c30a075e",
+      "stratum": "S1_hazard",
+      "n_stratum": 671,
+      "weight": 6.71,
+      "scene": "scene-0045",
+      "scene_token": "eac3102e4cc24d4b95532bcc711a902f",
+      "timestamp": 1532402004.298875,
+      "primary": 0
+    },
+    {
+      "token": "b02861c8f2da4f4d9997b262dd21a707",
+      "stratum": "S2_maneuver",
+      "n_stratum": 446,
+      "weight": 4.46,
+      "scene": "scene-0157",
+      "scene_token": "d0b2d916178a402a842c88f394d7d7e8",
+      "timestamp": 1533115034.397256,
+      "primary": 0
+    },
+    {
+      "token": "3c3973f25b8c400fbae8df9e6fe520f5",
+      "stratum": "S2_maneuver",
+      "n_stratum": 446,
+      "weight": 4.46,
+      "scene": "scene-0052",
+      "scene_token": "37b32e4e8cf846679b2c0cb342dbd4aa",
+      "timestamp": 1532402339.548213,
+      "primary": 0
+    },
+    {
+      "token": "956027b87e5242ec9d9d22c8be48b7ac",
+      "stratum": "S1_hazard",
+      "n_stratum": 671,
+      "weight": 6.71,
+      "scene": "scene-0971",
+      "scene_token": "64bfc5edd71147858ce7446892d7f864",
+      "timestamp": 1537853015.198764,
+      "primary": 0
+    },
+    {
+      "token": "835832dc651d4524b9a56d9f85160581",
+      "stratum": "S3_rest",
+      "n_stratum": 3991,
+      "weight": 39.91,
+      "scene": "scene-0182",
+      "scene_token": "2c1f2e5096434cd78919b2ae442d4ba4",
+      "timestamp": 1532662847.448317,
+      "primary": 0
+    },
+    {
+      "token": "d1128584076d4fa2bd256d3584340018",
+      "stratum": "S1_hazard",
+      "n_stratum": 671,
+      "weight": 6.71,
+      "scene": "scene-0998",
+      "scene_token": "242ac1b59fec4e0c9c200ffca81775e2",
+      "timestamp": 1542193266.448245,
+      "primary": 0
+    },
+    {
+      "token": "7534f0ab93144c6fa1d8b65887480b6c",
+      "stratum": "S3_rest",
+      "n_stratum": 3991,
+      "weight": 39.91,
+      "scene": "scene-0152",
+      "scene_token": "bd210a5bc7004d8c94b68cf6366612a2",
+      "timestamp": 1533114394.898126,
+      "primary": 0
+    },
+    {
+      "token": "4a8ffe294d3c4b5b8bdfd35bfa3ca6d8",
+      "stratum": "S2_maneuver",
+      "n_stratum": 446,
+      "weight": 4.46,
+      "scene": "scene-1058",
+      "scene_token": "bfe368f8c6a44efcb323a82f6974a9a6",
+      "timestamp": 1542799161.14762,
+      "primary": 0
+    },
+    {
+      "token": "69709e1644cc462789309afa05976424",
+      "stratum": "S1_hazard",
+      "n_stratum": 671,
+      "weight": 6.71,
+      "scene": "scene-1081",
+      "scene_token": "26c089d84086473e87607ae5c6ae85c6",
+      "timestamp": 1542800455.948452,
+      "primary": 0
+    },
+    {
+      "token": "0380a039d81b449ca8ee0367163e7008",
+      "stratum": "S3_rest",
+      "n_stratum": 3991,
+      "weight": 39.91,
+      "scene": "scene-0157",
+      "scene_token": "d0b2d916178a402a842c88f394d7d7e8",
+      "timestamp": 1533115029.446586,
+      "primary": 0
+    },
+    {
+      "token": "e46d1e679c5d4011af59ea3f71742429",
+      "stratum": "S3_rest",
+      "n_stratum": 3991,
+      "weight": 39.91,
+      "scene": "scene-0675",
+      "scene_token": "3b5f3391078e48ac92600cbdfa4ccbe6",
+      "timestamp": 1535487950.546535,
+      "primary": 0
+    },
+    {
+      "token": "d496df824a3f42a185d9ce46a3caa335",
+      "stratum": "S3_rest",
+      "n_stratum": 3991,
+      "weight": 39.91,
+      "scene": "scene-0163",
+      "scene_token": "6ab3d1e9476d4cd89d4949d69d056901",
+      "timestamp": 1526915290.447655,
+      "primary": 0
+    },
+    {
+      "token": "53c68e2feb3c4184970ac9a218b966f9",
+      "stratum": "S3_rest",
+      "n_stratum": 3991,
+      "weight": 39.91,
+      "scene": "scene-0648",
+      "scene_token": "a6fae4900f8e46cba689b59b5bc8a2ab",
+      "timestamp": 1537296506.298567,
+      "primary": 0
+    },
+    {
+      "token": "32cf6f82dba04acc88e19894c8da64b6",
+      "stratum": "S3_rest",
+      "n_stratum": 3991,
+      "weight": 39.91,
+      "scene": "scene-0889",
+      "scene_token": "53e8446852bf488bb1b09ae032918bbd",
+      "timestamp": 1537297515.948897,
+      "primary": 0
+    },
+    {
+      "token": "a43d2cd8447b41858887bf536628b0b9",
+      "stratum": "S3_rest",
+      "n_stratum": 3991,
+      "weight": 39.91,
+      "scene": "scene-0035",
+      "scene_token": "3dd2be428534403ba150a0b60abc6a0a",
+      "timestamp": 1532400189.698344,
+      "primary": 0
+    },
+    {
+      "token": "392281ad20b845ac94e29000da3c5026",
+      "stratum": "S1_hazard",
+      "n_stratum": 671,
+      "weight": 6.71,
+      "scene": "scene-0105",
+      "scene_token": "2ed0fcbfc214478ca3b3ce013e7723ba",
+      "timestamp": 1533151702.797328,
+      "primary": 0
+    },
+    {
+      "token": "2805309d6f0e47ca97d10a296a20353b",
+      "stratum": "S1_hazard",
+      "n_stratum": 671,
+      "weight": 6.71,
+      "scene": "scene-0708",
+      "scene_token": "fe3aa64e4339456186c38c6308f5fb1a",
+      "timestamp": 1535573374.547854,
+      "primary": 0
+    },
+    {
+      "token": "f5f91bd2ffcc42b78bd498053c0d81a7",
+      "stratum": "S2_maneuver",
+      "n_stratum": 446,
+      "weight": 4.46,
+      "scene": "scene-0398",
+      "scene_token": "b519ec833e23450a8bd3340b67f2516b",
+      "timestamp": 1535731407.448669,
+      "primary": 0
+    },
+    {
+      "token": "45eda670b5a840acbb730aac15e63b19",
+      "stratum": "S2_maneuver",
+      "n_stratum": 446,
+      "weight": 4.46,
+      "scene": "scene-0926",
+      "scene_token": "c4df079d260241ff8015218e29b42ea7",
+      "timestamp": 1538984949.897432,
+      "primary": 0
+    },
+    {
+      "token": "e6e877f31dd447199b56cae07f86daad",
+      "stratum": "S1_hazard",
+      "n_stratum": 671,
+      "weight": 6.71,
+      "scene": "scene-0916",
+      "scene_token": "325cef682f064c55a255f2625c533b75",
+      "timestamp": 1538984251.447166,
+      "primary": 0
+    },
+    {
+      "token": "33c965ece87842c2ac898543d26dad5f",
+      "stratum": "S1_hazard",
+      "n_stratum": 671,
+      "weight": 6.71,
+      "scene": "scene-0275",
+      "scene_token": "8377abf77f464a9cb62eacf63f383422",
+      "timestamp": 1531281867.70166,
+      "primary": 0
+    },
+    {
+      "token": "8e352d4a6c6f40c8ad4f10a3d2c3f158",
+      "stratum": "S1_hazard",
+      "n_stratum": 671,
+      "weight": 6.71,
+      "scene": "scene-0916",
+      "scene_token": "325cef682f064c55a255f2625c533b75",
+      "timestamp": 1538984249.448168,
+      "primary": 0
+    },
+    {
+      "token": "4c591dd8622c40efbfe762a3be545f15",
+      "stratum": "S1_hazard",
+      "n_stratum": 671,
+      "weight": 6.71,
+      "scene": "scene-0886",
+      "scene_token": "3289046b886f4c98a676bd7e6a3c6ef1",
+      "timestamp": 1537297467.798225,
+      "primary": 0
+    },
+    {
+      "token": "13a335871a10407a8b44f52cdce5a15b",
+      "stratum": "S2_maneuver",
+      "n_stratum": 446,
+      "weight": 4.46,
+      "scene": "scene-0558",
+      "scene_token": "952cb0bcd89b4ca4b904cdcbbf595523",
+      "timestamp": 1535730321.797858,
+      "primary": 0
+    },
+    {
+      "token": "dfbdfe31ec9644d0b769c720c6da1112",
+      "stratum": "S2_maneuver",
+      "n_stratum": 446,
+      "weight": 4.46,
+      "scene": "scene-0998",
+      "scene_token": "242ac1b59fec4e0c9c200ffca81775e2",
+      "timestamp": 1542193276.149378,
+      "primary": 0
+    },
+    {
+      "token": "459fe82a1ee94f0789eea73bad1e37ee",
+      "stratum": "S3_rest",
+      "n_stratum": 3991,
+      "weight": 39.91,
+      "scene": "scene-0358",
+      "scene_token": "2121cc12888e47ce856dc5391f202594",
+      "timestamp": 1533202672.699937,
+      "primary": 0
+    },
+    {
+      "token": "ac2e706a974d4d239ec616b2d73b46f7",
+      "stratum": "S2_maneuver",
+      "n_stratum": 446,
+      "weight": 4.46,
+      "scene": "scene-0068",
+      "scene_token": "b0b26c1e5a1140e69598422f12ae1dc0",
+      "timestamp": 1533153471.947913,
+      "primary": 0
+    },
+    {
+      "token": "6e4e310990c34ac1828567efbd6c7c6c",
+      "stratum": "S1_hazard",
+      "n_stratum": 671,
+      "weight": 6.71,
+      "scene": "scene-0654",
+      "scene_token": "9056ac9944e846109b00e31cc96259cb",
+      "timestamp": 1535385054.201172,
+      "primary": 0
+    },
+    {
+      "token": "7efe61368c96401e9cba997bddcdc71a",
+      "stratum": "S1_hazard",
+      "n_stratum": 671,
+      "weight": 6.71,
+      "scene": "scene-0066",
+      "scene_token": "30e77a3561ce4f1bb4fd90e322ea29d7",
+      "timestamp": 1533153418.047006,
+      "primary": 0
+    },
+    {
+      "token": "7ffabeddc8e941f4bed501ee2f07f3a8",
+      "stratum": "S3_rest",
+      "n_stratum": 3991,
+      "weight": 39.91,
+      "scene": "scene-0802",
+      "scene_token": "6741d407b1b44511853e5ec7aaee2992",
+      "timestamp": 1538448887.699187,
+      "primary": 0
+    },
+    {
+      "token": "5fb120890a1e40cca8a9f1840de785e3",
+      "stratum": "S2_maneuver",
+      "n_stratum": 446,
+      "weight": 4.46,
+      "scene": "scene-0654",
+      "scene_token": "9056ac9944e846109b00e31cc96259cb",
+      "timestamp": 1535385060.696201,
+      "primary": 0
+    },
+    {
+      "token": "9d3f440743ca44d4a08e94a155435e8e",
+      "stratum": "S1_hazard",
+      "n_stratum": 671,
+      "weight": 6.71,
+      "scene": "scene-0761",
+      "scene_token": "947308824ada42fdbcff7009e815287f",
+      "timestamp": 1535657193.199066,
+      "primary": 0
+    },
+    {
+      "token": "d867389b2ba44f28a6525dc2a319fb53",
+      "stratum": "S3_rest",
+      "n_stratum": 3991,
+      "weight": 39.91,
+      "scene": "scene-0373",
+      "scene_token": "10dfdae842b543938a230f25a1e9f934",
+      "timestamp": 1533280296.899712,
+      "primary": 0
+    },
+    {
+      "token": "354d984830374fdcb1d1791073e19476",
+      "stratum": "S2_maneuver",
+      "n_stratum": 446,
+      "weight": 4.46,
+      "scene": "scene-0558",
+      "scene_token": "952cb0bcd89b4ca4b904cdcbbf595523",
+      "timestamp": 1535730323.299168,
+      "primary": 0
+    },
+    {
+      "token": "f60776f66a43475d9ac5e0b49f73b486",
+      "stratum": "S3_rest",
+      "n_stratum": 3991,
+      "weight": 39.91,
+      "scene": "scene-1051",
+      "scene_token": "bc5daf905b854dbc8944811c4b7c319d",
+      "timestamp": 1542798858.648972,
+      "primary": 0
+    },
+    {
+      "token": "9be73d55ff7348c6aee1035ec6e427af",
+      "stratum": "S1_hazard",
+      "n_stratum": 671,
+      "weight": 6.71,
+      "scene": "scene-0044",
+      "scene_token": "8758419c03ab47a59ea6d6620176f3a3",
+      "timestamp": 1532401763.64888,
+      "primary": 0
+    },
+    {
+      "token": "c106d7ece8ab498b85a6e6a800288d8b",
+      "stratum": "S3_rest",
+      "n_stratum": 3991,
+      "weight": 39.91,
+      "scene": "scene-0654",
+      "scene_token": "9056ac9944e846109b00e31cc96259cb",
+      "timestamp": 1535385063.197696,
+      "primary": 0
+    },
+    {
+      "token": "483640e9a31d4f5da2e6c71adf88640f",
+      "stratum": "S3_rest",
+      "n_stratum": 3991,
+      "weight": 39.91,
+      "scene": "scene-0418",
+      "scene_token": "b526c20f7eed49f0886cdb4ba6b733e8",
+      "timestamp": 1538034026.197395,
+      "primary": 0
+    },
+    {
+      "token": "6bfbe35d2a46497e8acd48b21be72f06",
+      "stratum": "S2_maneuver",
+      "n_stratum": 446,
+      "weight": 4.46,
+      "scene": "scene-0994",
+      "scene_token": "e71f69d57d944b6cb0ffc516a88b6104",
+      "timestamp": 1542193172.447776,
+      "primary": 0
+    },
+    {
+      "token": "9103a43ec0bb405ebbd6f1c4ce816480",
+      "stratum": "S3_rest",
+      "n_stratum": 3991,
+      "weight": 39.91,
+      "scene": "scene-0821",
+      "scene_token": "64ca274b5f69458bb5d21e0e2e071902",
+      "timestamp": 1537299506.400486,
+      "primary": 0
+    },
+    {
+      "token": "dcad7abc67e145a387b587df09a5dbeb",
+      "stratum": "S1_hazard",
+      "n_stratum": 671,
+      "weight": 6.71,
+      "scene": "scene-0419",
+      "scene_token": "8c84164e752a4ab69d039a07c898f7af",
+      "timestamp": 1538034056.197687,
+      "primary": 0
+    },
+    {
+      "token": "2382a32debe741a6b2a25232dd9a19b7",
+      "stratum": "S3_rest",
+      "n_stratum": 3991,
+      "weight": 39.91,
+      "scene": "scene-0649",
+      "scene_token": "b7bb8ec5bf22476f8ba8ca0b2e57e8f6",
+      "timestamp": 1537296533.649101,
+      "primary": 0
+    },
+    {
+      "token": "95ada028da894e2db9f4020757d2c31e",
+      "stratum": "S3_rest",
+      "n_stratum": 3991,
+      "weight": 39.91,
+      "scene": "scene-0803",
+      "scene_token": "5560a973257e407b8d5bf9fb92b1e0f3",
+      "timestamp": 1537298844.699347,
+      "primary": 0
+    },
+    {
+      "token": "f42855a39f0145ca8367fa9203e9fdc4",
+      "stratum": "S1_hazard",
+      "n_stratum": 671,
+      "weight": 6.71,
+      "scene": "scene-0355",
+      "scene_token": "2f093cad7209436aa06e103bfe062857",
+      "timestamp": 1533202627.698902,
+      "primary": 0
+    },
+    {
+      "token": "8aac5f0c242b4e1bbab68e1a1b0eb411",
+      "stratum": "S2_maneuver",
+      "n_stratum": 446,
+      "weight": 4.46,
+      "scene": "scene-0052",
+      "scene_token": "37b32e4e8cf846679b2c0cb342dbd4aa",
+      "timestamp": 1532402344.947314,
+      "primary": 0
+    },
+    {
+      "token": "191ae096c31942a28545a373b8319c56",
+      "stratum": "S1_hazard",
+      "n_stratum": 671,
+      "weight": 6.71,
+      "scene": "scene-1021",
+      "scene_token": "fee7ac5f5c1e4943877cd20d6e069427",
+      "timestamp": 1542194157.447561,
+      "primary": 0
+    },
+    {
+      "token": "93ab1fb601b6419ba590536c535ab7b7",
+      "stratum": "S2_maneuver",
+      "n_stratum": 446,
+      "weight": 4.46,
+      "scene": "scene-0386",
+      "scene_token": "11058d54abcd4829828523040372ce05",
+      "timestamp": 1533281889.549204,
+      "primary": 0
+    },
+    {
+      "token": "6a13cea7802d4e03b4ff07b70d1571ed",
+      "stratum": "S1_hazard",
+      "n_stratum": 671,
+      "weight": 6.71,
+      "scene": "scene-0066",
+      "scene_token": "30e77a3561ce4f1bb4fd90e322ea29d7",
+      "timestamp": 1533153421.646233,
+      "primary": 0
+    },
+    {
+      "token": "9861e8a66015428f912f3de156664530",
+      "stratum": "S3_rest",
+      "n_stratum": 3991,
+      "weight": 39.91,
+      "scene": "scene-0149",
+      "scene_token": "1fbcc26ebf6948bb964d3ae74939e8ea",
+      "timestamp": 1533114279.697167,
+      "primary": 0
+    },
+    {
+      "token": "4e2d4bceb9334d3e86bb4ac54863dc09",
+      "stratum": "S3_rest",
+      "n_stratum": 3991,
+      "weight": 39.91,
+      "scene": "scene-0795",
+      "scene_token": "36f27b26ef4c423c9b79ac984dc33bae",
+      "timestamp": 1538448734.697284,
+      "primary": 0
+    },
+    {
+      "token": "f2026fe0e7854a2485e947ca1d18141b",
+      "stratum": "S3_rest",
+      "n_stratum": 3991,
+      "weight": 39.91,
+      "scene": "scene-0671",
+      "scene_token": "d1ece215e0a8442691cb5e380a6fb935",
+      "timestamp": 1535487723.297475,
+      "primary": 0
+    },
+    {
+      "token": "24959f3f5c6b4ce6a2ed1c54d7f5e3e7",
+      "stratum": "S2_maneuver",
+      "n_stratum": 446,
+      "weight": 4.46,
+      "scene": "scene-0769",
+      "scene_token": "1e9283d1ce98428aaa3b851487eb4f58",
+      "timestamp": 1535657489.198148,
+      "primary": 0
+    },
+    {
+      "token": "61eb68d9f0e84cba81ec071fe80a19c0",
+      "stratum": "S2_maneuver",
+      "n_stratum": 446,
+      "weight": 4.46,
+      "scene": "scene-0383",
+      "scene_token": "e0a22086a94f48e5bbd4c4e7916b2106",
+      "timestamp": 1533281526.698885,
+      "primary": 0
+    },
+    {
+      "token": "c2f44098927248da85e20466e38c062d",
+      "stratum": "S2_maneuver",
+      "n_stratum": 446,
+      "weight": 4.46,
+      "scene": "scene-0998",
+      "scene_token": "242ac1b59fec4e0c9c200ffca81775e2",
+      "timestamp": 1542193272.447875,
+      "primary": 0
+    },
+    {
+      "token": "54af3641e4e544a9b36c437f4bff066e",
+      "stratum": "S3_rest",
+      "n_stratum": 3991,
+      "weight": 39.91,
+      "scene": "scene-1092",
+      "scene_token": "d2db9f5df62c4d338d3bed43f616b954",
+      "timestamp": 1542800795.297421,
+      "primary": 0
+    },
+    {
+      "token": "e4d098ea95664f45999c5009953b45ad",
+      "stratum": "S1_hazard",
+      "n_stratum": 671,
+      "weight": 6.71,
+      "scene": "scene-0362",
+      "scene_token": "4098aaf3c7074e7d87285e2fc95369e0",
+      "timestamp": 1533279680.15046,
+      "primary": 0
+    },
+    {
+      "token": "a11b1ed31b9a474987aaea15a6f855c7",
+      "stratum": "S2_maneuver",
+      "n_stratum": 446,
+      "weight": 4.46,
+      "scene": "scene-0418",
+      "scene_token": "b526c20f7eed49f0886cdb4ba6b733e8",
+      "timestamp": 1538034029.64732,
+      "primary": 0
+    },
+    {
+      "token": "d2b426460bc241b7bb6921670fcbc425",
+      "stratum": "S3_rest",
+      "n_stratum": 3991,
+      "weight": 39.91,
+      "scene": "scene-1095",
+      "scene_token": "a2b64d02c5fa4b9bab671a97561b6b33",
+      "timestamp": 1542800877.447978,
+      "primary": 0
+    },
+    {
+      "token": "598577bba885458ab795d0347ff02dcb",
+      "stratum": "S2_maneuver",
+      "n_stratum": 446,
+      "weight": 4.46,
+      "scene": "scene-0629",
+      "scene_token": "991d65cab952449a821deb32e971ff19",
+      "timestamp": 1537295928.949349,
+      "primary": 0
+    },
+    {
+      "token": "0936bd1a581946f6b79baa89fca582cc",
+      "stratum": "S2_maneuver",
+      "n_stratum": 446,
+      "weight": 4.46,
+      "scene": "scene-0769",
+      "scene_token": "1e9283d1ce98428aaa3b851487eb4f58",
+      "timestamp": 1535657480.799801,
+      "primary": 0
+    },
+    {
+      "token": "f01e6b108baa4c92bb71495696a6f14e",
+      "stratum": "S3_rest",
+      "n_stratum": 3991,
+      "weight": 39.91,
+      "scene": "scene-0397",
+      "scene_token": "fd2d419d4cf84a2d84922b9b7d2cea4d",
+      "timestamp": 1535731400.198828,
+      "primary": 0
+    },
+    {
+      "token": "7463ff2be4594ae6b78d2a11cca64ece",
+      "stratum": "S3_rest",
+      "n_stratum": 3991,
+      "weight": 39.91,
+      "scene": "scene-0703",
+      "scene_token": "77c23b25e2ee4b9ebff6d179d3ce4a31",
+      "timestamp": 1535573220.948741,
+      "primary": 0
+    },
+    {
+      "token": "6f4cbef7b42b4ea69646c25671bd302b",
+      "stratum": "S3_rest",
+      "n_stratum": 3991,
+      "weight": 39.91,
+      "scene": "scene-0648",
+      "scene_token": "a6fae4900f8e46cba689b59b5bc8a2ab",
+      "timestamp": 1537296517.950014,
+      "primary": 0
+    },
+    {
+      "token": "02b77820e04f4624aa31597716f9f886",
+      "stratum": "S1_hazard",
+      "n_stratum": 671,
+      "weight": 6.71,
+      "scene": "scene-0060",
+      "scene_token": "bb028034cb474e3da8953f83752a70a9",
+      "timestamp": 1532402889.44724,
+      "primary": 0
+    },
+    {
+      "token": "9f36e9e63350459a8a9a66ab6eac4d56",
+      "stratum": "S1_hazard",
+      "n_stratum": 671,
+      "weight": 6.71,
+      "scene": "scene-0060",
+      "scene_token": "bb028034cb474e3da8953f83752a70a9",
+      "timestamp": 1532402893.447906,
+      "primary": 0
+    },
+    {
+      "token": "0d8311b47d9a44e8ab2f6dbf7d4ed36b",
+      "stratum": "S2_maneuver",
+      "n_stratum": 446,
+      "weight": 4.46,
+      "scene": "scene-0475",
+      "scene_token": "8b60e7e47cde43e0a7fbd66d926de14f",
+      "timestamp": 1537290167.448637,
+      "primary": 0
+    },
+    {
+      "token": "1686aabeada749b280af206feb2976ad",
+      "stratum": "S1_hazard",
+      "n_stratum": 671,
+      "weight": 6.71,
+      "scene": "scene-0151",
+      "scene_token": "ba76f4185aa34ed3bff467ac640da902",
+      "timestamp": 1533114340.797055,
+      "primary": 0
+    },
+    {
+      "token": "a7368cefcdba40e3bd8d723513957a96",
+      "stratum": "S3_rest",
+      "n_stratum": 3991,
+      "weight": 39.91,
+      "scene": "scene-0355",
+      "scene_token": "2f093cad7209436aa06e103bfe062857",
+      "timestamp": 1533202613.149974,
+      "primary": 0
+    },
+    {
+      "token": "fdeb7df31b974a0b906b578de19dd58f",
+      "stratum": "S2_maneuver",
+      "n_stratum": 446,
+      "weight": 4.46,
+      "scene": "scene-0418",
+      "scene_token": "b526c20f7eed49f0886cdb4ba6b733e8",
+      "timestamp": 1538034029.147421,
+      "primary": 0
+    },
+    {
+      "token": "59d7e4be72284b0faf88f80de1e61741",
+      "stratum": "S3_rest",
+      "n_stratum": 3991,
+      "weight": 39.91,
+      "scene": "scene-0883",
+      "scene_token": "ee909cb746e44174be804f26bc971efe",
+      "timestamp": 1537297355.299581,
+      "primary": 0
+    },
+    {
+      "token": "5b7cb170eee6468aa1fdbd3abcf63c5a",
+      "stratum": "S1_hazard",
+      "n_stratum": 671,
+      "weight": 6.71,
+      "scene": "scene-0916",
+      "scene_token": "325cef682f064c55a255f2625c533b75",
+      "timestamp": 1538984237.446737,
+      "primary": 0
+    },
+    {
+      "token": "80356277c5084ef4aa6fe35f75320e41",
+      "stratum": "S3_rest",
+      "n_stratum": 3991,
+      "weight": 39.91,
+      "scene": "scene-0386",
+      "scene_token": "11058d54abcd4829828523040372ce05",
+      "timestamp": 1533281883.699966,
+      "primary": 0
+    },
+    {
+      "token": "871057df7b0d4624b67cdde35f61bd92",
+      "stratum": "S2_maneuver",
+      "n_stratum": 446,
+      "weight": 4.46,
+      "scene": "scene-0398",
+      "scene_token": "b519ec833e23450a8bd3340b67f2516b",
+      "timestamp": 1535731406.5479,
+      "primary": 0
+    },
+    {
+      "token": "05687786492a4b50874d7cd1057ec338",
+      "stratum": "S3_rest",
+      "n_stratum": 3991,
+      "weight": 39.91,
+      "scene": "scene-0558",
+      "scene_token": "952cb0bcd89b4ca4b904cdcbbf595523",
+      "timestamp": 1535730335.647882,
+      "primary": 0
+    },
+    {
+      "token": "859b40ab1eb547fcbd8d3988bcf9647e",
+      "stratum": "S1_hazard",
+      "n_stratum": 671,
+      "weight": 6.71,
+      "scene": "scene-0787",
+      "scene_token": "19284973bd0342998c37848e931a90d0",
+      "timestamp": 1538449195.947466,
+      "primary": 0
+    },
+    {
+      "token": "fb8b56061a914b66b60826e3f9b9281c",
+      "stratum": "S3_rest",
+      "n_stratum": 3991,
+      "weight": 39.91,
+      "scene": "scene-0696",
+      "scene_token": "c133e78e55ae487c821803a3b183d1ab",
+      "timestamp": 1535573087.947376,
+      "primary": 0
+    },
+    {
+      "token": "4c0d1427f2f549db9bc7f3335a7f1a6c",
+      "stratum": "S2_maneuver",
+      "n_stratum": 446,
+      "weight": 4.46,
+      "scene": "scene-0386",
+      "scene_token": "11058d54abcd4829828523040372ce05",
+      "timestamp": 1533281892.650733,
+      "primary": 0
+    },
+    {
+      "token": "c567f9b8e9f34817acdc9c49d791c557",
+      "stratum": "S1_hazard",
+      "n_stratum": 671,
+      "weight": 6.71,
+      "scene": "scene-0916",
+      "scene_token": "325cef682f064c55a255f2625c533b75",
+      "timestamp": 1538984248.948287,
+      "primary": 0
+    },
+    {
+      "token": "95594b53e0c44aec92f6d6f5b0d80894",
+      "stratum": "S1_hazard",
+      "n_stratum": 671,
+      "weight": 6.71,
+      "scene": "scene-0797",
+      "scene_token": "f24b4682fbb9482aba149534deed1cc9",
+      "timestamp": 1538448774.147667,
+      "primary": 0
+    },
+    {
+      "token": "57830375357c40ac897e5e023f5e575b",
+      "stratum": "S3_rest",
+      "n_stratum": 3991,
+      "weight": 39.91,
+      "scene": "scene-1071",
+      "scene_token": "0dae482684ce4cd69a7258f55bc98d73",
+      "timestamp": 1542799663.148177,
+      "primary": 0
+    },
+    {
+      "token": "ee60ecaf4fa6444ca41da3c6fec6e820",
+      "stratum": "S1_hazard",
+      "n_stratum": 671,
+      "weight": 6.71,
+      "scene": "scene-0386",
+      "scene_token": "11058d54abcd4829828523040372ce05",
+      "timestamp": 1533281881.150804,
+      "primary": 0
+    },
+    {
+      "token": "288ab199c7634bedadfd82fcf840ab13",
+      "stratum": "S3_rest",
+      "n_stratum": 3991,
+      "weight": 39.91,
+      "scene": "scene-0462",
+      "scene_token": "36e3167610cc48eabcaad06a72479ac7",
+      "timestamp": 1537289835.55078,
+      "primary": 0
+    },
+    {
+      "token": "fce960bf0c0e4945aeda26c6b8cf314d",
+      "stratum": "S2_maneuver",
+      "n_stratum": 446,
+      "weight": 4.46,
+      "scene": "scene-0369",
+      "scene_token": "a1b51c02d8414856a86c0c37e4789c2f",
+      "timestamp": 1533280083.64946,
+      "primary": 0
+    },
+    {
+      "token": "363fc50500804d59b2ba6c60b25505a6",
+      "stratum": "S2_maneuver",
+      "n_stratum": 446,
+      "weight": 4.46,
+      "scene": "scene-0654",
+      "scene_token": "9056ac9944e846109b00e31cc96259cb",
+      "timestamp": 1535385058.696689,
+      "primary": 0
+    },
+    {
+      "token": "afd66979dd774c629aa3681b61d52a5f",
+      "stratum": "S1_hazard",
+      "n_stratum": 671,
+      "weight": 6.71,
+      "scene": "scene-1058",
+      "scene_token": "bfe368f8c6a44efcb323a82f6974a9a6",
+      "timestamp": 1542799156.648156,
+      "primary": 0
+    },
+    {
+      "token": "d0ca5661e108494f94cf37c773230c67",
+      "stratum": "S2_maneuver",
+      "n_stratum": 446,
+      "weight": 4.46,
+      "scene": "scene-0401",
+      "scene_token": "ced236f5da704cbcb41249bb6ecc8b68",
+      "timestamp": 1538033672.797722,
+      "primary": 0
+    },
+    {
+      "token": "c6081fa50c0f4ad2b5e9fdf478855c0f",
+      "stratum": "S3_rest",
+      "n_stratum": 3991,
+      "weight": 39.91,
+      "scene": "scene-0646",
+      "scene_token": "491322eec05043c9907c59aa35b046ea",
+      "timestamp": 1537296474.899317,
+      "primary": 0
+    },
+    {
+      "token": "a08e592f196d4f8680f63a46ad777b88",
+      "stratum": "S1_hazard",
+      "n_stratum": 671,
+      "weight": 6.71,
+      "scene": "scene-0045",
+      "scene_token": "eac3102e4cc24d4b95532bcc711a902f",
+      "timestamp": 1532402008.797206,
+      "primary": 0
+    },
+    {
+      "token": "34f5a67d748c4dcc8f58cb09ebbd5a6a",
+      "stratum": "S1_hazard",
+      "n_stratum": 671,
+      "weight": 6.71,
+      "scene": "scene-0708",
+      "scene_token": "fe3aa64e4339456186c38c6308f5fb1a",
+      "timestamp": 1535573367.948823,
+      "primary": 0
+    },
+    {
+      "token": "c8f0119b92774ec68db5e1509888fe92",
+      "stratum": "S2_maneuver",
+      "n_stratum": 446,
+      "weight": 4.46,
+      "scene": "scene-0627",
+      "scene_token": "5301151d8b6a42b0b252e95634bd3995",
+      "timestamp": 1537295888.700505,
+      "primary": 0
+    },
+    {
+      "token": "b999707d600d4b0db25404e6f41085aa",
+      "stratum": "S3_rest",
+      "n_stratum": 3991,
+      "weight": 39.91,
+      "scene": "scene-0520",
+      "scene_token": "26a6b03c8e2f4e6692f174a7074e54ff",
+      "timestamp": 1535639662.15012,
+      "primary": 0
+    },
+    {
+      "token": "cbfa055b0ab6448cb0037a8dd107c67d",
+      "stratum": "S2_maneuver",
+      "n_stratum": 446,
+      "weight": 4.46,
+      "scene": "scene-0068",
+      "scene_token": "b0b26c1e5a1140e69598422f12ae1dc0",
+      "timestamp": 1533153473.897655,
+      "primary": 0
+    },
+    {
+      "token": "f1bfed21abe14f66ad4f398148107dd4",
+      "stratum": "S2_maneuver",
+      "n_stratum": 446,
+      "weight": 4.46,
+      "scene": "scene-0627",
+      "scene_token": "5301151d8b6a42b0b252e95634bd3995",
+      "timestamp": 1537295889.200343,
+      "primary": 0
+    },
+    {
+      "token": "313a60afcab5481a94a4815e0d1a6496",
+      "stratum": "S3_rest",
+      "n_stratum": 3991,
+      "weight": 39.91,
+      "scene": "scene-0553",
+      "scene_token": "6f83169d067343658251f72e1dd17dbc",
+      "timestamp": 1535489308.396618,
+      "primary": 0
+    },
+    {
+      "token": "2d8b5aaeb5c44189b88607158ad828d2",
+      "stratum": "S2_maneuver",
+      "n_stratum": 446,
+      "weight": 4.46,
+      "scene": "scene-0803",
+      "scene_token": "5560a973257e407b8d5bf9fb92b1e0f3",
+      "timestamp": 1537298854.148342,
+      "primary": 0
+    },
+    {
+      "token": "d1657d3bf2114ea2aca74d77dcb72cf4",
+      "stratum": "S3_rest",
+      "n_stratum": 3991,
+      "weight": 39.91,
+      "scene": "scene-0398",
+      "scene_token": "b519ec833e23450a8bd3340b67f2516b",
+      "timestamp": 1535731407.9491,
+      "primary": 0
+    },
+    {
+      "token": "38b0b6d4b081402babd4215bac762771",
+      "stratum": "S1_hazard",
+      "n_stratum": 671,
+      "weight": 6.71,
+      "scene": "scene-0696",
+      "scene_token": "c133e78e55ae487c821803a3b183d1ab",
+      "timestamp": 1535573091.949176,
+      "primary": 0
+    },
+    {
+      "token": "779f3ea5ff254041b1e302eccb7ebc5b",
+      "stratum": "S3_rest",
+      "n_stratum": 3991,
+      "weight": 39.91,
+      "scene": "scene-0233",
+      "scene_token": "9e7d5adad1514dd79292e9318b7a443c",
+      "timestamp": 1532708386.448645,
+      "primary": 0
+    },
+    {
+      "token": "9e527ac110c84d6daa076e018aeb7a53",
+      "stratum": "S3_rest",
+      "n_stratum": 3991,
+      "weight": 39.91,
+      "scene": "scene-0094",
+      "scene_token": "91c071bcc1ad4fa1b555399e1cfbab79",
+      "timestamp": 1533151212.898782,
+      "primary": 0
+    },
+    {
+      "token": "9a8b4a5cc0ae4a198e88435b9f5b4b57",
+      "stratum": "S3_rest",
+      "n_stratum": 3991,
+      "weight": 39.91,
+      "scene": "scene-0636",
+      "scene_token": "19d97841d6f64eba9f6eb9b6e8c257dc",
+      "timestamp": 1537296117.449642,
+      "primary": 0
+    },
+    {
+      "token": "f377ca1057784dae9f73bd284fa5436c",
+      "stratum": "S3_rest",
+      "n_stratum": 3991,
+      "weight": 39.91,
+      "scene": "scene-0360",
+      "scene_token": "cf10376382b74af1975be86f7190df20",
+      "timestamp": 1533279658.448996,
+      "primary": 0
+    },
+    {
+      "token": "5b9a1948a37040f5922a6cb28ff87d5a",
+      "stratum": "S3_rest",
+      "n_stratum": 3991,
+      "weight": 39.91,
+      "scene": "scene-0178",
+      "scene_token": "f4395dd8e4004f12a8dec3079a93d804",
+      "timestamp": 1532662717.549649,
+      "primary": 0
+    },
+    {
+      "token": "1430ffe6d28440239c2caebb6603a3b8",
+      "stratum": "S2_maneuver",
+      "n_stratum": 446,
+      "weight": 4.46,
+      "scene": "scene-0629",
+      "scene_token": "991d65cab952449a821deb32e971ff19",
+      "timestamp": 1537295927.899277,
+      "primary": 0
+    },
+    {
+      "token": "75e828d41ae64809a8f5d302e9d30523",
+      "stratum": "S2_maneuver",
+      "n_stratum": 446,
+      "weight": 4.46,
+      "scene": "scene-0386",
+      "scene_token": "11058d54abcd4829828523040372ce05",
+      "timestamp": 1533281890.049593,
+      "primary": 0
+    },
+    {
+      "token": "b41eb23330a24e10a194d6bfd519ed82",
+      "stratum": "S2_maneuver",
+      "n_stratum": 446,
+      "weight": 4.46,
+      "scene": "scene-0072",
+      "scene_token": "fbf27198b3424e28ab1de2a12eb3dc4a",
+      "timestamp": 1533153648.94887,
+      "primary": 0
+    },
+    {
+      "token": "aec495dcfd7f4d459bcb8993e9015473",
+      "stratum": "S3_rest",
+      "n_stratum": 3991,
+      "weight": 39.91,
+      "scene": "scene-0383",
+      "scene_token": "e0a22086a94f48e5bbd4c4e7916b2106",
+      "timestamp": 1533281522.700395,
+      "primary": 0
+    },
+    {
+      "token": "c667f0206f12436aa4ede6406575271f",
+      "stratum": "S3_rest",
+      "n_stratum": 3991,
+      "weight": 39.91,
+      "scene": "scene-0163",
+      "scene_token": "6ab3d1e9476d4cd89d4949d69d056901",
+      "timestamp": 1526915287.447301,
+      "primary": 0
+    },
+    {
+      "token": "193eb2906fad474886262342405c54a7",
+      "stratum": "S2_maneuver",
+      "n_stratum": 446,
+      "weight": 4.46,
+      "scene": "scene-0558",
+      "scene_token": "952cb0bcd89b4ca4b904cdcbbf595523",
+      "timestamp": 1535730326.19783,
+      "primary": 0
+    },
+    {
+      "token": "872af018a6cc4952a3259cc70510a09d",
+      "stratum": "S2_maneuver",
+      "n_stratum": 446,
+      "weight": 4.46,
+      "scene": "scene-0994",
+      "scene_token": "e71f69d57d944b6cb0ffc516a88b6104",
+      "timestamp": 1542193177.448727,
+      "primary": 0
+    },
+    {
+      "token": "78edf8212f0f41b78ee28fa104eaf628",
+      "stratum": "S2_maneuver",
+      "n_stratum": 446,
+      "weight": 4.46,
+      "scene": "scene-0998",
+      "scene_token": "242ac1b59fec4e0c9c200ffca81775e2",
+      "timestamp": 1542193274.546902,
+      "primary": 0
+    },
+    {
+      "token": "a7c4302c695a44d6b0017ad069205061",
+      "stratum": "S1_hazard",
+      "n_stratum": 671,
+      "weight": 6.71,
+      "scene": "scene-0849",
+      "scene_token": "68fc5e3698a544d1bdf5847b88ad77d4",
+      "timestamp": 1538985865.398405,
+      "primary": 0
+    },
+    {
+      "token": "750d147ff6c44dceaceface2f46ca7ed",
+      "stratum": "S2_maneuver",
+      "n_stratum": 446,
+      "weight": 4.46,
+      "scene": "scene-0386",
+      "scene_token": "11058d54abcd4829828523040372ce05",
+      "timestamp": 1533281889.049325,
+      "primary": 0
+    },
+    {
+      "token": "e4fe2a998d034b35a175cfbc3f25ce3f",
+      "stratum": "S1_hazard",
+      "n_stratum": 671,
+      "weight": 6.71,
+      "scene": "scene-0750",
+      "scene_token": "82240fd6d5ba4375815f8a7fa1561361",
+      "timestamp": 1535656891.299321,
+      "primary": 0
+    },
+    {
+      "token": "5d4439a631924d8da58e18102dabead1",
+      "stratum": "S1_hazard",
+      "n_stratum": 671,
+      "weight": 6.71,
+      "scene": "scene-0795",
+      "scene_token": "36f27b26ef4c423c9b79ac984dc33bae",
+      "timestamp": 1538448728.14802,
+      "primary": 0
+    },
+    {
+      "token": "4b933f6dceae4df59410d569beb37bfd",
+      "stratum": "S1_hazard",
+      "n_stratum": 671,
+      "weight": 6.71,
+      "scene": "scene-0398",
+      "scene_token": "b519ec833e23450a8bd3340b67f2516b",
+      "timestamp": 1535731413.895239,
+      "primary": 0
+    },
+    {
+      "token": "0c0328c290ec4a1dbc20370e96f2bd48",
+      "stratum": "S1_hazard",
+      "n_stratum": 671,
+      "weight": 6.71,
+      "scene": "scene-0238",
+      "scene_token": "724957e51f464a9aa64a16458443786d",
+      "timestamp": 1532708647.198742,
+      "primary": 0
+    },
+    {
+      "token": "5f194c3032fe458095bdba9053ba737d",
+      "stratum": "S3_rest",
+      "n_stratum": 3991,
+      "weight": 39.91,
+      "scene": "scene-0864",
+      "scene_token": "5d5506d750cc41d8bd33840d5350d7ad",
+      "timestamp": 1538986249.797651,
+      "primary": 0
+    },
+    {
+      "token": "5d26f109134641db89da57310b268c48",
+      "stratum": "S3_rest",
+      "n_stratum": 3991,
+      "weight": 39.91,
+      "scene": "scene-0994",
+      "scene_token": "e71f69d57d944b6cb0ffc516a88b6104",
+      "timestamp": 1542193169.947823,
+      "primary": 0
+    },
+    {
+      "token": "b87b4fa46084474083a0139f536793f4",
+      "stratum": "S3_rest",
+      "n_stratum": 3991,
+      "weight": 39.91,
+      "scene": "scene-0926",
+      "scene_token": "c4df079d260241ff8015218e29b42ea7",
+      "timestamp": 1538984968.397254,
+      "primary": 0
+    },
+    {
+      "token": "a4d9a17d6ff3453a854a71128e7093da",
+      "stratum": "S1_hazard",
+      "n_stratum": 671,
+      "weight": 6.71,
+      "scene": "scene-0903",
+      "scene_token": "3e1f0257a4b8457486651de2d16b61ab",
+      "timestamp": 1537297890.948914,
+      "primary": 0
+    },
+    {
+      "token": "801ee00b2692483ba352b375abd258e3",
+      "stratum": "S3_rest",
+      "n_stratum": 3991,
+      "weight": 39.91,
+      "scene": "scene-0568",
+      "scene_token": "1f23540a109243438a5e3bd47e70105d",
+      "timestamp": 1537290740.298969,
+      "primary": 0
+    },
+    {
+      "token": "0bcb08a96d264c8ca9f2119c6b0dbeb2",
+      "stratum": "S2_maneuver",
+      "n_stratum": 446,
+      "weight": 4.46,
+      "scene": "scene-0002",
+      "scene_token": "c3e0e9f6ee8d4170a3d22a6179f1ca3a",
+      "timestamp": 1531883723.548064,
+      "primary": 0
+    },
+    {
+      "token": "b7fec5dd9e114de599f8b12fd4b27a24",
+      "stratum": "S2_maneuver",
+      "n_stratum": 446,
+      "weight": 4.46,
+      "scene": "scene-0011",
+      "scene_token": "c075fbdd97124beaba95bc5c25149f30",
+      "timestamp": 1531884539.948579,
+      "primary": 0
+    },
+    {
+      "token": "3bad178c30d445578f9c450b9757b8f3",
+      "stratum": "S3_rest",
+      "n_stratum": 3991,
+      "weight": 39.91,
+      "scene": "scene-0674",
+      "scene_token": "fccdb073bc54449a99f033e040ad51a2",
+      "timestamp": 1535487924.696153,
+      "primary": 0
+    },
+    {
+      "token": "e610925b2e4e430d992b03bee0dc4ef2",
+      "stratum": "S2_maneuver",
+      "n_stratum": 446,
+      "weight": 4.46,
+      "scene": "scene-0369",
+      "scene_token": "a1b51c02d8414856a86c0c37e4789c2f",
+      "timestamp": 1533280090.149527,
+      "primary": 0
+    },
+    {
+      "token": "2d214fe902f9407f865e1fba6ea9c55e",
+      "stratum": "S3_rest",
+      "n_stratum": 3991,
+      "weight": 39.91,
+      "scene": "scene-0821",
+      "scene_token": "64ca274b5f69458bb5d21e0e2e071902",
+      "timestamp": 1537299521.050041,
+      "primary": 0
+    },
+    {
+      "token": "0fe0ffab040b4b3ba473a01fb7f118a4",
+      "stratum": "S1_hazard",
+      "n_stratum": 671,
+      "weight": 6.71,
+      "scene": "scene-0701",
+      "scene_token": "b0525843a3b0463f91d715deff733b8f",
+      "timestamp": 1535573191.198917,
+      "primary": 0
+    },
+    {
+      "token": "5227a7b7e5404714bf20431793d7757d",
+      "stratum": "S3_rest",
+      "n_stratum": 3991,
+      "weight": 39.91,
+      "scene": "scene-0568",
+      "scene_token": "1f23540a109243438a5e3bd47e70105d",
+      "timestamp": 1537290744.698877,
+      "primary": 0
+    },
+    {
+      "token": "d94da61da35442b1abc3ea2f4dcf2f68",
+      "stratum": "S3_rest",
+      "n_stratum": 3991,
+      "weight": 39.91,
+      "scene": "scene-1021",
+      "scene_token": "fee7ac5f5c1e4943877cd20d6e069427",
+      "timestamp": 1542194153.04818,
+      "primary": 0
+    },
+    {
+      "token": "5d30ab54a96f4fb5b5d6420b70116a17",
+      "stratum": "S1_hazard",
+      "n_stratum": 671,
+      "weight": 6.71,
+      "scene": "scene-1057",
+      "scene_token": "102b894332464704900264216480a8f7",
+      "timestamp": 1542799142.048886,
+      "primary": 0
+    },
+    {
+      "token": "a425e7c7c11140359dfa3778a2beacf9",
+      "stratum": "S1_hazard",
+      "n_stratum": 671,
+      "weight": 6.71,
+      "scene": "scene-0674",
+      "scene_token": "fccdb073bc54449a99f033e040ad51a2",
+      "timestamp": 1535487938.697106,
+      "primary": 0
+    },
+    {
+      "token": "96786624828f4e39be778216612027bf",
+      "stratum": "S2_maneuver",
+      "n_stratum": 446,
+      "weight": 4.46,
+      "scene": "scene-0415",
+      "scene_token": "3be5ff913abf449bac92ce2d2a4cffa0",
+      "timestamp": 1538033961.697877,
+      "primary": 0
+    },
+    {
+      "token": "c44476bfef8944b5bf9386a5abc4a77a",
+      "stratum": "S3_rest",
+      "n_stratum": 3991,
+      "weight": 39.91,
+      "scene": "scene-0157",
+      "scene_token": "d0b2d916178a402a842c88f394d7d7e8",
+      "timestamp": 1533115024.546831,
+      "primary": 0
+    },
+    {
+      "token": "f00c919a5e07495c927062d083fbdd2d",
+      "stratum": "S2_maneuver",
+      "n_stratum": 446,
+      "weight": 4.46,
+      "scene": "scene-0072",
+      "scene_token": "fbf27198b3424e28ab1de2a12eb3dc4a",
+      "timestamp": 1533153647.448683,
+      "primary": 0
+    },
+    {
+      "token": "c77432d5be664d22889fcb94f01ac478",
+      "stratum": "S3_rest",
+      "n_stratum": 3991,
+      "weight": 39.91,
+      "scene": "scene-0703",
+      "scene_token": "77c23b25e2ee4b9ebff6d179d3ce4a31",
+      "timestamp": 1535573216.400079,
+      "primary": 0
+    },
+    {
+      "token": "7a32eb7937e54e19b1cd7c58ec40f728",
+      "stratum": "S3_rest",
+      "n_stratum": 3991,
+      "weight": 39.91,
+      "scene": "scene-1069",
+      "scene_token": "d29527ec841045d18d04a933e7a0afd2",
+      "timestamp": 1542799625.648634,
+      "primary": 0
+    },
+    {
+      "token": "74109c3e72b24fb48e2262dc869ba868",
+      "stratum": "S3_rest",
+      "n_stratum": 3991,
+      "weight": 39.91,
+      "scene": "scene-0636",
+      "scene_token": "19d97841d6f64eba9f6eb9b6e8c257dc",
+      "timestamp": 1537296131.949386,
+      "primary": 0
+    },
+    {
+      "token": "682e28481637417986f57ad11c149f5e",
+      "stratum": "S3_rest",
+      "n_stratum": 3991,
+      "weight": 39.91,
+      "scene": "scene-0769",
+      "scene_token": "1e9283d1ce98428aaa3b851487eb4f58",
+      "timestamp": 1535657475.798258,
+      "primary": 0
+    },
+    {
+      "token": "bd789cbb6cc44d4c942651fee75bd886",
+      "stratum": "S2_maneuver",
+      "n_stratum": 446,
+      "weight": 4.46,
+      "scene": "scene-0856",
+      "scene_token": "5dd272b76c3f4e2582040a91f2be2dde",
+      "timestamp": 1538986050.147426,
+      "primary": 0
+    },
+    {
+      "token": "77d0e39819774014a8344a6d482edd2d",
+      "stratum": "S1_hazard",
+      "n_stratum": 671,
+      "weight": 6.71,
+      "scene": "scene-0105",
+      "scene_token": "2ed0fcbfc214478ca3b3ce013e7723ba",
+      "timestamp": 1533151692.647739,
+      "primary": 0
+    },
+    {
+      "token": "a78c360914e444f3a489d3c8bfbf1b51",
+      "stratum": "S1_hazard",
+      "n_stratum": 671,
+      "weight": 6.71,
+      "scene": "scene-0016",
+      "scene_token": "efa5c96f05594f41a2498eb9f2e7ad99",
+      "timestamp": 1531885629.948275,
+      "primary": 0
+    },
+    {
+      "token": "7fe75b8cb85a4e97ba9c8b347eb2fa98",
+      "stratum": "S2_maneuver",
+      "n_stratum": 446,
+      "weight": 4.46,
+      "scene": "scene-0415",
+      "scene_token": "3be5ff913abf449bac92ce2d2a4cffa0",
+      "timestamp": 1538033965.696887,
+      "primary": 0
+    },
+    {
+      "token": "0a910d54005c4c2ca577180762860017",
+      "stratum": "S2_maneuver",
+      "n_stratum": 446,
+      "weight": 4.46,
+      "scene": "scene-0052",
+      "scene_token": "37b32e4e8cf846679b2c0cb342dbd4aa",
+      "timestamp": 1532402340.048645,
+      "primary": 0
+    },
+    {
+      "token": "3f5fd35ad36646f8b718ec1416c70f7f",
+      "stratum": "S1_hazard",
+      "n_stratum": 671,
+      "weight": 6.71,
+      "scene": "scene-0627",
+      "scene_token": "5301151d8b6a42b0b252e95634bd3995",
+      "timestamp": 1537295893.298338,
+      "primary": 0
+    },
+    {
+      "token": "3164b1a6aa024beea62d3b14fa78d747",
+      "stratum": "S3_rest",
+      "n_stratum": 3991,
+      "weight": 39.91,
+      "scene": "scene-0094",
+      "scene_token": "91c071bcc1ad4fa1b555399e1cfbab79",
+      "timestamp": 1533151220.447227,
+      "primary": 0
+    },
+    {
+      "token": "1299fa6151d54cffabb2042092ed946b",
+      "stratum": "S2_maneuver",
+      "n_stratum": 446,
+      "weight": 4.46,
+      "scene": "scene-0052",
+      "scene_token": "37b32e4e8cf846679b2c0cb342dbd4aa",
+      "timestamp": 1532402337.547618,
+      "primary": 0
+    },
+    {
+      "token": "0ffbcb63b0f94c53bca8acb143713a7a",
+      "stratum": "S3_rest",
+      "n_stratum": 3991,
+      "weight": 39.91,
+      "scene": "scene-0379",
+      "scene_token": "90d616aaefc4429380388205ebb23398",
+      "timestamp": 1533281195.650944,
+      "primary": 0
+    },
+    {
+      "token": "0e1f38fdeaac4c088934e5af67ec4f57",
+      "stratum": "S1_hazard",
+      "n_stratum": 671,
+      "weight": 6.71,
+      "scene": "scene-0355",
+      "scene_token": "2f093cad7209436aa06e103bfe062857",
+      "timestamp": 1533202625.699417,
+      "primary": 0
+    },
+    {
+      "token": "692503153bbd442abea5279051557f36",
+      "stratum": "S3_rest",
+      "n_stratum": 3991,
+      "weight": 39.91,
+      "scene": "scene-0849",
+      "scene_token": "68fc5e3698a544d1bdf5847b88ad77d4",
+      "timestamp": 1538985853.948287,
+      "primary": 0
+    },
+    {
+      "token": "63e4740d689b4bc5b2ca179c69bb1dd7",
+      "stratum": "S1_hazard",
+      "n_stratum": 671,
+      "weight": 6.71,
+      "scene": "scene-0068",
+      "scene_token": "b0b26c1e5a1140e69598422f12ae1dc0",
+      "timestamp": 1533153475.948017,
+      "primary": 0
+    },
+    {
+      "token": "6ec8e6d6078642a1891a25839836eaec",
+      "stratum": "S1_hazard",
+      "n_stratum": 671,
+      "weight": 6.71,
+      "scene": "scene-0397",
+      "scene_token": "fd2d419d4cf84a2d84922b9b7d2cea4d",
+      "timestamp": 1535731393.698216,
+      "primary": 0
+    },
+    {
+      "token": "591564cfd63d44ec9b43376139832808",
+      "stratum": "S1_hazard",
+      "n_stratum": 671,
+      "weight": 6.71,
+      "scene": "scene-0650",
+      "scene_token": "406a61a4d394432e95a7e8426a97551f",
+      "timestamp": 1537296619.898207,
+      "primary": 0
+    },
+    {
+      "token": "25a6d57a5cae45c1b1f9b67d1ff435bc",
+      "stratum": "S2_maneuver",
+      "n_stratum": 446,
+      "weight": 4.46,
+      "scene": "scene-0435",
+      "scene_token": "e2d9a52b37bd4b63b913777ef77b2d4f",
+      "timestamp": 1538985569.947885,
+      "primary": 0
+    },
+    {
+      "token": "529a7bc0ce584fc8b0efa9f47d449573",
+      "stratum": "S2_maneuver",
+      "n_stratum": 446,
+      "weight": 4.46,
+      "scene": "scene-0475",
+      "scene_token": "8b60e7e47cde43e0a7fbd66d926de14f",
+      "timestamp": 1537290165.449124,
+      "primary": 0
+    },
+    {
+      "token": "256acc23feb9475eab2db22d7047dd37",
+      "stratum": "S1_hazard",
+      "n_stratum": 671,
+      "weight": 6.71,
+      "scene": "scene-0861",
+      "scene_token": "748894952b00431186308b387c2f424c",
+      "timestamp": 1538986190.197343,
+      "primary": 0
+    },
+    {
+      "token": "8d0763a5e11745c5ac84469982ea6e11",
+      "stratum": "S1_hazard",
+      "n_stratum": 671,
+      "weight": 6.71,
+      "scene": "scene-0045",
+      "scene_token": "eac3102e4cc24d4b95532bcc711a902f",
+      "timestamp": 1532402008.296779,
+      "primary": 0
+    },
+    {
+      "token": "4ffdd34156524df380cddc090dcadc7d",
+      "stratum": "S1_hazard",
+      "n_stratum": 671,
+      "weight": 6.71,
+      "scene": "scene-0275",
+      "scene_token": "8377abf77f464a9cb62eacf63f383422",
+      "timestamp": 1531281860.199093,
+      "primary": 0
+    },
+    {
+      "token": "f139922ac2f648b3977212d3543ca897",
+      "stratum": "S2_maneuver",
+      "n_stratum": 446,
+      "weight": 4.46,
+      "scene": "scene-0384",
+      "scene_token": "25f40f7316954a3e978e24d691e1a117",
+      "timestamp": 1533281613.200086,
+      "primary": 0
+    },
+    {
+      "token": "6c940cdf63004ad29b7449e6376bcee8",
+      "stratum": "S2_maneuver",
+      "n_stratum": 446,
+      "weight": 4.46,
+      "scene": "scene-0415",
+      "scene_token": "3be5ff913abf449bac92ce2d2a4cffa0",
+      "timestamp": 1538033964.19781,
+      "primary": 0
+    },
+    {
+      "token": "960571388d71413fa6ecac9e86a513e6",
+      "stratum": "S2_maneuver",
+      "n_stratum": 446,
+      "weight": 4.46,
+      "scene": "scene-0475",
+      "scene_token": "8b60e7e47cde43e0a7fbd66d926de14f",
+      "timestamp": 1537290166.948184,
+      "primary": 0
+    },
+    {
+      "token": "f61c46983ab0414c81cb13ee46c2b424",
+      "stratum": "S2_maneuver",
+      "n_stratum": 446,
+      "weight": 4.46,
+      "scene": "scene-0419",
+      "scene_token": "8c84164e752a4ab69d039a07c898f7af",
+      "timestamp": 1538034045.697572,
+      "primary": 0
+    },
+    {
+      "token": "8687ba92abd3406aa797115b874ebeba",
+      "stratum": "S3_rest",
+      "n_stratum": 3991,
+      "weight": 39.91,
+      "scene": "scene-0553",
+      "scene_token": "6f83169d067343658251f72e1dd17dbc",
+      "timestamp": 1535489296.047917,
+      "primary": 0
+    },
+    {
+      "token": "7ad5a122a62f4f64b3ca4c771efb7869",
+      "stratum": "S1_hazard",
+      "n_stratum": 671,
+      "weight": 6.71,
+      "scene": "scene-0398",
+      "scene_token": "b519ec833e23450a8bd3340b67f2516b",
+      "timestamp": 1535731409.949155,
+      "primary": 0
+    },
+    {
+      "token": "d87502191a694901b4fed7e13b5a2ede",
+      "stratum": "S2_maneuver",
+      "n_stratum": 446,
+      "weight": 4.46,
+      "scene": "scene-0006",
+      "scene_token": "7deb4760e2244f32b57f9d631b535b66",
+      "timestamp": 1531884173.398972,
+      "primary": 0
+    },
+    {
+      "token": "1ef0fe15d57e4a158a1d8d7c134d65ba",
+      "stratum": "S3_rest",
+      "n_stratum": 3991,
+      "weight": 39.91,
+      "scene": "scene-1057",
+      "scene_token": "102b894332464704900264216480a8f7",
+      "timestamp": 1542799146.547803,
+      "primary": 0
+    },
+    {
+      "token": "1f07061321c2441a80b34e30fa854ebb",
+      "stratum": "S1_hazard",
+      "n_stratum": 671,
+      "weight": 6.71,
+      "scene": "scene-0797",
+      "scene_token": "f24b4682fbb9482aba149534deed1cc9",
+      "timestamp": 1538448772.196822,
+      "primary": 0
+    },
+    {
+      "token": "b46267e6625c4e649befcfd4b0827e57",
+      "stratum": "S1_hazard",
+      "n_stratum": 671,
+      "weight": 6.71,
+      "scene": "scene-0397",
+      "scene_token": "fd2d419d4cf84a2d84922b9b7d2cea4d",
+      "timestamp": 1535731390.699503,
+      "primary": 0
+    },
+    {
+      "token": "23a523b4551646629eaba01e588ce184",
+      "stratum": "S2_maneuver",
+      "n_stratum": 446,
+      "weight": 4.46,
+      "scene": "scene-0384",
+      "scene_token": "25f40f7316954a3e978e24d691e1a117",
+      "timestamp": 1533281611.699906,
+      "primary": 0
+    },
+    {
+      "token": "bfcbde973bdb4e81b7c96aab71c0b65f",
+      "stratum": "S2_maneuver",
+      "n_stratum": 446,
+      "weight": 4.46,
+      "scene": "scene-0006",
+      "scene_token": "7deb4760e2244f32b57f9d631b535b66",
+      "timestamp": 1531884169.448589,
+      "primary": 0
+    },
+    {
+      "token": "4ab3ec113eb241d5abc93b2ebe1313df",
+      "stratum": "S1_hazard",
+      "n_stratum": 671,
+      "weight": 6.71,
+      "scene": "scene-1071",
+      "scene_token": "0dae482684ce4cd69a7258f55bc98d73",
+      "timestamp": 1542799679.197846,
+      "primary": 0
+    },
+    {
+      "token": "e9002b72ddca4d1780f724cad89c0c9c",
+      "stratum": "S2_maneuver",
+      "n_stratum": 446,
+      "weight": 4.46,
+      "scene": "scene-1058",
+      "scene_token": "bfe368f8c6a44efcb323a82f6974a9a6",
+      "timestamp": 1542799159.148064,
+      "primary": 0
+    },
+    {
+      "token": "43af10e6c6aa4cb88a113431c6fb89c4",
+      "stratum": "S1_hazard",
+      "n_stratum": 671,
+      "weight": 6.71,
+      "scene": "scene-0761",
+      "scene_token": "947308824ada42fdbcff7009e815287f",
+      "timestamp": 1535657192.198208,
+      "primary": 0
+    },
+    {
+      "token": "46d333913294484d9d5ec247ca9f923b",
+      "stratum": "S3_rest",
+      "n_stratum": 3991,
+      "weight": 39.91,
+      "scene": "scene-0913",
+      "scene_token": "55b3a17359014f398b6bbd90e94a8e1b",
+      "timestamp": 1537298171.6996,
+      "primary": 0
+    },
+    {
+      "token": "c459a8264f8e4c89a0e256cd3a5ca53f",
+      "stratum": "S3_rest",
+      "n_stratum": 3991,
+      "weight": 39.91,
+      "scene": "scene-0883",
+      "scene_token": "ee909cb746e44174be804f26bc971efe",
+      "timestamp": 1537297365.799723,
+      "primary": 0
+    },
+    {
+      "token": "b9830863bc8c41ccbc022853245498b5",
+      "stratum": "S3_rest",
+      "n_stratum": 3991,
+      "weight": 39.91,
+      "scene": "scene-0903",
+      "scene_token": "3e1f0257a4b8457486651de2d16b61ab",
+      "timestamp": 1537297880.898863,
+      "primary": 0
+    },
+    {
+      "token": "6500650461bd44a4ba09a3669b4eac4a",
+      "stratum": "S1_hazard",
+      "n_stratum": 671,
+      "weight": 6.71,
+      "scene": "scene-0650",
+      "scene_token": "406a61a4d394432e95a7e8426a97551f",
+      "timestamp": 1537296601.299929,
+      "primary": 0
+    },
+    {
+      "token": "3c1022e9b646433a9c5aeef3a6c5170a",
+      "stratum": "S2_maneuver",
+      "n_stratum": 446,
+      "weight": 4.46,
+      "scene": "scene-0415",
+      "scene_token": "3be5ff913abf449bac92ce2d2a4cffa0",
+      "timestamp": 1538033960.698125,
+      "primary": 0
+    },
+    {
+      "token": "e95ce0e76a8e4d3cbd5aadaf9068d00c",
+      "stratum": "S1_hazard",
+      "n_stratum": 671,
+      "weight": 6.71,
+      "scene": "scene-0370",
+      "scene_token": "105c227c304b4cb18e98a5be6b2d8302",
+      "timestamp": 1533280153.149378,
+      "primary": 0
+    },
+    {
+      "token": "884be997e06c49febf90ec084a283089",
+      "stratum": "S3_rest",
+      "n_stratum": 3991,
+      "weight": 39.91,
+      "scene": "scene-0648",
+      "scene_token": "a6fae4900f8e46cba689b59b5bc8a2ab",
+      "timestamp": 1537296524.049703,
+      "primary": 0
+    },
+    {
+      "token": "e404ebc8c60144688dd7bc57043d4ea5",
+      "stratum": "S1_hazard",
+      "n_stratum": 671,
+      "weight": 6.71,
+      "scene": "scene-0240",
+      "scene_token": "d865cb18632040fdb4cb06b6e3331cdb",
+      "timestamp": 1532708705.298845,
+      "primary": 0
+    },
+    {
+      "token": "04ca040f6a154e8497afea38d03b30a0",
+      "stratum": "S2_maneuver",
+      "n_stratum": 446,
+      "weight": 4.46,
+      "scene": "scene-0149",
+      "scene_token": "1fbcc26ebf6948bb964d3ae74939e8ea",
+      "timestamp": 1533114270.697754,
+      "primary": 0
+    },
+    {
+      "token": "dd30cd99e03a43ecb74f1a41769bd9a7",
+      "stratum": "S1_hazard",
+      "n_stratum": 671,
+      "weight": 6.71,
+      "scene": "scene-1071",
+      "scene_token": "0dae482684ce4cd69a7258f55bc98d73",
+      "timestamp": 1542799678.697426,
+      "primary": 0
+    },
+    {
+      "token": "99f6bb873f054e56a351b6b33324c595",
+      "stratum": "S1_hazard",
+      "n_stratum": 671,
+      "weight": 6.71,
+      "scene": "scene-0011",
+      "scene_token": "c075fbdd97124beaba95bc5c25149f30",
+      "timestamp": 1531884535.398813,
+      "primary": 0
+    },
+    {
+      "token": "a2da6e6dba4440db8f55e9c1a703023a",
+      "stratum": "S2_maneuver",
+      "n_stratum": 446,
+      "weight": 4.46,
+      "scene": "scene-0458",
+      "scene_token": "634e7fbfe29c4a72b1ceb692b1d2ab44",
+      "timestamp": 1537289752.049324,
+      "primary": 0
+    },
+    {
+      "token": "257e3eafa1164127a7d5c6fce1a28ac6",
+      "stratum": "S1_hazard",
+      "n_stratum": 671,
+      "weight": 6.71,
+      "scene": "scene-0214",
+      "scene_token": "2bbff07f5b4248eab483ddcf91cfa848",
+      "timestamp": 1532622232.698243,
+      "primary": 0
+    },
+    {
+      "token": "e62f381c7b80463aa7384ca4073e5087",
+      "stratum": "S3_rest",
+      "n_stratum": 3991,
+      "weight": 39.91,
+      "scene": "scene-0151",
+      "scene_token": "ba76f4185aa34ed3bff467ac640da902",
+      "timestamp": 1533114336.448039,
+      "primary": 0
+    },
+    {
+      "token": "dde297c8e12f44c4bc2f2c80e49d2b5a",
+      "stratum": "S3_rest",
+      "n_stratum": 3991,
+      "weight": 39.91,
+      "scene": "scene-0553",
+      "scene_token": "6f83169d067343658251f72e1dd17dbc",
+      "timestamp": 1535489302.046988,
+      "primary": 0
+    },
+    {
+      "token": "8331a2494f82465f887f9e95595ad04c",
+      "stratum": "S2_maneuver",
+      "n_stratum": 446,
+      "weight": 4.46,
+      "scene": "scene-0921",
+      "scene_token": "112ca771e318478a88cfa692f61ffcac",
+      "timestamp": 1538984503.547867,
+      "primary": 0
+    },
+    {
+      "token": "8c4fd6ef54d44533b8ae4ad8e26d1988",
+      "stratum": "S3_rest",
+      "n_stratum": 3991,
+      "weight": 39.91,
+      "scene": "scene-0011",
+      "scene_token": "c075fbdd97124beaba95bc5c25149f30",
+      "timestamp": 1531884541.448211,
+      "primary": 0
+    },
+    {
+      "token": "d6f26d9996fe4699918d4ecd0b37c2fc",
+      "stratum": "S2_maneuver",
+      "n_stratum": 446,
+      "weight": 4.46,
+      "scene": "scene-1058",
+      "scene_token": "bfe368f8c6a44efcb323a82f6974a9a6",
+      "timestamp": 1542799167.798582,
+      "primary": 0
+    },
+    {
+      "token": "72e8664ada4e458f93244fbd09ce1193",
+      "stratum": "S2_maneuver",
+      "n_stratum": 446,
+      "weight": 4.46,
+      "scene": "scene-0998",
+      "scene_token": "242ac1b59fec4e0c9c200ffca81775e2",
+      "timestamp": 1542193275.548337,
+      "primary": 0
+    },
+    {
+      "token": "934e99cf7626436bbb6e466e2214ce3e",
+      "stratum": "S2_maneuver",
+      "n_stratum": 446,
+      "weight": 4.46,
+      "scene": "scene-0418",
+      "scene_token": "b526c20f7eed49f0886cdb4ba6b733e8",
+      "timestamp": 1538034030.147178,
+      "primary": 0
+    },
+    {
+      "token": "989b8316bb984ad8aba0e9a66e042f56",
+      "stratum": "S3_rest",
+      "n_stratum": 3991,
+      "weight": 39.91,
+      "scene": "scene-0817",
+      "scene_token": "e3094e1174654d119b55cce4df145e02",
+      "timestamp": 1537299261.398659,
+      "primary": 0
+    },
+    {
+      "token": "eb3ec30a7560441483ba5f63881525af",
+      "stratum": "S2_maneuver",
+      "n_stratum": 446,
+      "weight": 4.46,
+      "scene": "scene-0458",
+      "scene_token": "634e7fbfe29c4a72b1ceb692b1d2ab44",
+      "timestamp": 1537289754.949612,
+      "primary": 0
+    },
+    {
+      "token": "6f3f54eb2ce54888a6c6a8cdca6f2e59",
+      "stratum": "S3_rest",
+      "n_stratum": 3991,
+      "weight": 39.91,
+      "scene": "scene-1092",
+      "scene_token": "d2db9f5df62c4d338d3bed43f616b954",
+      "timestamp": 1542800805.647752,
+      "primary": 0
+    },
+    {
+      "token": "3a4b08abc71748f7b02f8f56ce18acb2",
+      "stratum": "S2_maneuver",
+      "n_stratum": 446,
+      "weight": 4.46,
+      "scene": "scene-1058",
+      "scene_token": "bfe368f8c6a44efcb323a82f6974a9a6",
+      "timestamp": 1542799160.647687,
+      "primary": 0
+    },
+    {
+      "token": "648805fc7cc64aaea92f77876e2c6ed0",
+      "stratum": "S1_hazard",
+      "n_stratum": 671,
+      "weight": 6.71,
+      "scene": "scene-0398",
+      "scene_token": "b519ec833e23450a8bd3340b67f2516b",
+      "timestamp": 1535731413.39578,
+      "primary": 0
+    },
+    {
+      "token": "7a8972531e074cc5b6908e984439eaf4",
+      "stratum": "S2_maneuver",
+      "n_stratum": 446,
+      "weight": 4.46,
+      "scene": "scene-0149",
+      "scene_token": "1fbcc26ebf6948bb964d3ae74939e8ea",
+      "timestamp": 1533114268.646801,
+      "primary": 0
+    },
+    {
+      "token": "0461193789904377aa06c405eca8b119",
+      "stratum": "S2_maneuver",
+      "n_stratum": 446,
+      "weight": 4.46,
+      "scene": "scene-0856",
+      "scene_token": "5dd272b76c3f4e2582040a91f2be2dde",
+      "timestamp": 1538986050.647856,
+      "primary": 0
+    },
+    {
+      "token": "635a497de08c49a293188a2b04b213b3",
+      "stratum": "S2_maneuver",
+      "n_stratum": 446,
+      "weight": 4.46,
+      "scene": "scene-0627",
+      "scene_token": "5301151d8b6a42b0b252e95634bd3995",
+      "timestamp": 1537295875.400124,
+      "primary": 0
+    },
+    {
+      "token": "df697951b5bd4cc9b1ffe9cf5d21fc5b",
+      "stratum": "S3_rest",
+      "n_stratum": 3991,
+      "weight": 39.91,
+      "scene": "scene-0379",
+      "scene_token": "90d616aaefc4429380388205ebb23398",
+      "timestamp": 1533281205.800078,
+      "primary": 0
+    },
+    {
+      "token": "74d66f093c024e98837faeedcab67640",
+      "stratum": "S3_rest",
+      "n_stratum": 3991,
+      "weight": 39.91,
+      "scene": "scene-0861",
+      "scene_token": "748894952b00431186308b387c2f424c",
+      "timestamp": 1538986184.198286,
+      "primary": 0
+    },
+    {
+      "token": "7bb8d00122624267a777a5ed487b8703",
+      "stratum": "S2_maneuver",
+      "n_stratum": 446,
+      "weight": 4.46,
+      "scene": "scene-0926",
+      "scene_token": "c4df079d260241ff8015218e29b42ea7",
+      "timestamp": 1538984950.947483,
+      "primary": 0
+    },
+    {
+      "token": "30826b1d54a941cf8217fc0e741ab227",
+      "stratum": "S1_hazard",
+      "n_stratum": 671,
+      "weight": 6.71,
+      "scene": "scene-0708",
+      "scene_token": "fe3aa64e4339456186c38c6308f5fb1a",
+      "timestamp": 1535573374.047982,
+      "primary": 0
+    },
+    {
+      "token": "ef2598c3a894455eb6cc2eb20d36b2b6",
+      "stratum": "S3_rest",
+      "n_stratum": 3991,
+      "weight": 39.91,
+      "scene": "scene-0228",
+      "scene_token": "aad7d3bf3c7a47ad9cb93d9b92ed38ee",
+      "timestamp": 1532708175.049119,
+      "primary": 0
+    },
+    {
+      "token": "9b11358ff2df4efb8efa4d69d2afa97a",
+      "stratum": "S3_rest",
+      "n_stratum": 3991,
+      "weight": 39.91,
+      "scene": "scene-0750",
+      "scene_token": "82240fd6d5ba4375815f8a7fa1561361",
+      "timestamp": 1535656879.80109,
+      "primary": 0
+    },
+    {
+      "token": "4e4150d699ea4d39b9d49fa5d956ef2e",
+      "stratum": "S1_hazard",
+      "n_stratum": 671,
+      "weight": 6.71,
+      "scene": "scene-0370",
+      "scene_token": "105c227c304b4cb18e98a5be6b2d8302",
+      "timestamp": 1533280150.649985,
+      "primary": 0
+    },
+    {
+      "token": "6b8e7a608aca4db5ab55edaae5bf00d6",
+      "stratum": "S3_rest",
+      "n_stratum": 3991,
+      "weight": 39.91,
+      "scene": "scene-0913",
+      "scene_token": "55b3a17359014f398b6bbd90e94a8e1b",
+      "timestamp": 1537298184.648276,
+      "primary": 0
+    },
+    {
+      "token": "a2600521791d40aa81f06559aebfe2c0",
+      "stratum": "S1_hazard",
+      "n_stratum": 671,
+      "weight": 6.71,
+      "scene": "scene-0787",
+      "scene_token": "19284973bd0342998c37848e931a90d0",
+      "timestamp": 1538449197.897737,
+      "primary": 0
+    },
+    {
+      "token": "6ab0f888056d46009319a30ef11eab90",
+      "stratum": "S2_maneuver",
+      "n_stratum": 446,
+      "weight": 4.46,
+      "scene": "scene-0369",
+      "scene_token": "a1b51c02d8414856a86c0c37e4789c2f",
+      "timestamp": 1533280087.65013,
+      "primary": 0
+    },
+    {
+      "token": "64134c75d5f547fdb4a6862b192f06cd",
+      "stratum": "S3_rest",
+      "n_stratum": 3991,
+      "weight": 39.91,
+      "scene": "scene-1077",
+      "scene_token": "d25718445d89453381c659b9c8734939",
+      "timestamp": 1542800385.448218,
+      "primary": 0
+    },
+    {
+      "token": "26dc352d775a4017a31a8f14d9b03474",
+      "stratum": "S1_hazard",
+      "n_stratum": 671,
+      "weight": 6.71,
+      "scene": "scene-0151",
+      "scene_token": "ba76f4185aa34ed3bff467ac640da902",
+      "timestamp": 1533114345.696285,
+      "primary": 0
+    },
+    {
+      "token": "c0e4b1016c09468c9b1ce496462eb1ad",
+      "stratum": "S1_hazard",
+      "n_stratum": 671,
+      "weight": 6.71,
+      "scene": "scene-0035",
+      "scene_token": "3dd2be428534403ba150a0b60abc6a0a",
+      "timestamp": 1532400198.147026,
+      "primary": 0
+    },
+    {
+      "token": "2341cb7aa5a94336bada2b0ee6c502bc",
+      "stratum": "S3_rest",
+      "n_stratum": 3991,
+      "weight": 39.91,
+      "scene": "scene-0163",
+      "scene_token": "6ab3d1e9476d4cd89d4949d69d056901",
+      "timestamp": 1526915287.947173,
+      "primary": 0
+    },
+    {
+      "token": "ee5ab200d6ab4df4ada31994a05a8484",
+      "stratum": "S2_maneuver",
+      "n_stratum": 446,
+      "weight": 4.46,
+      "scene": "scene-0419",
+      "scene_token": "8c84164e752a4ab69d039a07c898f7af",
+      "timestamp": 1538034044.298539,
+      "primary": 0
+    },
+    {
+      "token": "4ddb12b44d36462a8b4a2f4a7fed980c",
+      "stratum": "S3_rest",
+      "n_stratum": 3991,
+      "weight": 39.91,
+      "scene": "scene-0901",
+      "scene_token": "4c5c675340d14cd88a65b5e22eb9c9c1",
+      "timestamp": 1537297828.200102,
+      "primary": 0
+    },
+    {
+      "token": "5b9b3f37cfb64570936213b866906f71",
+      "stratum": "S2_maneuver",
+      "n_stratum": 446,
+      "weight": 4.46,
+      "scene": "scene-1058",
+      "scene_token": "bfe368f8c6a44efcb323a82f6974a9a6",
+      "timestamp": 1542799169.297646,
+      "primary": 0
+    },
+    {
+      "token": "8b830239436f46d3b0b90de4cc4c0546",
+      "stratum": "S3_rest",
+      "n_stratum": 3991,
+      "weight": 39.91,
+      "scene": "scene-0771",
+      "scene_token": "21a7ba093614493b83838b9656b3558d",
+      "timestamp": 1535657576.448135,
+      "primary": 0
+    },
+    {
+      "token": "f287a5de1e314bc9a7f7fac1f90625b3",
+      "stratum": "S3_rest",
+      "n_stratum": 3991,
+      "weight": 39.91,
+      "scene": "scene-1058",
+      "scene_token": "bfe368f8c6a44efcb323a82f6974a9a6",
+      "timestamp": 1542799163.147624,
+      "primary": 0
+    },
+    {
+      "token": "7ec98f667c9047d6bb1273b7766faa29",
+      "stratum": "S2_maneuver",
+      "n_stratum": 446,
+      "weight": 4.46,
+      "scene": "scene-1058",
+      "scene_token": "bfe368f8c6a44efcb323a82f6974a9a6",
+      "timestamp": 1542799164.298889,
+      "primary": 0
+    },
+    {
+      "token": "62ea548f78524fe9a2c1050e7aa2722c",
+      "stratum": "S1_hazard",
+      "n_stratum": 671,
+      "weight": 6.71,
+      "scene": "scene-0435",
+      "scene_token": "e2d9a52b37bd4b63b913777ef77b2d4f",
+      "timestamp": 1538985565.447304,
+      "primary": 0
+    },
+    {
+      "token": "a19a80c905674faab7203a3a4e0f5246",
+      "stratum": "S1_hazard",
+      "n_stratum": 671,
+      "weight": 6.71,
+      "scene": "scene-0916",
+      "scene_token": "325cef682f064c55a255f2625c533b75",
+      "timestamp": 1538984241.447959,
+      "primary": 0
+    },
+    {
+      "token": "5c27de6621d44536ae8901f6a0dceae1",
+      "stratum": "S3_rest",
+      "n_stratum": 3991,
+      "weight": 39.91,
+      "scene": "scene-0681",
+      "scene_token": "52bb785dcb5548a1836898f14fb3cf6d",
+      "timestamp": 1535488127.796837,
+      "primary": 0
+    },
+    {
+      "token": "894ca07a65e84ef69e6963ca28a5ca4c",
+      "stratum": "S1_hazard",
+      "n_stratum": 671,
+      "weight": 6.71,
+      "scene": "scene-0861",
+      "scene_token": "748894952b00431186308b387c2f424c",
+      "timestamp": 1538986193.198271,
+      "primary": 0
+    },
+    {
+      "token": "46ebd62b01cc490dad29643ee1fa4630",
+      "stratum": "S2_maneuver",
+      "n_stratum": 446,
+      "weight": 4.46,
+      "scene": "scene-0627",
+      "scene_token": "5301151d8b6a42b0b252e95634bd3995",
+      "timestamp": 1537295890.149789,
+      "primary": 0
+    },
+    {
+      "token": "6d806af1c4fe4334a56993a0feffc87e",
+      "stratum": "S1_hazard",
+      "n_stratum": 671,
+      "weight": 6.71,
+      "scene": "scene-0386",
+      "scene_token": "11058d54abcd4829828523040372ce05",
+      "timestamp": 1533281879.20108,
+      "primary": 0
+    },
+    {
+      "token": "ec175e35614942caa32066c78b1040ee",
+      "stratum": "S3_rest",
+      "n_stratum": 3991,
+      "weight": 39.91,
+      "scene": "scene-0787",
+      "scene_token": "19284973bd0342998c37848e931a90d0",
+      "timestamp": 1538449180.447438,
+      "primary": 0
+    }
+  ]
+}

@@ -138,19 +138,20 @@
 | `feature_cache.py` | MobileNetV3-small GAP 특징을 카메라별 `.npy` memmap으로 사전 추출 | 학습 중 백본을 재실행하지 않는다. 원본 이미지 학습이 아니므로 1 epoch가 초 단위로 끝난다 |
 | `contrib_cache.py` | 위험 기여(투영·TTC·DCA·w)와 CAN 특징을 ragged `.npz`로 캐시 | 34,149 keyframe × 실험 10여 회를 매번 재계산하면 낭비다. 캐시 키는 **기여 값을 바꾸는 LabelConfig 필드만** 반영해 무관한 설정 변경으로 무효화되지 않는다 |
 | `noise.py` | 검출 오류 시뮬레이터 — 누락(원거리 가중) · 오검출(Poisson) · 위치/속도 잡음 · 채널 블랙아웃. `clean/light/medium/heavy` 프리셋 | 원칙 2의 구현체. 학습 증강과 강건성 평가 양쪽에서 같은 코드를 쓴다 |
-| `dataset.py` | 과거 T=4 시퀀스 조립(scene 경계 패딩 + 마스크), `risk_source` 분기, 난수 시드 정책, `WeightedRandomSampler` | 모델은 **과거만** 본다. 라벨이 미래를 참조하는 비대칭이 "선제적 전환 학습"의 핵심이다 |
+| `dataset.py` | 과거 T=4 시퀀스 조립(scene 경계 패딩 + 마스크), `risk_source` 분기, 난수 시드 정책, `WeightedRandomSampler`, 평가용 `frame_risk` | 모델은 **과거만** 본다. 라벨이 미래를 참조하는 비대칭이 "선제적 전환 학습"의 핵심이다 |
+| `map_index.py` | nuScenes 맵 확장(차로·연결부·도로 구간·주차장) STRtree 조회, 차로 연결 탐색 | devkit 조회는 점당 78 ms(전체 44분) → 0.04 ms(전체 약 1초) |
 
-> **난수 정책** (`item_rng`, `set_epoch`) — 학습은 `(seed, epoch, index)`, 평가는 `(seed, index)`.
-> 학습에서 인덱스만으로 시드하면 고정된 손상 입력을 암기해 강건성이 증명되지 않고,
-> 평가에서 epoch를 섞으면 제안 모델과 B2가 서로 다른 입력을 보게 되어 열화 곡선 비교가
-> 성립하지 않는다. 검출 품질과 블랙아웃 채널은 2초 시퀀스 안에서 유지된다.
+> **난수 정책** — 학습 증강은 `(seed, epoch, index)`(`item_rng`, `set_epoch`), 평가는 **프레임 단위**
+> `(seed, 프레임)`(`frame_rng`, `frame_risk`). 학습에서 인덱스만으로 시드하면 고정된 손상 입력을
+> 암기해 강건성이 증명되지 않는다. 평가에서는 한 프레임의 검출 결과가 하나여야 전체 이력을 쓰는
+> 규칙(B2)과 4프레임을 보는 모델이 같은 세계를 본다. 검출 품질과 블랙아웃 채널은 2초 시퀀스 안에서 유지된다.
 
 #### `src/labeling` — 의사 라벨 생성 (M2, 본 연구의 ★)
 
 | 모듈 | 하는 일 | 핵심 판단 |
 |---|---|---|
 | `ttc.py` | 최접근(CPA) 기반 TTC와 DCA, 위험 가중 `w`, 경로 계수 `ρ_path`, 상태 감쇠 예외 `ρ_attr_eff`, 진행방향 게이트 근접 보정 | radial 정의(`r/v_r`)는 옆으로 스쳐 갈 객체를 충돌 임박으로 오판한다. 실측상 위험량의 62.9%가 정지·주차 객체에서 나왔다. `ttc_mode: radial`로 되돌릴 수 있고 ablation 항목으로 쓴다 |
-| `maneuver.py` | [−1초, +5초] ego 자세 윈도우로 7개 기동 상태 규칙 판정. TURN은 **선회반경 ≤ 30 m**, 차선변경은 **곡선 성분을 뺀 횡이탈 잔차 ≥ 2.0 m** | 헤딩 변화만 보면 곡선로가 TURN·차선변경으로 잡힌다(TURN 라벨의 43%가 R > 30 m였다). 방향지시등과 대조해 검증: TURN 75~83% 일치, 반대 방향 <2% |
+| `maneuver.py` | 7개 기동 상태 판정. 상태(STOP·REVERSE)는 ±1초, 기동(TURN·LANE_CHANGE)은 [−1, +5]초 창. **맵 기준**: TURN은 일반 차로 밖(교차로·연결부)에서 튼 각도 > 25°, 차선변경은 이어지지 않은 이웃 차로로 차로 ID가 바뀜 (맵이 없으면 반경·횡이탈 궤적 규칙) | 궤적만으로는 교차로 통과를 차선변경으로, 큰 교차로 회전을 곡선로로 오판했다(궤적 기준 차선변경 중 맵 확인 15.8%). 방향지시등 일치: 차선변경 25~39% → 58~59% |
 | `label_function.py` | 채널 귀속 → 채널 위험도 → `s(c) = risk(c) + λ·m(c)` → primary · aux 슬롯 · soft label · layout, scene 단위 EMA 평활과 flicker 병합 | **위험 항만 평활한다.** 기동 상태는 이미 수 초 윈도우로 추론된 안정 신호라 다시 평활하면 이중 스무딩이 되어, 기동 경계에서 안전 기본값이 꺼진다 |
 
 `is_hazard()` 는 **'실제 위험'의 단일 정의**(`TTC < 5s AND DCA < 3m`)이며 라벨·평가·골드셋이
@@ -196,13 +197,14 @@ python -m pytest tests/ -q
 
 | 계층 | 상태 |
 |---|---|
-| utils · data · labeling | 구현 완료 — 유닛테스트 52개 통과. **M2 승인(2026-10-04)** |
-| 특징·데이터 캐시 | trainval 특징 캐시(204,894장, 473 MB) · 기여 캐시 완료 — **M3 완료** |
-| models · 학습 루프 | 채널별 sigmoid + focal BCE, macro-AP 모델 선택. trainval 본 학습 진행 중 (M4) |
-| `baselines/rule_based.py` (B2) | 미구현 — M5 |
-| `eval/evaluate.py` · `eval/robustness.py` | 미구현 — M6 · M7 |
-| `tools/goldset_ui/` | 미구현 — M6 |
-| `scripts/06~08` | 미구현 — M6~M8 |
+| utils · data · labeling | 구현 완료 — 유닛테스트 57개. **M2 승인** (1차 20장 2026-10-04, 2차 표적 16장 2026-10-06, 맵 기준) |
+| 특징·데이터 캐시 | trainval 특징 캐시(204,894장, 473 MB) · 기여 캐시(CAN 7종) — **M3 완료** |
+| models · 학습 루프 | 채널별 sigmoid + focal BCE, macro-AP 모델 선택, 지시등 입력 (M4) |
+| `baselines/rule_based.py` | B1·B2(오라클 기동)·B2c(과거만) — M5 |
+| `scripts/06_evaluate.py` | 공통 평가 + `--curve` 운영 곡선(같은 표시량 비교) — M5·M6 |
+| `scripts/06b_goldset_sample.py` · `tools/goldset_ui/` | 골드셋 300장 층화 추출 + 검수 UI — M6 (사용자 라벨링 대기) |
+| `configs/` B3·B4·A1·A2·A4·A5 | `inherit:` 상속 설정 — M7 |
+| `eval/robustness.py` · `scripts/07~08` | 미구현 — M7·M8 |
 | `data/interpolation.py` (2Hz→12Hz) | 선택 항목, 미구현 |
 
 ## 🗂️ 데이터셋
