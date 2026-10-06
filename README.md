@@ -208,6 +208,7 @@ python -m pytest tests/ -q
 | `scripts/06b_goldset_sample.py` · `tools/goldset_ui/` | 골드셋 300장 층화 추출 + 검수 UI — M6 (사용자 라벨링 대기) |
 | `configs/` B3·B4·A1·A2·A4·A5 | `inherit:` 상속 설정 — M7 |
 | `scripts/07_robustness.py` | 유형별(누락·오검출·위치·카메라 고장) 강건성, 같은 표시량의 포착률 — M7 |
+| `scripts/07b_ablation.py` | A1~A5·B3·T=10 변형을 같은 표시량에서 비교 → `results/ablation.md` — M7 |
 | `scripts/08_make_figures.py` | 미구현 — M8 |
 | `data/interpolation.py` (2Hz→12Hz) | 선택 항목, 미구현 |
 

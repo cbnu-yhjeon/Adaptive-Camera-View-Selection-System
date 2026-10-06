@@ -174,7 +174,7 @@ def main() -> int:
     with open(os.path.join(out_dir, "config.yaml"), "w", encoding="utf-8") as f:
         yaml.safe_dump({"base": base, "label": lab, "train_cfg": tc}, f, allow_unicode=True)
 
-    best_f1, best_ep, patience = -1.0, -1, tr.get("patience", 10)
+    best_ap, best_ep, patience = -1.0, -1, tr.get("patience", 10)
     history = []
     for ep in range(epochs):
         model.train()
@@ -209,17 +209,19 @@ def main() -> int:
             msg += f" train_AP={rec['train_ap']:.3f}"
         print(msg)
 
-        if val["ap"] > best_f1:
-            best_f1, best_ep = val["ap"], ep
+        if val["ap"] > best_ap:
+            best_ap, best_ep = val["ap"], ep
             torch.save({"model": model.state_dict(), "mcfg": mcfg.__dict__,
                         "epoch": ep, "val": val}, os.path.join(out_dir, "best.ckpt"))
         elif ep - best_ep >= patience:
-            print(f"  early stopping (best ep{best_ep}, AP={best_f1:.3f})")
+            print(f"  early stopping (best ep{best_ep}, AP={best_ap:.3f})")
             break
 
     with open(os.path.join(out_dir, "metrics.json"), "w", encoding="utf-8") as f:
-        json.dump({"best_f1": best_f1, "best_epoch": best_ep, "history": history}, f, indent=2)
-    print(f"\n✅ 학습 완료 — best val macro-AP={best_f1:.3f} (ep{best_ep})\n   → {out_dir}")
+        # 2026-10-07 이전 실행은 같은 값을 'best_f1'이라는 이름으로 저장했다(선택 기준을 F1에서
+        # AP로 바꿀 때 이름이 남았다). 읽는 쪽은 두 키를 모두 받는다.
+        json.dump({"best_val_ap": best_ap, "best_epoch": best_ep, "history": history}, f, indent=2)
+    print(f"\n✅ 학습 완료 — best val macro-AP={best_ap:.3f} (ep{best_ep})\n   → {out_dir}")
     return 0
 
 

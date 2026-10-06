@@ -77,10 +77,11 @@ class Env:
         self.cc = contrib_cache.load_or_build(self.w, self.w.all_sample_tokens(), self.cfg, cache_dir)
         self._haz: dict[str, set] = {}
 
-    def dataset(self, split, risk_source, noise):
+    def dataset(self, split, risk_source, noise, seq_len=None):
+        """seq_len을 주면 설정 파일 대신 그 길이로 — 시퀀스 길이가 다른 변형(B4 T=1 등)을 함께 잴 때."""
         return ViewSelectionDataset(
             self.w, self.fc, self.df, self.cfg, self.split[split],
-            seq_len=self.tc["train"].get("seq_len", 4),
+            seq_len=seq_len or self.tc["train"].get("seq_len", 4),
             risk_source=risk_source, noise_preset=noise, train_risk_noise=False,
             seed=self.base.get("seed", 42), contrib_cache=self.cc)
 
