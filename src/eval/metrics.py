@@ -125,3 +125,57 @@ def flicker_rate(seq_by_scene: dict[str, list[int]], window: int = 3) -> float:
                         flickers += 1
                         break
     return flickers / transitions if transitions else 0.0
+
+
+def gold_scores(sel: np.ndarray, rank: np.ndarray | None, gold: list,
+                primary: np.ndarray, weight: np.ndarray | None = None) -> dict:
+    """골드셋 채점 (CLAUDE.md B.8) — 사람이 고른 '진행 방향 외에 추가로 봐야 할 화면' 집합과 비교.
+
+    sel     (n,6) bool   방법이 켠 보조 뷰
+    rank    (n,6) float  채널 순위 점수(클수록 우선, Top-k용). 점수가 없는 방법(B1)이면 None
+    gold    길이 n의 채널 집합 목록 — 빈 집합은 '강조 불필요'
+    primary (n,)         진행 방향 채널 — 예측·정답 모두에서 뺀다(상시 표시라 고를 대상이 아니다)
+    weight  (n,)         역확률 가중치(층화 추출 복원). 없으면 1
+
+    top1·top2  정답이 있는 프레임에서 순위 1(2)위 안에 정답 채널이 하나라도 있는 비율.
+               정답이 빈 프레임은 '맞힐 채널'이 없어 분모에서 뺀다 — 대신 quiet가 그 프레임을 잰다.
+    f1         채널별 F1(가중 TP·FP·FN)의 macro 평균. 빈 정답 프레임도 포함한다 — 거기서 켠 화면은 FP.
+               정답·예측 모두 양성이 없는 채널은 평균에서 뺀다(multilabel_f1과 같은 규칙).
+    quiet      정답이 빈 프레임에서 보조 뷰를 하나도 켜지 않은 비율
+    exact      선택 집합이 정답 집합과 정확히 같은 비율
+    mean_aux   평균 보조 뷰 수
+    """
+    sel = np.asarray(sel, dtype=bool).copy()
+    n = len(sel)
+    w = np.ones(n) if weight is None else np.asarray(weight, dtype=float)
+    prim = np.asarray(primary, dtype=int)
+    G = np.zeros_like(sel)
+    for i, g in enumerate(gold):
+        G[i, [c for c in g if c != prim[i]]] = True
+    sel[np.arange(n), prim] = False
+    nonempty = G.any(1)
+    out = dict(n=int(n), n_nonempty=int(nonempty.sum()),
+               mean_aux=float(np.average(sel.sum(1), weights=w)) if n else 0.0)
+    for k in (1, 2):
+        if rank is None or not nonempty.any():
+            out[f"top{k}"] = None
+            continue
+        r = np.asarray(rank, dtype=float).copy()
+        r[np.arange(n), prim] = -np.inf
+        top = np.argsort(-r, axis=1)[:, :k]
+        hit = np.array([G[i, top[i]].any() for i in range(n)])
+        out[f"top{k}"] = float(np.average(hit[nonempty], weights=w[nonempty]))
+    f1s = []
+    for c in range(sel.shape[1]):
+        m = prim != c
+        tp = (w * (sel[:, c] & G[:, c] & m)).sum()
+        fp = (w * (sel[:, c] & ~G[:, c] & m)).sum()
+        fn = (w * (~sel[:, c] & G[:, c] & m)).sum()
+        if tp + fp + fn > 0:
+            f1s.append(2 * tp / (2 * tp + fp + fn))
+    out["f1"] = float(np.mean(f1s)) if f1s else 0.0
+    empty = ~nonempty
+    out["quiet"] = float(np.average(~sel[empty].any(1), weights=w[empty])) if empty.any() else None
+    out["exact"] = float(np.average((sel == G).all(1), weights=w)) if n else 0.0
+    return out
+

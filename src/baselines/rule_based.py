@@ -97,8 +97,16 @@ class RuleBased:
                 s = ema + self.cfg.lambda_m * m_vec
                 s[primary] = -np.inf
                 out[t] = dict(aux=[int(c) for c in aux], primary=primary,
-                              attention=int(np.argmax(s)))
+                              attention=int(np.argmax(s)),
+                              score=np.where(np.isfinite(s), s, -1.0).tolist())   # 골드셋 Top-k 순위용
         return out
+
+
+def score_array(pred: dict[str, dict], tokens: list[str]):
+    """토큰 순서에 맞춘 채널 순위 점수 (N,6) — 진행 방향은 -1. 점수가 없는 방법(B1)이면 None."""
+    if not tokens or "score" not in pred[tokens[0]]:
+        return None
+    return np.array([pred[t]["score"] for t in tokens], dtype=np.float64)
 
 
 def as_arrays(pred: dict[str, dict], tokens: list[str]):
