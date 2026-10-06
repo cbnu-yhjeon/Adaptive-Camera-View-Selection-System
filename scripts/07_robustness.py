@@ -66,7 +66,12 @@ def interp(pts, key, load):
 def gold_rank(r):
     """metrics 결과에서 골드셋 순위 지표(임계값 무관) — 골드셋이 없으면 None."""
     g = r.get("gold")
-    return None if g is None else {k: g["weighted"][k] for k in ("top1", "top2")}
+    if g is None:
+        return None
+    # 가중(전체 분포 추정)이 주 수치. 골드셋이 덜 찼을 때는 층 하나가 가중을 독점할 수 있어 비가중도 남긴다.
+    return {**{k: g["weighted"][k] for k in ("top1", "top2")},
+            **{f"{k}_unweighted": g["unweighted"][k] for k in ("top1", "top2")},
+            "n": g["unweighted"]["n_nonempty"]}
 
 
 def rule_curve(env, rule, ds):
