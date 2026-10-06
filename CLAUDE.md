@@ -554,8 +554,13 @@ GT 객체 리스트에 다음을 적용해 위험도 벡터를 재계산:
 운영 곡선(규칙은 θ, 모델은 τ 스윕)을 그리고 **같은 표시량의 포착률**(선형 보간)로 비교한다.
 
 ### 표 1 생성
-- `scripts/06_evaluate.py --all` → `results/table1.md`
-- 열: 방법 × {Top-1(gold), Top-2(gold), Macro-F1(gold), Macro-F1(pseudo-test), Flicker, 가시화율}
+- `scripts/06_evaluate.py --all` → `results/table1.md` (골드셋은 `--gold data/goldset_v1.json`,
+  검수 화면의 '결과 저장' 파일을 그대로 쓴다. 없으면 골드 열을 비운 채 나머지를 채운다)
+- 행: B1·B2·B2c·B3·B4·제안. 열: Top-1(gold), Top-2(gold), Macro-F1(gold), **정숙률(gold)**,
+  Macro-F1(pseudo-test), 평균 표시, 포착률(가시화율), 정밀도, Flicker, **같은 표시량의 포착률**
+- 골드 지표 정의(`metrics.gold_scores`): Top-k는 정답이 있는 프레임만(빈 정답은 맞힐 채널이 없다),
+  Macro-F1은 빈 정답 프레임도 포함(거기서 켠 화면은 오표시), 정숙률은 '강조 불필요' 프레임에서
+  보조 뷰를 0장 켠 비율. 진행 방향 채널은 정답·예측에서 뺀다. 주 수치는 역확률 가중, 층별은 비가중.
 - 평가 기본 입력 조건: `risk_source=noisy(medium)` — 본 표의 공정 비교 조건.
   `risk_source=gt` 결과는 부록 표로 별도 저장.
 
