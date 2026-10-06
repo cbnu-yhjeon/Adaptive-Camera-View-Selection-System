@@ -66,6 +66,13 @@ CAN_NORM: dict[str, float] = {
 }
 D_CAN: int = len(CAN_FEATURES) + 1                    # +1 = CAN 결측 마스크
 
+# 채널별 수평 방위(°, 차량 좌표 x=앞·y=왼쪽)와 수평 화각(°) — nuScenes 캘리브레이션에서 계산해
+# 반올림한 값(광축 방향, 2·atan(W/2fx)). 오검출 시뮬레이터가 가짜 객체를 그 카메라 화각 안에 놓을 때만 쓴다.
+CAMERA_YAW_DEG: dict[str, float] = {"CAM_FRONT": 0.0, "CAM_FRONT_RIGHT": -56.0, "CAM_BACK_RIGHT": -111.0,
+                                    "CAM_BACK": 180.0, "CAM_BACK_LEFT": 109.0, "CAM_FRONT_LEFT": 55.0}
+CAMERA_HFOV_DEG: dict[str, float] = {"CAM_FRONT": 65.0, "CAM_FRONT_RIGHT": 65.0, "CAM_BACK_RIGHT": 65.0,
+                                     "CAM_BACK": 89.0, "CAM_BACK_LEFT": 65.0, "CAM_FRONT_LEFT": 65.0}
+
 # 방향지시등 유지 시간(초). vehicle_monitor의 left/right_signal은 레버 위치가 아니라
 # **램프 점멸 상태**를 2 Hz로 찍은 값이라, 지시등을 켠 동안에도 1,1,0,0으로 깜빡인다
 # (약 1.5 Hz 점멸이 2 Hz 샘플링에 겹친 에일리어싱). 점등 사이의 소등 구간은 2샘플(1초)

@@ -36,7 +36,7 @@ from src.data.noise import apply_noise, make_noise_config
 from src.labeling.label_function import (
     LabelConfig, channel_risk_contributors, risk_vector_from_contribs,
 )
-from src.utils.constants import D_CAN, MANEUVER_INDEX, NUM_CAMERAS
+from src.utils.constants import CAN_FEATURES, CAN_NORM, D_CAN, MANEUVER_INDEX, NUM_CAMERAS
 
 
 def item_rng(base_seed: int, index: int, epoch: int | None) -> np.random.Generator:
@@ -143,7 +143,11 @@ class ViewSelectionDataset(Dataset):
         # 노이즈 파라미터(위험 재계산 정합)
         self._risk_params = dict(tau=label_cfg.tau, w_type=label_cfg.w_type,
                                  w_min_near=label_cfg.w_min_near,
-                                 near_range=label_cfg.near_range)
+                                 near_range=label_cfg.near_range,
+                                 v_r_min=label_cfg.v_r_min, ttc_mode=label_cfg.ttc_mode,
+                                 d_near=label_cfg.d_near, d_scale=label_cfg.d_scale,
+                                 rho_min=label_cfg.rho_min, touch_range=label_cfg.touch_range,
+                                 stop_speed=label_cfg.maneuver_th.stop_speed)
         self._nc: dict[str, object] = {}     # 프리셋별 NoiseConfig 재사용
         self._frame_risk: dict[tuple, np.ndarray] = {}   # 평가용 프레임 위험 메모
 
@@ -164,6 +168,11 @@ class ViewSelectionDataset(Dataset):
 
     def _get_can(self, token: str):
         return self._cache.can(token) if self._cache is not None else self._can[token]
+
+    def _ego_speed(self, token: str) -> float:
+        """전진 속도(m/s, 후진 음수) — CAN 특징의 speed(CAN pose.vel, 없으면 ego_pose 차분)."""
+        feat, _ = self._get_can(token)
+        return float(feat[CAN_FEATURES.index("speed")] * CAN_NORM["speed"])
 
     def _noise_config(self, preset: str):
         """프리셋별 NoiseConfig. 블랙아웃은 따로 다루므로 여기선 끈다.
@@ -236,7 +245,7 @@ class ViewSelectionDataset(Dataset):
         if source == "gt":
             return risk_vector_from_contribs(contribs).astype(np.float32)
         if source == "noisy":
-            res = apply_noise(contribs, rng, self._noise_config(preset))
+            res = apply_noise(contribs, rng, self._noise_config(preset), self._ego_speed(token))
             return risk_vector_from_contribs(res.contribs).astype(np.float32)
         # 향후: source == "lidar" → LiDAR 검출기 contributors 사용
         raise ValueError(f"알 수 없는 risk_source: {source}")
