@@ -1,0 +1,100 @@
+{
+  "n": 5108,
+  "pseudo_f1": 0.9112,
+  "mean_aux": 0.4252,
+  "recall": 96.55,
+  "precision": 12.52,
+  "flicker": 0.5069,
+  "n_hazard": 724,
+  "top1": 0.8453,
+  "gold": {
+    "n": 28,
+    "n_hmm": 0,
+    "weighted": {
+      "n": 28,
+      "n_nonempty": 27,
+      "mean_aux": 0.38409250722712707,
+      "top1": 0.6278983662701902,
+      "top2": 0.8346832045170546,
+      "f1": 0.10879945660478656,
+      "quiet": 1.0,
+      "exact": 0.2519728103758106
+    },
+    "unweighted": {
+      "n": 28,
+      "n_nonempty": 27,
+      "mean_aux": 0.6071428571428571,
+      "top1": 0.4444444444444444,
+      "top2": 0.7407407407407407,
+      "f1": 0.14533333333333334,
+      "quiet": 1.0,
+      "exact": 0.17857142857142858
+    },
+    "by_stratum": {
+      "S1_hazard": {
+        "n": 11,
+        "n_nonempty": 11,
+        "mean_aux": 0.9090909090909091,
+        "top1": 0.45454545454545453,
+        "top2": 0.8181818181818182,
+        "f1": 0.15384615384615385,
+        "quiet": null,
+        "exact": 0.2727272727272727
+      },
+      "S2_maneuver": {
+        "n": 14,
+        "n_nonempty": 14,
+        "mean_aux": 0.5,
+        "top1": 0.35714285714285715,
+        "top2": 0.6428571428571429,
+        "f1": 0.1625,
+        "quiet": null,
+        "exact": 0.07142857142857142
+      },
+      "S3_rest": {
+        "n": 3,
+        "n_nonempty": 2,
+        "mean_aux": 0.0,
+        "top1": 1.0,
+        "top2": 1.0,
+        "f1": 0.0,
+        "quiet": 1.0,
+        "exact": 0.3333333333333333
+      }
+    },
+    "top1_hit": {
+      "d64e599dc5c64226895649debdd49793": true,
+      "b72f2f5db001422aad91c243b2cbb716": false,
+      "e961b547d4514eb3bab9debf6191bff0": true,
+      "9a851ada7d2c408eb7c0a2b1951ea039": false,
+      "4523fb98c35940f1a47555072262965d": true,
+      "3a0095caaf5b4db2aa0defac74872531": true,
+      "9a008c40488c4a5db2e0bb9420fcc1b3": false,
+      "5527b3b156854b79b051338b7fe6a23d": false,
+      "b6288b6da11144fea3dd42b7255b3021": false,
+      "56083b0f7e544fdba33c40488103653e": true,
+      "4eb7e90e9c9b4a978114a83f3a825d6b": true,
+      "52f2da122cdf459a8dbb57278e3cdf25": true,
+      "4087adbc4baa4e9fa22cceda297da3c0": true,
+      "f697b219e40544059d8ed14c3b74abae": false,
+      "976b81713430463b9ffeb99f8d3ed874": false,
+      "60f69450e83440ca822610054f48e17e": false,
+      "28f2c9aaface4824947f887d6fcb744b": true,
+      "a131cf4a62db40988f518d63e3f35d36": false,
+      "311d52bcf034477d9bd1fd3bc50b51df": false,
+      "f353dcfe913d4c5ea950989e2bfc7be2": true,
+      "7f611811c7d14a8193cd183412e23960": false,
+      "1726d8492bf34087bcfe3698d50ba220": false,
+      "78989332f49b47ada534ecfe51c78dd5": false,
+      "4e56a7a63b984597844eb55df9a2ba21": true,
+      "a565248e672a4ceabf14578c92d52ed8": true,
+      "b8aa35510eae475f98cdbdf67e8531da": false,
+      "77b6b67d28e0452fa935055d4afccdd2": false
+    }
+  },
+  "method": "b2c",
+  "split": "test",
+  "condition": "gt",
+  "ckpt": null,
+  "recall_at_load": 97.54845239483687
+}

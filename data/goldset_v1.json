@@ -1,0 +1,274 @@
+{
+ "meta": {
+  "version": "v1.0-trainval",
+  "split": "test",
+  "seed": 42,
+  "n_items": 300,
+  "n_done": 28,
+  "cameras": [
+   "CAM_FRONT",
+   "CAM_FRONT_RIGHT",
+   "CAM_BACK_RIGHT",
+   "CAM_BACK",
+   "CAM_BACK_LEFT",
+   "CAM_FRONT_LEFT"
+  ],
+  "saved_at": "2026-10-06T17:43:30.430Z"
+ },
+ "gold": {
+  "1726d8492bf34087bcfe3698d50ba220": [
+   1
+  ],
+  "f353dcfe913d4c5ea950989e2bfc7be2": [
+   1
+  ],
+  "d64e599dc5c64226895649debdd49793": [
+   5
+  ],
+  "52f2da122cdf459a8dbb57278e3cdf25": [
+   1
+  ],
+  "5527b3b156854b79b051338b7fe6a23d": [
+   5
+  ],
+  "28f2c9aaface4824947f887d6fcb744b": [
+   1
+  ],
+  "a131cf4a62db40988f518d63e3f35d36": [
+   1
+  ],
+  "b72f2f5db001422aad91c243b2cbb716": [
+   4,
+   5
+  ],
+  "3a0095caaf5b4db2aa0defac74872531": [
+   1
+  ],
+  "56083b0f7e544fdba33c40488103653e": [
+   5
+  ],
+  "4523fb98c35940f1a47555072262965d": [
+   1
+  ],
+  "9a851ada7d2c408eb7c0a2b1951ea039": [
+   5
+  ],
+  "e961b547d4514eb3bab9debf6191bff0": [
+   4,
+   5
+  ],
+  "a565248e672a4ceabf14578c92d52ed8": [
+   1
+  ],
+  "b8aa35510eae475f98cdbdf67e8531da": [
+   5
+  ],
+  "7f611811c7d14a8193cd183412e23960": [
+   5
+  ],
+  "b6288b6da11144fea3dd42b7255b3021": [
+   5
+  ],
+  "77b6b67d28e0452fa935055d4afccdd2": [
+   5
+  ],
+  "79bba29228ba4b42909ab5782955cda7": [],
+  "f697b219e40544059d8ed14c3b74abae": [
+   1
+  ],
+  "4eb7e90e9c9b4a978114a83f3a825d6b": [
+   1
+  ],
+  "9a008c40488c4a5db2e0bb9420fcc1b3": [
+   1
+  ],
+  "60f69450e83440ca822610054f48e17e": [
+   1
+  ],
+  "4e56a7a63b984597844eb55df9a2ba21": [
+   1
+  ],
+  "311d52bcf034477d9bd1fd3bc50b51df": [
+   1
+  ],
+  "976b81713430463b9ffeb99f8d3ed874": [
+   1
+  ],
+  "78989332f49b47ada534ecfe51c78dd5": [
+   1
+  ],
+  "4087adbc4baa4e9fa22cceda297da3c0": [
+   1
+  ]
+ },
+ "item_meta": {
+  "1726d8492bf34087bcfe3698d50ba220": {
+   "stratum": "S1_hazard",
+   "weight": 6.71,
+   "hmm": false,
+   "note": ""
+  },
+  "f353dcfe913d4c5ea950989e2bfc7be2": {
+   "stratum": "S3_rest",
+   "weight": 39.91,
+   "hmm": false,
+   "note": ""
+  },
+  "d64e599dc5c64226895649debdd49793": {
+   "stratum": "S2_maneuver",
+   "weight": 4.46,
+   "hmm": false,
+   "note": ""
+  },
+  "52f2da122cdf459a8dbb57278e3cdf25": {
+   "stratum": "S1_hazard",
+   "weight": 6.71,
+   "hmm": false,
+   "note": ""
+  },
+  "5527b3b156854b79b051338b7fe6a23d": {
+   "stratum": "S2_maneuver",
+   "weight": 4.46,
+   "hmm": false,
+   "note": ""
+  },
+  "28f2c9aaface4824947f887d6fcb744b": {
+   "stratum": "S2_maneuver",
+   "weight": 4.46,
+   "hmm": false,
+   "note": ""
+  },
+  "a131cf4a62db40988f518d63e3f35d36": {
+   "stratum": "S1_hazard",
+   "weight": 6.71,
+   "hmm": false,
+   "note": ""
+  },
+  "b72f2f5db001422aad91c243b2cbb716": {
+   "stratum": "S1_hazard",
+   "weight": 6.71,
+   "hmm": false,
+   "note": ""
+  },
+  "3a0095caaf5b4db2aa0defac74872531": {
+   "stratum": "S1_hazard",
+   "weight": 6.71,
+   "hmm": false,
+   "note": ""
+  },
+  "56083b0f7e544fdba33c40488103653e": {
+   "stratum": "S2_maneuver",
+   "weight": 4.46,
+   "hmm": false,
+   "note": ""
+  },
+  "4523fb98c35940f1a47555072262965d": {
+   "stratum": "S1_hazard",
+   "weight": 6.71,
+   "hmm": false,
+   "note": ""
+  },
+  "9a851ada7d2c408eb7c0a2b1951ea039": {
+   "stratum": "S2_maneuver",
+   "weight": 4.46,
+   "hmm": false,
+   "note": ""
+  },
+  "e961b547d4514eb3bab9debf6191bff0": {
+   "stratum": "S1_hazard",
+   "weight": 6.71,
+   "hmm": false,
+   "note": ""
+  },
+  "a565248e672a4ceabf14578c92d52ed8": {
+   "stratum": "S3_rest",
+   "weight": 39.91,
+   "hmm": false,
+   "note": ""
+  },
+  "b8aa35510eae475f98cdbdf67e8531da": {
+   "stratum": "S2_maneuver",
+   "weight": 4.46,
+   "hmm": false,
+   "note": ""
+  },
+  "7f611811c7d14a8193cd183412e23960": {
+   "stratum": "S1_hazard",
+   "weight": 6.71,
+   "hmm": false,
+   "note": ""
+  },
+  "b6288b6da11144fea3dd42b7255b3021": {
+   "stratum": "S2_maneuver",
+   "weight": 4.46,
+   "hmm": false,
+   "note": ""
+  },
+  "77b6b67d28e0452fa935055d4afccdd2": {
+   "stratum": "S1_hazard",
+   "weight": 6.71,
+   "hmm": false,
+   "note": ""
+  },
+  "79bba29228ba4b42909ab5782955cda7": {
+   "stratum": "S3_rest",
+   "weight": 39.91,
+   "hmm": false,
+   "note": ""
+  },
+  "f697b219e40544059d8ed14c3b74abae": {
+   "stratum": "S2_maneuver",
+   "weight": 4.46,
+   "hmm": false,
+   "note": ""
+  },
+  "4eb7e90e9c9b4a978114a83f3a825d6b": {
+   "stratum": "S1_hazard",
+   "weight": 6.71,
+   "hmm": false,
+   "note": ""
+  },
+  "9a008c40488c4a5db2e0bb9420fcc1b3": {
+   "stratum": "S2_maneuver",
+   "weight": 4.46,
+   "hmm": false,
+   "note": ""
+  },
+  "60f69450e83440ca822610054f48e17e": {
+   "stratum": "S2_maneuver",
+   "weight": 4.46,
+   "hmm": false,
+   "note": ""
+  },
+  "4e56a7a63b984597844eb55df9a2ba21": {
+   "stratum": "S2_maneuver",
+   "weight": 4.46,
+   "hmm": false,
+   "note": ""
+  },
+  "311d52bcf034477d9bd1fd3bc50b51df": {
+   "stratum": "S1_hazard",
+   "weight": 6.71,
+   "hmm": false,
+   "note": ""
+  },
+  "976b81713430463b9ffeb99f8d3ed874": {
+   "stratum": "S2_maneuver",
+   "weight": 4.46,
+   "hmm": false,
+   "note": ""
+  },
+  "78989332f49b47ada534ecfe51c78dd5": {
+   "stratum": "S2_maneuver",
+   "weight": 4.46,
+   "hmm": false,
+   "note": ""
+  },
+  "4087adbc4baa4e9fa22cceda297da3c0": {
+   "stratum": "S2_maneuver",
+   "weight": 4.46,
+   "hmm": false,
+   "note": ""
+  }
+ }
+}

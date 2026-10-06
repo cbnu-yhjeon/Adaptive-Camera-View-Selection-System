@@ -68,7 +68,8 @@ TENSORS = ("img_feat", "can", "risk", "pad_mask", "soft_label", "aux_target", "a
 # 학습 모델 방법 → 설정 파일 ('model'은 --config). 시퀀스 길이·exp_name을 각 설정에서 읽는다.
 MODEL_CONFIGS = {"b3": "configs/train_b3_img_only.yaml", "b4": "configs/train_b4_single_frame.yaml"}
 METHOD_KO = {"b1": "B1 고정", "b2": "B2 규칙(오라클 기동)", "b2c": "B2c 규칙(과거만)",
-             "b3": "B3 영상 단일", "b4": "B4 단일 프레임", "model": "제안"}
+             "b3": "B3 영상 단일", "b4": "B4 단일 프레임", "model": "제안",
+             "label": "의사 라벨 (참고)"}
 
 
 def load_gold(path, cand_path="data/goldset/candidates_v1.json"):
@@ -229,6 +230,11 @@ def gold_block(gold, sel, meta, idx):
     res = dict(n=len(toks), n_hmm=int(sum(gold[t]["hmm"] for t in toks)),
                weighted=gold_scores(S, rank, G, prim, w), unweighted=gold_scores(S, rank, G, prim),
                by_stratum={})
+    if rank is not None:                                    # 짝비교(같은 장면에서 누가 맞혔나)용
+        r = rank.astype(float).copy()
+        r[np.arange(len(toks)), prim] = -np.inf
+        top = r.argmax(1)
+        res["top1_hit"] = {t: bool(top[i] in G[i]) for i, t in enumerate(toks) if G[i] - {prim[i]}}
     strata = np.array([gold[t]["stratum"] for t in toks])
     for st in sorted(set(strata)):
         m = strata == st
@@ -237,8 +243,29 @@ def gold_block(gold, sel, meta, idx):
     return res
 
 
+def run_label(env, split):
+    """의사 라벨 자체를 한 '방법'으로 — 골드셋과의 일치도가 라벨 생성 방법의 검증이다(주장 1).
+
+    라벨은 GT·미래 궤적으로 만든 값이라 입력 조건과 무관하다. 순위는 라벨 점수 s(c).
+    """
+    ds = env.dataset(split, "gt", "clean")
+    tokens = [ds.scene_tokens[sc][pos] for sc, pos in ds.flat]
+    L = env.df.set_index("sample_token").loc[tokens]
+    aux = np.stack([L[f"aux_{c}"].to_numpy() for c in range(NUM_CAMERAS)], 1).astype(float)
+    prim = L["primary_view"].to_numpy().astype(int)
+    mask = np.ones_like(aux)
+    mask[np.arange(len(tokens)), prim] = 0.0
+    meta = dict(token=tokens, scene=[sc for sc, _ in ds.flat], aux=aux, mask=mask, primary=prim,
+                attention=L["attention_view"].to_numpy().astype(int),
+                rank=np.stack([L[f"s_{c}"].to_numpy() for c in range(NUM_CAMERAS)], 1))
+    return aux > 0.5, meta["attention"], meta
+
+
 def evaluate(env, method, split, risk_source, noise, ckpt=None, device="cpu", seq_len=None):
     aux_max = env.cfg.aux_max
+    if method == "label":
+        sel, att, meta = run_label(env, split)
+        return metrics(env, sel, att, meta)
     if method in ("model", *MODEL_CONFIGS):
         state = torch.load(ckpt, map_location=device, weights_only=False)
         model = ViewSelector(ModelConfig(**state["mcfg"])).to(device)
@@ -339,8 +366,8 @@ def resolve_model(m, args, version):
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--method", choices=["b1", "b2", "b2c", "b3", "b4", "model"])
-    ap.add_argument("--all", action="store_true", help="b1·b2·b2c·b3·b4·model 모두 + 표 1")
+    ap.add_argument("--method", choices=["b1", "b2", "b2c", "b3", "b4", "model", "label"])
+    ap.add_argument("--all", action="store_true", help="b1·b2·b2c·b3·b4·model + 의사 라벨(참고) + 표 1")
     ap.add_argument("--ckpt", default=None)
     ap.add_argument("--split", default="test", choices=["train", "val", "test"])
     ap.add_argument("--risk_source", default="noisy", choices=["gt", "noisy", "none"])
@@ -358,7 +385,7 @@ def main() -> int:
     version = args.version or base["version"]
     env = Env(base, lab, tc, version, args.splits, gold_path=args.gold)
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    methods = ["b1", "b2", "b2c", "b3", "b4", "model"] if args.all else [args.method]
+    methods = ["b1", "b2", "b2c", "b3", "b4", "model", "label"] if args.all else [args.method]
     models = {m: resolve_model(m, args, version) for m in methods if m in ("model", *MODEL_CONFIGS)}
     for m, (ck, _) in models.items():
         if not ck:
@@ -374,8 +401,8 @@ def main() -> int:
     curves = {}
     if args.curve or args.all:
         for m in methods:
-            if m == "b1":
-                continue                                   # 표시 0장 한 점뿐
+            if m in ("b1", "label"):
+                continue                                   # 표시량이 고정된 한 점뿐
             ck, sl = models.get(m, (None, None))
             curves[m] = curve(env, m, args.split, args.risk_source, args.noise, ck, device, sl)
         with open(os.path.join(args.out_dir, f"curve_{args.split}_{cond}.json"), "w",
@@ -422,6 +449,23 @@ def main() -> int:
     return 0
 
 
+def wilson(p, n, z=1.96):
+    """비율의 95% Wilson 신뢰구간 — 표본이 작을 때 정규근사보다 안정적이다."""
+    if p is None or not n:
+        return None
+    d = 1 + z * z / n
+    c = (p + z * z / (2 * n)) / d
+    h = z * np.sqrt(p * (1 - p) / n + z * z / (4 * n * n)) / d
+    return float(c - h), float(c + h)
+
+
+def mcnemar_exact(b, c):
+    """짝지은 이진 결과의 McNemar 정확검정(양측) — 엇갈린 장면 수 b, c만 본다."""
+    from scipy.stats import binom
+    n = b + c
+    return 1.0 if n == 0 else float(min(1.0, 2 * binom.cdf(min(b, c), n, 0.5)))
+
+
 def write_table1(rows, path, version, split, cond, load, gold):
     """표 1 (B.8) — 골드 열은 역확률 가중 추정치. 골드셋이 없으면 비운다."""
     pct = lambda v: "—" if v is None else f"{100 * v:.1f}%"
@@ -452,6 +496,23 @@ def write_table1(rows, path, version, split, cond, load, gold):
             lines.append(f"| {METHOD_KO[r['method']]} | " + " | ".join(
                 f"{pct(bs[s]['top1'])} / {f3(bs[s]['f1'])}" for s in strata) + " |")
         lines.append(f"\n애매 표시 {rows[0]['gold']['n_hmm']}장 포함.")
+        lines += ["", "**골드셋 비가중 전체** — Top-1의 95% 신뢰구간(Wilson)과 제안 모델과의 짝비교. "
+                  "짝비교는 정답이 있는 같은 장면에서 '제안만 맞힘 / 상대만 맞힘' 수와 McNemar 정확검정 p.", "",
+                  "| 방법 | n | Top-1 [95% CI] | Top-2 | Macro-F1 | 평균 표시 | 제안만 / 상대만 | p |",
+                  "|---|---|---|---|---|---|---|---|"]
+        ref = next((r for r in rows if r["method"] == "model"), None)
+        for r in rows:
+            u = r["gold"]["unweighted"]
+            ci = wilson(u["top1"], u["n_nonempty"])
+            t1 = "—" if ci is None else f"{100 * u['top1']:.1f}% [{100 * ci[0]:.1f}–{100 * ci[1]:.1f}]"
+            pair, pv = "—", "—"
+            if ref is not None and r is not ref and "top1_hit" in r["gold"] and "top1_hit" in ref["gold"]:
+                a, b = ref["gold"]["top1_hit"], r["gold"]["top1_hit"]
+                only_m = sum(a[t] and not b[t] for t in a)
+                only_o = sum(b[t] and not a[t] for t in a)
+                pair, pv = f"{only_m} / {only_o}", f"{mcnemar_exact(only_m, only_o):.3f}"
+            lines.append(f"| {METHOD_KO[r['method']]} | {u['n_nonempty']} | {t1} | {pct(u['top2'])} | "
+                         f"{f3(u['f1'])} | {u['mean_aux']:.2f}장 | {pair} | {pv} |")
     lines += ["", "체크포인트:", ""] + [f"- {METHOD_KO[r['method']]}: `{r['ckpt']}`" for r in rows if r.get("ckpt")]
     os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
     with open(path, "w", encoding="utf-8") as f:

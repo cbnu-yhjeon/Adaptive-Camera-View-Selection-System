@@ -1,0 +1,575 @@
+{
+  "split": "test",
+  "condition": "gt",
+  "load": 0.48492560689115116,
+  "ckpt": {
+    "b3": "results/b3_img_only/20261007_010524/best.ckpt",
+    "b4": "results/b4_single_frame/20261007_014521/best.ckpt",
+    "model": "results/proposed/20261007_013727/best.ckpt"
+  },
+  "curves": {
+    "b2": [
+      {
+        "param": 0.04,
+        "mean_aux": 0.9708,
+        "recall": 99.03,
+        "precision": 5.85,
+        "flicker": 0.4699
+      },
+      {
+        "param": 0.06,
+        "mean_aux": 0.7662,
+        "recall": 98.48,
+        "precision": 7.31,
+        "flicker": 0.4584
+      },
+      {
+        "param": 0.08,
+        "mean_aux": 0.6406,
+        "recall": 98.07,
+        "precision": 8.65,
+        "flicker": 0.4861
+      },
+      {
+        "param": 0.1,
+        "mean_aux": 0.5519,
+        "recall": 97.38,
+        "precision": 9.86,
+        "flicker": 0.5056
+      },
+      {
+        "param": 0.12,
+        "mean_aux": 0.4884,
+        "recall": 96.41,
+        "precision": 10.86,
+        "flicker": 0.4992
+      },
+      {
+        "param": 0.15,
+        "mean_aux": 0.4107,
+        "recall": 93.51,
+        "precision": 11.92,
+        "flicker": 0.5118
+      },
+      {
+        "param": 0.2,
+        "mean_aux": 0.3027,
+        "recall": 87.85,
+        "precision": 13.52,
+        "flicker": 0.496
+      },
+      {
+        "param": 0.25,
+        "mean_aux": 0.2353,
+        "recall": 82.73,
+        "precision": 14.31,
+        "flicker": 0.4255
+      },
+      {
+        "param": 0.3,
+        "mean_aux": 0.1913,
+        "recall": 77.07,
+        "precision": 13.41,
+        "flicker": 0.3874
+      },
+      {
+        "param": 0.4,
+        "mean_aux": 0.1408,
+        "recall": 69.61,
+        "precision": 10.71,
+        "flicker": 0.3084
+      },
+      {
+        "param": 0.55,
+        "mean_aux": 0.1151,
+        "recall": 63.95,
+        "precision": 6.12,
+        "flicker": 0.2071
+      }
+    ],
+    "b2c": [
+      {
+        "param": 0.04,
+        "mean_aux": 0.9252,
+        "recall": 99.45,
+        "precision": 6.2,
+        "flicker": 0.4848
+      },
+      {
+        "param": 0.06,
+        "mean_aux": 0.7146,
+        "recall": 98.9,
+        "precision": 7.92,
+        "flicker": 0.4692
+      },
+      {
+        "param": 0.08,
+        "mean_aux": 0.5818,
+        "recall": 98.48,
+        "precision": 9.62,
+        "flicker": 0.4907
+      },
+      {
+        "param": 0.1,
+        "mean_aux": 0.491,
+        "recall": 97.65,
+        "precision": 11.16,
+        "flicker": 0.5085
+      },
+      {
+        "param": 0.12,
+        "mean_aux": 0.4252,
+        "recall": 96.55,
+        "precision": 12.52,
+        "flicker": 0.5069
+      },
+      {
+        "param": 0.15,
+        "mean_aux": 0.3455,
+        "recall": 93.65,
+        "precision": 14.22,
+        "flicker": 0.5203
+      },
+      {
+        "param": 0.2,
+        "mean_aux": 0.2361,
+        "recall": 87.98,
+        "precision": 17.41,
+        "flicker": 0.5142
+      },
+      {
+        "param": 0.25,
+        "mean_aux": 0.1672,
+        "recall": 82.73,
+        "precision": 20.14,
+        "flicker": 0.4648
+      },
+      {
+        "param": 0.3,
+        "mean_aux": 0.1229,
+        "recall": 77.07,
+        "precision": 20.86,
+        "flicker": 0.4351
+      },
+      {
+        "param": 0.4,
+        "mean_aux": 0.0713,
+        "recall": 69.48,
+        "precision": 20.88,
+        "flicker": 0.3711
+      },
+      {
+        "param": 0.55,
+        "mean_aux": 0.045,
+        "recall": 63.81,
+        "precision": 15.22,
+        "flicker": 0.3058
+      }
+    ],
+    "b3": [
+      {
+        "param": 0.05,
+        "mean_aux": 2.0,
+        "recall": 88.54,
+        "precision": 2.09,
+        "flicker": 0.737
+      },
+      {
+        "param": 0.1,
+        "mean_aux": 2.0,
+        "recall": 88.54,
+        "precision": 2.09,
+        "flicker": 0.737
+      },
+      {
+        "param": 0.15,
+        "mean_aux": 2.0,
+        "recall": 88.54,
+        "precision": 2.09,
+        "flicker": 0.737
+      },
+      {
+        "param": 0.2,
+        "mean_aux": 1.9847,
+        "recall": 88.54,
+        "precision": 2.11,
+        "flicker": 0.7365
+      },
+      {
+        "param": 0.25,
+        "mean_aux": 1.851,
+        "recall": 87.85,
+        "precision": 2.21,
+        "flicker": 0.7513
+      },
+      {
+        "param": 0.3,
+        "mean_aux": 1.3827,
+        "recall": 85.91,
+        "precision": 2.76,
+        "flicker": 0.7374
+      },
+      {
+        "param": 0.35,
+        "mean_aux": 0.97,
+        "recall": 81.63,
+        "precision": 3.31,
+        "flicker": 0.683
+      },
+      {
+        "param": 0.4,
+        "mean_aux": 0.6899,
+        "recall": 77.49,
+        "precision": 3.8,
+        "flicker": 0.652
+      },
+      {
+        "param": 0.45,
+        "mean_aux": 0.4959,
+        "recall": 73.2,
+        "precision": 4.07,
+        "flicker": 0.6185
+      },
+      {
+        "param": 0.5,
+        "mean_aux": 0.369,
+        "recall": 70.3,
+        "precision": 4.35,
+        "flicker": 0.5675
+      },
+      {
+        "param": 0.55,
+        "mean_aux": 0.268,
+        "recall": 67.96,
+        "precision": 4.75,
+        "flicker": 0.5517
+      },
+      {
+        "param": 0.6,
+        "mean_aux": 0.1666,
+        "recall": 64.5,
+        "precision": 4.7,
+        "flicker": 0.5667
+      },
+      {
+        "param": 0.65,
+        "mean_aux": 0.0736,
+        "recall": 62.57,
+        "precision": 6.91,
+        "flicker": 0.55
+      },
+      {
+        "param": 0.7,
+        "mean_aux": 0.0209,
+        "recall": 60.5,
+        "precision": 10.28,
+        "flicker": 0.5484
+      },
+      {
+        "param": 0.75,
+        "mean_aux": 0.0053,
+        "recall": 59.39,
+        "precision": 11.11,
+        "flicker": 0.44
+      },
+      {
+        "param": 0.8,
+        "mean_aux": 0.0002,
+        "recall": 59.12,
+        "precision": 100.0,
+        "flicker": 0.5
+      },
+      {
+        "param": 0.85,
+        "mean_aux": 0.0,
+        "recall": 58.98,
+        "precision": 0.0,
+        "flicker": 0.0
+      },
+      {
+        "param": 0.9,
+        "mean_aux": 0.0,
+        "recall": 58.98,
+        "precision": 0.0,
+        "flicker": 0.0
+      },
+      {
+        "param": 0.95,
+        "mean_aux": 0.0,
+        "recall": 58.98,
+        "precision": 0.0,
+        "flicker": 0.0
+      }
+    ],
+    "b4": [
+      {
+        "param": 0.05,
+        "mean_aux": 2.0,
+        "recall": 99.31,
+        "precision": 2.86,
+        "flicker": 0.853
+      },
+      {
+        "param": 0.1,
+        "mean_aux": 2.0,
+        "recall": 99.31,
+        "precision": 2.86,
+        "flicker": 0.853
+      },
+      {
+        "param": 0.15,
+        "mean_aux": 1.9998,
+        "recall": 99.31,
+        "precision": 2.86,
+        "flicker": 0.8531
+      },
+      {
+        "param": 0.2,
+        "mean_aux": 1.9749,
+        "recall": 99.31,
+        "precision": 2.89,
+        "flicker": 0.8546
+      },
+      {
+        "param": 0.25,
+        "mean_aux": 1.8608,
+        "recall": 99.17,
+        "precision": 3.06,
+        "flicker": 0.8595
+      },
+      {
+        "param": 0.3,
+        "mean_aux": 1.5315,
+        "recall": 99.17,
+        "precision": 3.72,
+        "flicker": 0.8608
+      },
+      {
+        "param": 0.35,
+        "mean_aux": 1.0711,
+        "recall": 98.48,
+        "precision": 5.23,
+        "flicker": 0.8251
+      },
+      {
+        "param": 0.4,
+        "mean_aux": 0.7404,
+        "recall": 96.41,
+        "precision": 7.17,
+        "flicker": 0.7787
+      },
+      {
+        "param": 0.45,
+        "mean_aux": 0.5468,
+        "recall": 94.34,
+        "precision": 9.17,
+        "flicker": 0.7513
+      },
+      {
+        "param": 0.5,
+        "mean_aux": 0.4168,
+        "recall": 91.71,
+        "precision": 11.13,
+        "flicker": 0.7271
+      },
+      {
+        "param": 0.55,
+        "mean_aux": 0.3179,
+        "recall": 87.85,
+        "precision": 12.87,
+        "flicker": 0.684
+      },
+      {
+        "param": 0.6,
+        "mean_aux": 0.2339,
+        "recall": 83.84,
+        "precision": 15.06,
+        "flicker": 0.6534
+      },
+      {
+        "param": 0.65,
+        "mean_aux": 0.1562,
+        "recall": 77.76,
+        "precision": 17.04,
+        "flicker": 0.6227
+      },
+      {
+        "param": 0.7,
+        "mean_aux": 0.0709,
+        "recall": 71.27,
+        "precision": 24.59,
+        "flicker": 0.6314
+      },
+      {
+        "param": 0.75,
+        "mean_aux": 0.0198,
+        "recall": 63.54,
+        "precision": 32.67,
+        "flicker": 0.5758
+      },
+      {
+        "param": 0.8,
+        "mean_aux": 0.0047,
+        "recall": 60.36,
+        "precision": 41.67,
+        "flicker": 0.6053
+      },
+      {
+        "param": 0.85,
+        "mean_aux": 0.0,
+        "recall": 58.98,
+        "precision": 0.0,
+        "flicker": 0.0
+      },
+      {
+        "param": 0.9,
+        "mean_aux": 0.0,
+        "recall": 58.98,
+        "precision": 0.0,
+        "flicker": 0.0
+      },
+      {
+        "param": 0.95,
+        "mean_aux": 0.0,
+        "recall": 58.98,
+        "precision": 0.0,
+        "flicker": 0.0
+      }
+    ],
+    "model": [
+      {
+        "param": 0.05,
+        "mean_aux": 2.0,
+        "recall": 99.31,
+        "precision": 2.86,
+        "flicker": 0.7374
+      },
+      {
+        "param": 0.1,
+        "mean_aux": 2.0,
+        "recall": 99.31,
+        "precision": 2.86,
+        "flicker": 0.7374
+      },
+      {
+        "param": 0.15,
+        "mean_aux": 2.0,
+        "recall": 99.31,
+        "precision": 2.86,
+        "flicker": 0.7374
+      },
+      {
+        "param": 0.2,
+        "mean_aux": 1.9757,
+        "recall": 99.31,
+        "precision": 2.89,
+        "flicker": 0.7412
+      },
+      {
+        "param": 0.25,
+        "mean_aux": 1.6267,
+        "recall": 99.03,
+        "precision": 3.49,
+        "flicker": 0.733
+      },
+      {
+        "param": 0.3,
+        "mean_aux": 1.1045,
+        "recall": 98.2,
+        "precision": 5.03,
+        "flicker": 0.6571
+      },
+      {
+        "param": 0.35,
+        "mean_aux": 0.7709,
+        "recall": 97.65,
+        "precision": 7.11,
+        "flicker": 0.5822
+      },
+      {
+        "param": 0.4,
+        "mean_aux": 0.5995,
+        "recall": 97.24,
+        "precision": 9.05,
+        "flicker": 0.5372
+      },
+      {
+        "param": 0.45,
+        "mean_aux": 0.5043,
+        "recall": 95.99,
+        "precision": 10.4,
+        "flicker": 0.5054
+      },
+      {
+        "param": 0.5,
+        "mean_aux": 0.4338,
+        "recall": 94.34,
+        "precision": 11.55,
+        "flicker": 0.4978
+      },
+      {
+        "param": 0.55,
+        "mean_aux": 0.3585,
+        "recall": 91.71,
+        "precision": 12.94,
+        "flicker": 0.5109
+      },
+      {
+        "param": 0.6,
+        "mean_aux": 0.2839,
+        "recall": 87.85,
+        "precision": 14.41,
+        "flicker": 0.5325
+      },
+      {
+        "param": 0.65,
+        "mean_aux": 0.1789,
+        "recall": 80.39,
+        "precision": 16.96,
+        "flicker": 0.5122
+      },
+      {
+        "param": 0.7,
+        "mean_aux": 0.0742,
+        "recall": 70.58,
+        "precision": 22.16,
+        "flicker": 0.5112
+      },
+      {
+        "param": 0.75,
+        "mean_aux": 0.0161,
+        "recall": 62.29,
+        "precision": 29.27,
+        "flicker": 0.5217
+      },
+      {
+        "param": 0.8,
+        "mean_aux": 0.0018,
+        "recall": 59.25,
+        "precision": 22.22,
+        "flicker": 0.2857
+      },
+      {
+        "param": 0.85,
+        "mean_aux": 0.0,
+        "recall": 58.98,
+        "precision": 0.0,
+        "flicker": 0.0
+      },
+      {
+        "param": 0.9,
+        "mean_aux": 0.0,
+        "recall": 58.98,
+        "precision": 0.0,
+        "flicker": 0.0
+      },
+      {
+        "param": 0.95,
+        "mean_aux": 0.0,
+        "recall": 58.98,
+        "precision": 0.0,
+        "flicker": 0.0
+      }
+    ]
+  }
+}

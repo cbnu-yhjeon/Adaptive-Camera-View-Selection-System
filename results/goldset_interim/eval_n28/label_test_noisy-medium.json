@@ -1,0 +1,100 @@
+{
+  "n": 5108,
+  "pseudo_f1": 1.0,
+  "mean_aux": 0.4849,
+  "recall": 96.27,
+  "precision": 10.9,
+  "flicker": 0.4183,
+  "n_hazard": 724,
+  "top1": 1.0,
+  "gold": {
+    "n": 28,
+    "n_hmm": 0,
+    "weighted": {
+      "n": 28,
+      "n_nonempty": 27,
+      "mean_aux": 0.6281740760996952,
+      "top1": 0.8447262461239413,
+      "top2": 0.9689452492247882,
+      "f1": 0.2701919593484594,
+      "quiet": 1.0,
+      "exact": 0.46120790686772395
+    },
+    "unweighted": {
+      "n": 28,
+      "n_nonempty": 27,
+      "mean_aux": 1.0714285714285714,
+      "top1": 0.8148148148148148,
+      "top2": 0.9629629629629629,
+      "f1": 0.33055555555555555,
+      "quiet": 1.0,
+      "exact": 0.5714285714285714
+    },
+    "by_stratum": {
+      "S1_hazard": {
+        "n": 11,
+        "n_nonempty": 11,
+        "mean_aux": 1.0909090909090908,
+        "top1": 0.5454545454545454,
+        "top2": 0.9090909090909091,
+        "f1": 0.25142857142857145,
+        "quiet": null,
+        "exact": 0.45454545454545453
+      },
+      "S2_maneuver": {
+        "n": 14,
+        "n_nonempty": 14,
+        "mean_aux": 1.2857142857142858,
+        "top1": 1.0,
+        "top2": 1.0,
+        "f1": 0.4807692307692308,
+        "quiet": null,
+        "exact": 0.7142857142857143
+      },
+      "S3_rest": {
+        "n": 3,
+        "n_nonempty": 2,
+        "mean_aux": 0.0,
+        "top1": 1.0,
+        "top2": 1.0,
+        "f1": 0.0,
+        "quiet": 1.0,
+        "exact": 0.3333333333333333
+      }
+    },
+    "top1_hit": {
+      "d64e599dc5c64226895649debdd49793": true,
+      "b72f2f5db001422aad91c243b2cbb716": false,
+      "e961b547d4514eb3bab9debf6191bff0": true,
+      "9a851ada7d2c408eb7c0a2b1951ea039": true,
+      "4523fb98c35940f1a47555072262965d": true,
+      "3a0095caaf5b4db2aa0defac74872531": true,
+      "9a008c40488c4a5db2e0bb9420fcc1b3": true,
+      "5527b3b156854b79b051338b7fe6a23d": true,
+      "b6288b6da11144fea3dd42b7255b3021": true,
+      "56083b0f7e544fdba33c40488103653e": true,
+      "4eb7e90e9c9b4a978114a83f3a825d6b": true,
+      "52f2da122cdf459a8dbb57278e3cdf25": true,
+      "4087adbc4baa4e9fa22cceda297da3c0": true,
+      "f697b219e40544059d8ed14c3b74abae": true,
+      "976b81713430463b9ffeb99f8d3ed874": true,
+      "60f69450e83440ca822610054f48e17e": true,
+      "28f2c9aaface4824947f887d6fcb744b": true,
+      "a131cf4a62db40988f518d63e3f35d36": false,
+      "311d52bcf034477d9bd1fd3bc50b51df": false,
+      "f353dcfe913d4c5ea950989e2bfc7be2": true,
+      "7f611811c7d14a8193cd183412e23960": true,
+      "1726d8492bf34087bcfe3698d50ba220": false,
+      "78989332f49b47ada534ecfe51c78dd5": true,
+      "4e56a7a63b984597844eb55df9a2ba21": true,
+      "a565248e672a4ceabf14578c92d52ed8": true,
+      "b8aa35510eae475f98cdbdf67e8531da": true,
+      "77b6b67d28e0452fa935055d4afccdd2": false
+    }
+  },
+  "method": "label",
+  "split": "test",
+  "condition": "noisy-medium",
+  "ckpt": null,
+  "recall_at_load": null
+}
