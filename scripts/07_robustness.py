@@ -13,7 +13,8 @@
 지표는 **같은 표시량에서의 위험 사건 포착률**이다(B.8). 고정 운영점으로 비교하면 오검출 때문에
 보조 뷰를 많이 켠 규칙이 포착률에서 이긴다. 각 방법의 운영 곡선(규칙 θ, 모델 τ)을 그리고
 기준 표시량에서 선형 보간한다. 기준 표시량은 해당 분할 라벨의 평균 보조 뷰 수다.
-골드셋 Top-1(명세 B.9의 y축)은 골드셋 라벨링이 끝나면 추가한다.
+골드셋(--gold)이 있으면 명세 B.9의 y축인 골드셋 Top-1·Top-2(역확률 가중)를 함께 잰다 —
+순위만 보므로 임계값과 무관해 조건마다 한 값이다.
 
 산출
   results/robustness/robustness_{split}.json   모든 조건의 곡선과 보간값
@@ -62,27 +63,35 @@ def interp(pts, key, load):
     return float(np.interp(load, xs, ys))
 
 
+def gold_rank(r):
+    """metrics 결과에서 골드셋 순위 지표(임계값 무관) — 골드셋이 없으면 None."""
+    g = r.get("gold")
+    return None if g is None else {k: g["weighted"][k] for k in ("top1", "top2")}
+
+
 def rule_curve(env, rule, ds):
     cfg = rule.cfg
     keep = cfg.aux_threshold
-    pts = []
+    pts, gold = [], None
     for th in ev.CURVE_TH:
         cfg.aux_threshold = th
         sel, att, meta = ev.run_rule(rule, ds)
         r = ev.metrics(env, sel, att, meta)
+        gold = gold or gold_rank(r)
         pts.append(dict(param=th, **{k: r[k] for k in ("mean_aux", "recall", "precision", "flicker")}))
     cfg.aux_threshold = keep
-    return pts
+    return pts, gold
 
 
 def model_curve(env, model, ds, device):
     P, att, meta = ev.run_model(model, ds, device)
-    pts = []
+    pts, gold = [], None
     for tau in ev.CURVE_TAU:
         sel = ev.select_from_probs(P, meta["primary"].astype(int), tau, env.cfg.aux_max)
         r = ev.metrics(env, sel, att, meta)
+        gold = gold or gold_rank(r)
         pts.append(dict(param=tau, **{k: r[k] for k in ("mean_aux", "recall", "precision", "flicker")}))
-    return pts
+    return pts, gold
 
 
 def load_model(ckpt, device):
@@ -104,6 +113,9 @@ def main() -> int:
     ap.add_argument("--out_dir", default="results/robustness")
     ap.add_argument("--plot_only", action="store_true", help="저장된 json으로 표·그림만 다시 만든다")
     ap.add_argument("--tag", default="", help="결과 파일 이름 꼬리표 (예: t10) — 다른 실험 결과를 덮어쓰지 않게")
+    ap.add_argument("--gold", default="data/goldset_v1.json", help="골드셋 (없으면 골드 지표 생략)")
+    ap.add_argument("--version", default=None, help="mini 스모크: v1.0-mini")
+    ap.add_argument("--splits", default=None, help="mini 스모크: splits/scene_split_mini.json")
     args = ap.parse_args()
 
     stem = os.path.join(args.out_dir, f"robustness_{args.split}" + (f"_{args.tag}" if args.tag else ""))
@@ -114,8 +126,8 @@ def main() -> int:
         return 0
 
     base, lab, tc = load_cfgs(args.config)
-    version = base["version"]
-    env = ev.Env(base, lab, tc, version)
+    version = args.version or base["version"]
+    env = ev.Env(base, lab, tc, version, args.splits, gold_path=args.gold)
     device = "cuda" if torch.cuda.is_available() else "cpu"
     ckpt = args.ckpt or ev.latest_ckpt(tc.get("exp_name", "proposed"), version)
     models = {"model": load_model(ckpt, device)}
@@ -138,11 +150,11 @@ def main() -> int:
             ds = env.dataset(args.split, "gt", "clean")
         else:
             ds = env.dataset(args.split, "noisy", f"{lv}:{typ}")
-        row = dict(type=typ, level=lv, curves={})
+        row = dict(type=typ, level=lv, curves={}, gold={})
         for name, rule in rules.items():
-            row["curves"][name] = rule_curve(env, rule, ds)
+            row["curves"][name], row["gold"][name] = rule_curve(env, rule, ds)
         for name, m in models.items():
-            row["curves"][name] = model_curve(env, m, ds, device)
+            row["curves"][name], row["gold"][name] = model_curve(env, m, ds, device)
         row["at_load"] = {k: dict(recall=interp(v, "recall", load),
                                   precision=interp(v, "precision", load),
                                   flicker=interp(v, "flicker", load))
@@ -183,6 +195,15 @@ def write_report(out, args, stem):
             a, b = clean[n]["recall"], heavy["at_load"][n]["recall"]
             drops.append("—" if a is None or b is None else f"{b - a:+.1f}%p")
         lines.append("| **열화 (clean→heavy)** | " + " | ".join(drops) + " |")
+        if any(r.get("gold", {}).get(n) for r in rows for n in names):
+            lines.append(f"\n골드셋 Top-1 (역확률 가중, 임계값 무관)\n")
+            lines.append("| 강도 | " + " | ".join(names) + " |")
+            lines.append("|---|" + "---|" * len(names))
+            for r in rows:
+                g = r.get("gold", {})
+                lines.append(f"| {r['level']} | " + " | ".join(
+                    "—" if not g.get(n) or g[n]["top1"] is None else f"{100 * g[n]['top1']:.1f}%"
+                    for n in names) + " |")
     with open(stem + ".md", "w", encoding="utf-8") as f:
         f.write("\n".join(lines) + "\n")
 
