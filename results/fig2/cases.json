@@ -1,0 +1,102 @@
+{
+  "split": "test",
+  "condition": "noisy-medium",
+  "ckpt": "results/proposed/20261007_013727/best.ckpt",
+  "threshold": 0.47000000000000003,
+  "gold": "data/goldset_v1.json",
+  "n_gold": 285,
+  "cases": {
+    "TURN": {
+      "source": "gold",
+      "n_pool": 49,
+      "note": null,
+      "items": [
+        {
+          "kind": "성공",
+          "token": "25a6d57a5cae45c1b1f9b67d1ff435bc",
+          "answer": [
+            1
+          ],
+          "maneuver": "TURN_RIGHT",
+          "primary": 0,
+          "model_sel": [],
+          "model_top1": 1,
+          "b2_sel": [
+            1
+          ],
+          "b2_top1": 1,
+          "b2c_sel": [],
+          "b2c_top1": 3
+        },
+        {
+          "kind": "성공",
+          "token": "28f2c9aaface4824947f887d6fcb744b",
+          "answer": [
+            1
+          ],
+          "maneuver": "TURN_RIGHT",
+          "primary": 0,
+          "model_sel": [
+            1
+          ],
+          "model_top1": 1,
+          "b2_sel": [
+            1
+          ],
+          "b2_top1": 1,
+          "b2c_sel": [],
+          "b2c_top1": 5
+        },
+        {
+          "kind": "실패",
+          "token": "0a910d54005c4c2ca577180762860017",
+          "answer": [
+            5
+          ],
+          "maneuver": "TURN_LEFT",
+          "primary": 0,
+          "model_sel": [
+            1
+          ],
+          "model_top1": 1,
+          "b2_sel": [
+            5
+          ],
+          "b2_top1": 5,
+          "b2c_sel": [],
+          "b2c_top1": 1
+        }
+      ]
+    },
+    "LANE_CHANGE": {
+      "source": "gold",
+      "n_pool": 2,
+      "note": null,
+      "items": [
+        {
+          "kind": "실패",
+          "token": "24959f3f5c6b4ce6a2ed1c54d7f5e3e7",
+          "answer": [
+            3
+          ],
+          "maneuver": "LANE_CHANGE_LEFT",
+          "primary": 0,
+          "model_sel": [],
+          "model_top1": 2,
+          "b2_sel": [
+            4
+          ],
+          "b2_top1": 4,
+          "b2c_sel": [],
+          "b2c_top1": 3
+        }
+      ]
+    },
+    "REVERSE": {
+      "source": "pseudo",
+      "n_pool": 0,
+      "note": "평가 분할(test)에 이 상황이 없다 — trainval 전체 8프레임, 모두 다른 분할",
+      "items": []
+    }
+  }
+}

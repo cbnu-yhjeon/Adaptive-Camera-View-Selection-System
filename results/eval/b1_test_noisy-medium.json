@@ -1,0 +1,70 @@
+{
+  "n": 5108,
+  "pseudo_f1": 0.0,
+  "mean_aux": 0.0,
+  "recall": 58.98,
+  "precision": 0.0,
+  "flicker": 0.0,
+  "n_hazard": 724,
+  "gold": {
+    "n": 285,
+    "n_hmm": 0,
+    "weighted": {
+      "n": 285,
+      "n_nonempty": 90,
+      "mean_aux": 0.0,
+      "top1": null,
+      "top2": null,
+      "f1": 0.0,
+      "quiet": 1.0,
+      "exact": 0.8147797057247662
+    },
+    "unweighted": {
+      "n": 285,
+      "n_nonempty": 90,
+      "mean_aux": 0.0,
+      "top1": null,
+      "top2": null,
+      "f1": 0.0,
+      "quiet": 1.0,
+      "exact": 0.6842105263157895
+    },
+    "by_stratum": {
+      "S1_hazard": {
+        "n": 95,
+        "n_nonempty": 32,
+        "mean_aux": 0.0,
+        "top1": null,
+        "top2": null,
+        "f1": 0.0,
+        "quiet": 1.0,
+        "exact": 0.6631578947368421
+      },
+      "S2_maneuver": {
+        "n": 95,
+        "n_nonempty": 46,
+        "mean_aux": 0.0,
+        "top1": null,
+        "top2": null,
+        "f1": 0.0,
+        "quiet": 1.0,
+        "exact": 0.5157894736842106
+      },
+      "S3_rest": {
+        "n": 95,
+        "n_nonempty": 12,
+        "mean_aux": 0.0,
+        "top1": null,
+        "top2": null,
+        "f1": 0.0,
+        "quiet": 1.0,
+        "exact": 0.8736842105263158
+      }
+    }
+  },
+  "method": "b1",
+  "split": "test",
+  "condition": "noisy-medium",
+  "ckpt": null,
+  "recall_at_load": null
+}
