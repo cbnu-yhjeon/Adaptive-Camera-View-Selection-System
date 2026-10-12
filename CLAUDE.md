@@ -626,7 +626,7 @@ GT 객체 리스트에 다음을 적용해 위험도 벡터를 재계산:
 - [ ] `scripts/04_build_cache.py` + 로더 1 epoch 순회 벤치마크.
 - ✅ 배치 shape 검증 테스트 통과, mini 기준 1 epoch < 1분 (캐시 사용 시).
 
-## M4 — 모델 + 학습 (2~3일)
+## M4 — 모델 + 학습 (2~3일) — ✅ 완료 (2026-10-07, trainval 전체 · 정지 잡음 오검출 재학습본)
 - [ ] `models/proposed.py` (B.5 구조), config 플래그로 토큰/GRU/융합 구조 제거 가능하게
       (ablation·B3·B4 공용 코드).
 - [ ] `scripts/05_train.py`: config 로드 → 학습 → best ckpt + metrics 저장, tensorboard.
@@ -634,23 +634,23 @@ GT 객체 리스트에 다음을 적용해 위험도 벡터를 재계산:
 - [ ] trainval(또는 확보된 부분집합) 본 학습 — 시작 전 데이터 준비 상태를 사용자에게 확인.
 - ✅ val 곡선 정상 수렴, best ckpt 저장, 학습 로그 보고.
 
-## M5 — 베이스라인 (1일)
+## M5 — 베이스라인 (1일) — ✅ 완료 (B1·B2·B2c·B3·B4 모두 `06_evaluate.py --all`로 평가)
 - [ ] B1 상수 예측기, B2(`baselines/rule_based.py` — label_function 재사용 + risk_source 입력),
       B3/B4는 config로 학습.
 - ✅ 4개 전부 `06_evaluate.py`에서 동일 인터페이스로 평가 가능.
 
-## M6 — 평가 + 골드셋 (2일)
+## M6 — 평가 + 골드셋 (2일) — 진행 중 (채점·표 1 생성 구현 완료, 골드셋 라벨링 대기)
 - [ ] `metrics.py` + 단위 테스트 (flicker 계산 등 합성 시퀀스 3케이스).
 - [ ] 골드셋 후보 300개 층화 추출 + 검수 UI 제작 → **사용자에게 라벨링 요청** (예상 2~3시간).
 - [ ] `06_evaluate.py --all` → `results/table1.md` (+ 부록: gt 입력 조건 표).
 - ✅ 표 1 전 칸 채움, 골드셋 라벨링 완료.
 
-## M7 — Ablation + 강건성 (2일)
+## M7 — Ablation + 강건성 (2일) — 실험 완료, 주장 3 서술은 골드셋 완료 후 결정 (E-4)
 - [ ] A1~A5 config 실행 → `results/ablation.md`.
 - [ ] `07_robustness.py` → 열화 곡선 4종 + md 표.
 - ✅ 강건성 곡선에서 제안 모델 우위 확인. 미확인 시 B.9의 대응 절차 수행 후 보고.
 
-## M8 — 정성 결과 + 논문 반영 자료 (1일)
+## M8 — 정성 결과 + 논문 반영 자료 (1일) — 스크립트 완료 (`scripts/run_final.sh`), 골드셋 대기
 - [ ] `08_make_figures.py`: TURN/REVERSE/LANE_CHANGE 상황별 성공 2 + 실패 1 사례를
       제안/B2/골드 정답 나란히 배치한 그림 (그림 2용) → `results/fig2/`.
 - [ ] `results/paper_numbers.md`: 표 1 + ablation + 강건성 핵심 수치 + 실험 설정 요약
