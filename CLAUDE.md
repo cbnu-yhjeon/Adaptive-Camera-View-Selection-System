@@ -42,6 +42,18 @@
   ⑤ 그런데 언제 강조할지가 비자명하다 — 본 프로젝트 측정상 '실제 위험'은 전체 프레임의
      **13.2%**에서만 발생한다(B.4-(2) 정의). 87%의 시간에는 강조할 위험이 없는데
      화면은 100% 켜져 있다.
+- **원격 운전의 필요성과 난제** (2026-10-13 원문 초록에서 인용문 확인, 콜로키움 논문 서론·포스터 문제정의에 인용):
+  - 필요성: "No existing automated vehicle can operate in all conditions and environments." —
+    Goodall, N. "Non-Technological Challenges for the Remote Operation of Automated Vehicles." Transp. Res.
+    Part A 142:14-26, 2020. DOI 10.1016/j.tra.2020.09.024 (초록 첫 문장만 인용 — 본문의 차량군 원격 인력
+    산정은 검증 범위 밖이라 쓰지 않는다). "AVs will not be able to resolve all road incidents" — Tener, F.,
+    Lanir, J. "Driving from a Distance: Challenges and Guidelines for Autonomous Vehicle Teleoperation
+    Interfaces." CHI '22. DOI 10.1145/3491102.3501827. "remote driving is identified as vital for
+    commercialization" — Zhao, L. et al. "Remote Driving of Road Vehicles: A Survey of Driving Feedback,
+    Latency, Support Control, and Real Applications." IEEE T-IV 9(10):6086-6107, 2024. DOI 10.1109/TIV.2024.3362597.
+  - 난제: "challenges stemming mostly from the physical disconnect of the remote operator" (Tener & Lanir),
+    낮은 상황인식을 핵심 난제로 꼽음(Zhao, 원격 운전만 다룬 서베이라 본 연구 전제와 가장 정확히 맞는다).
+  - 쓰지 않은 것: Mutzenich et al. 2021(완전 무인차의 원격 개입 — 원격 *지원* 쪽이라 범위가 흐려지고 위와 겹침).
 - **산업 운용 형태** (Majstorović, D., Hoffmann, S., Pfab, F., Schimpe, A., Wolf, M.-M.,
   Diermeyer, F. "Survey on Teleoperation Concepts for Automated Vehicles." IEEE SMC 2022,
   pp. 1290-1296, DOI 10.1109/SMC53654.2022.9945267 / Bogdoll 등 2022): 원격 운전(직접 제어·공유 제어·

@@ -236,16 +236,22 @@ def build(N: dict, out: str) -> None:
     cols(s1, 2, 6)
 
     heading(doc, "Ⅰ. 서 론", before=2)
-    body(doc, ["원격주행은 자율주행차가 스스로 해결하지 못하는 상황에서 관제실의 오퍼레이터가 차량을 조종하는 방식이다. "
-               "현행 관제석은 여러 카메라 영상을 고정된 배치로 동시에 띄우지만, 동시 감시 화면이 4대에서 16대로 늘면 이상 사건 "
-               "탐지율이 83%에서 64%로 떨어지고[2], 현장 CCTV 요원은 화면을 훑기보다 한 화면을 골라 평균 26.9~62.4초마다 "
-               "카메라를 직접 바꾼다[3]. 주행 상황은 초 단위로 바뀌므로 화면 선택을 자동화할 필요가 있다."])
+    # 인용문은 원문 초록에서 확인했다(2026-10-13): Goodall 초록 첫 문장, Tener·Lanir와 Zhao 초록의 해당 구절.
+    body(doc, ["현존하는 어떤 자율주행차도 모든 조건과 환경에서 운행하지는 못하며[1], 자율주행차가 모든 도로 상황을 스스로 "
+               "해결할 수는 없다[2]. 이 공백을 사람이 관제실에서 메우는 것이 원격 운행이고, 그중 원격 운전은 자율주행 상용화에 "
+               "필수적인 요소로 꼽힌다[3]. 원격 운행은 오퍼레이터가 차량을 직접 조종하는 원격 운전과 경로·판단만 돕는 원격 지원으로 "
+               "나뉘며[4], 본 논문의 원격주행은 전자를 뜻한다."])
+    body(doc, ["원격 운전의 어려움은 대부분 오퍼레이터가 차량과 물리적으로 떨어져 있다는 데서 오고[2], 낮은 상황인식이 핵심 난제로 "
+               "꼽힌다[3]. 오퍼레이터는 차량 주변을 카메라 영상으로만 파악하는데, 현행 관제석은 여러 영상을 고정된 배치로 동시에 "
+               "띄운다. 동시 감시 화면이 4대에서 16대로 늘면 이상 사건 탐지율이 83%에서 64%로 떨어지고[5], 현장 CCTV 요원은 "
+               "화면을 훑기보다 한 화면을 골라 평균 26.9~62.4초마다 카메라를 직접 바꾼다[6]. 주행 상황은 초 단위로 바뀌므로 화면 "
+               "선택을 자동화할 필요가 있다."])
     body(doc, [f"문제는 언제 무엇을 강조할지가 자명하지 않다는 것이다. 본 연구의 측정에서 실제 위험은 전체 프레임의 {L['hazard_pct']:.1f}%"
-               f"에서만 나타나며, 항상 한 화면을 강조하면 정밀도가 {a1['precision']:.1f}%에 그친다. 기존 적응형 연구는 뷰별 전송 품질[4]"
-               "이나 GUI 정보 요소의 수[5]를 조정했을 뿐 어느 카메라를 강조할지를 학습 문제로 다루지 않았고, 이를 위한 공개 "
+               f"에서만 나타나며, 항상 한 화면을 강조하면 정밀도가 {a1['precision']:.1f}%에 그친다. 기존 적응형 연구는 뷰별 전송 품질[7]"
+               "이나 GUI 정보 요소의 수[8]를 조정했을 뿐 어느 카메라를 강조할지를 학습 문제로 다루지 않았고, 이를 위한 공개 "
                "벤치마크도 없다."])
     body(doc, ["본 논문은 진행 방향 화면을 항상 표시한 채 나머지 5개 중 0~2개를 보조 뷰로 강조하는 적응형 뷰 선택 시스템을 제안한다. "
-               "기여는 (1) 공개 데이터셋 nuScenes[1]의 3D 정답 박스·CAN·지도로 ‘봐야 할 화면’ 의사 라벨을 자동 생성하는 방법, "
+               "기여는 (1) 공개 데이터셋 nuScenes[9]의 3D 정답 박스·CAN·지도로 ‘봐야 할 화면’ 의사 라벨을 자동 생성하는 방법, "
                "(2) 영상·CAN·위험도를 융합하고 검출 오류로 증강 학습한 경량 모델, (3) 같은 표시량 비교와 사람이 판정한 골드셋을 "
                "포함한 오프라인 검증이다. 6개 화면을 모두 유지하고 선택한 화면만 강조하는 하이라이트 방식을 전제로 한다."])
 
@@ -265,14 +271,14 @@ def build(N: dict, out: str) -> None:
                "정지)은 지도의 차로·교차로 정보와 [−1, +5]초 궤적으로 판정한다. 보조 뷰는 역할을 나눈 슬롯으로 고른다. "
                "슬롯 1은 기동이 만드는 사각지대(예: 차선변경 시 후측방)로 검출과 무관하게 켜고, 나머지는 risk(c) ≥ 0.12인 채널을 "
                "위험 순으로 채운다."])
-    body(doc, ["실제 위험은 TTC < 5 s이면서 DCA < 3 m인 객체로 정의하며, 5초는 원격주행의 지연과 인지·조작 시간을 고려한 값이다[6]. "
+    body(doc, ["실제 위험은 TTC < 5 s이면서 DCA < 3 m인 객체로 정의하며, 5초는 원격주행의 지연과 인지·조작 시간을 고려한 값이다[10]. "
                f"{L['n_keyframes']:,}장의 라벨은 평균 {L['mean_aux']:.2f}장을 켜서 실제 위험의 {L['recall']:.1f}%를 화면에 담는다"
                f"(정밀도 {L['precision']:.1f}%). 라벨은 사람 검수 2회(무작위 20장, 표적 16장)를 통과했고, 라벨 판정에 쓰지 않은 "
                f"방향지시등과의 같은 방향 일치율은 좌회전 {L['signal']['TURN_LEFT']:.1f}%, 우회전 {L['signal']['TURN_RIGHT']:.1f}%였다. "
                f"사람이 판정한 골드셋과는 Top-1 {100 * lb['top1']:.1f}%, Top-2 {100 * lb['top2']:.1f}% 일치했다."])
 
     sub_heading(doc, "2.2 융합 모델과 학습")
-    body(doc, ["모델은 과거 4 keyframe(약 2초)만 본다. 화면별 MobileNetV3-small[7] 특징(576차원)에 카메라 위치 임베딩과 위험도를 "
+    body(doc, ["모델은 과거 4 keyframe(약 2초)만 본다. 화면별 MobileNetV3-small[11] 특징(576차원)에 카메라 위치 임베딩과 위험도를 "
                "더해 채널 토큰 6개를, CAN 신호(속도, 조향, 가속도, 회전율, 방향지시등)로 토큰 1개를 만들고, 2층 Transformer로 화면 간 "
                "정보를 섞은 뒤 채널별 GRU로 시간축을 처리한다(그림 1). 출력은 화면별 독립 시그모이드로 0~2장을 표현하며, 손실은 "
                "포컬 BCE, soft label KL, 레이아웃 CE, 시간 일관성 항의 합이다. 실제 검출은 불완전하므로 모델 입력의 위험도에는 "
@@ -381,8 +387,15 @@ def build(N: dict, out: str) -> None:
                "사업임 (IITP-2026-RS-2020-II201462)."], align=WD_ALIGN_PARAGRAPH.LEFT)
 
     para(doc, [("참 고 문 헌", {"bold": True})], align=C, size=10, ea=GOTHIC, latin="Arial", before=7, after=2, keep_next=True)
-    refs = [
-        "H. Caesar et al., “nuScenes: A Multimodal Dataset for Autonomous Driving,” Proc. CVPR, 2020.",
+    refs = [   # 본문에서 처음 인용된 순서
+        "N. Goodall, “Non-Technological Challenges for the Remote Operation of Automated Vehicles,” Transportation Research "
+        "Part A: Policy and Practice, vol. 142, pp. 14–26, 2020.",
+        "F. Tener and J. Lanir, “Driving from a Distance: Challenges and Guidelines for Autonomous Vehicle Teleoperation "
+        "Interfaces,” Proc. CHI ’22, 2022.",
+        "L. Zhao et al., “Remote Driving of Road Vehicles: A Survey of Driving Feedback, Latency, Support Control, and Real "
+        "Applications,” IEEE Trans. Intelligent Vehicles, vol. 9, no. 10, pp. 6086–6107, 2024.",
+        "D. Majstorović, S. Hoffmann, F. Pfab, A. Schimpe, M.-M. Wolf, and F. Diermeyer, “Survey on Teleoperation Concepts "
+        "for Automated Vehicles,” Proc. IEEE SMC, pp. 1290–1296, 2022.",
         "A. H. Tickner and E. C. Poulton, “Monitoring up to 16 Synthetic Television Pictures Showing a Great Deal of "
         "Movement,” Ergonomics, vol. 16, no. 4, pp. 381–401, 1973.",
         "M. J. Stainer, K. C. Scott-Brown, and B. W. Tatler, “Looking for Trouble: A Description of Oculomotor Search "
@@ -391,6 +404,7 @@ def build(N: dict, out: str) -> None:
         "for Teleoperated Driving,” Proc. IEEE VTC2022-Spring, 2022.",
         "M.-M. Wolf, H. Schmidt, M. Christl, J. Fank, and F. Diermeyer, “A User-Centered Teleoperation GUI for Automated "
         "Vehicles,” Multimodal Technologies and Interaction, vol. 9, no. 8, 78, 2025.",
+        "H. Caesar et al., “nuScenes: A Multimodal Dataset for Autonomous Driving,” Proc. CVPR, 2020.",
         "S. Neumeier et al., “Teleoperation: The Holy Grail to Solve Problems of Automated Driving? Sure, but Latency "
         "Matters,” Proc. AutomotiveUI ’19, 2019.",
         "A. Howard et al., “Searching for MobileNetV3,” Proc. ICCV, 2019.",

@@ -267,16 +267,18 @@ def build(N: dict, template: str, out: str) -> None:
         textbox(s, x + 6, cy + 43, cw - 12, 42, [{"runs": [(lab, {})], "align": PP_ALIGN.CENTER}], size=20, color=INK,
                 name=f"문제 카드 설명 {i + 1}")
     textbox(s, LX, 698, LW, 122, [
+        {"runs": [("자율주행은 모든 조건에서 운행하지 못해 원격 운전이 상용화에 필수³⁻⁵ — 그러나 차량과 떨어진 오퍼레이터는 ", {}),
+                  ("영상에만 의존해 상황인식이 낮다", {"bold": True})], "bullet": True, "after": 6},
         {"runs": [("고정 배치는 한정된 주의를 6개 화면에 똑같이 나눈다 → ", {}), ("상황에 따라 재배분", {"bold": True})], "bullet": True, "after": 6},
         {"runs": [(f"항상 1장을 켜면 정밀도 {a1['precision']:.1f}% (대부분 헛경보) → ", {}), ("볼 것이 없으면 0장", {"bold": True})], "bullet": True, "after": 6},
         {"runs": [("원격주행 뷰 선택 정답 데이터가 없고 실제 검출은 불완전하다 → ", {}),
                   ("의사 라벨 + 손상 입력에서도 버티는 학습 모델", {"bold": True})], "bullet": True, "after": 6},
-        {"runs": [("기존 적응형 연구는 전송 품질³·GUI 정보 요소 수⁴를 바꾼다 → ", {}), ("어느 카메라를 강조할지", {"bold": True}),
+        {"runs": [("기존 적응형 연구는 전송 품질⁶·GUI 정보 요소 수⁷를 바꾼다 → ", {}), ("어느 카메라를 강조할지", {"bold": True}),
                   ("는 다루지 않았다", {})], "bullet": True},
     ], size=26, name="문제 본문")
     textbox(s, LX, 830, LW, 30, [
-        "¹ Tickner & Poulton, Ergonomics, 1973   ² Stainer et al., Front. Hum. Neurosci., 2013 (관찰 2명)",
-        "³ Hofbauer et al., IEEE VTC2022-Spring   ⁴ Wolf et al., MTI 9(8), 2025",
+        "¹ Tickner & Poulton, Ergonomics, 1973   ² Stainer et al., Front. Hum. Neurosci., 2013 (관찰 2명)   ³ Goodall, TR Part A, 2020",
+        "⁴ Tener & Lanir, CHI 2022   ⁵ Zhao et al., IEEE T-IV, 2024   ⁶ Hofbauer et al., IEEE VTC2022-Spring   ⁷ Wolf et al., MTI 9(8), 2025",
     ], size=16, color=MUTED, name="문제 출처")
 
     # ================= 연구방법 =================
