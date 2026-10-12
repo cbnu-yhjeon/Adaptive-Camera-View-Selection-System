@@ -143,6 +143,41 @@ def cell_shade(cell, hexcolor):
     tcPr.append(sh)
 
 
+TBLPR_ORDER = ["tblStyle", "tblpPr", "tblOverlap", "bidiVisual", "tblStyleRowBandSize", "tblStyleColBandSize", "tblW", "jc",
+               "tblCellSpacing", "tblInd", "tblBorders", "shd", "tblLayout", "tblCellMar", "tblLook"]
+
+
+def fix_table_width(tbl, widths_mm):
+    """표 너비를 고정값으로 명시한다. '자동'으로 두면 한글(hwp 변환)이 쪽 전체 폭으로 펼쳐 단을 넘는다.
+
+    tblW(dxa)·tblLayout fixed·gridCol 너비를 넣고, tblPr 자식 순서를 OOXML 규격 순서로 정리한다.
+    """
+    tw = lambda mm: str(int(round(mm / 25.4 * 1440)))
+    tbl.autofit = False
+    tblPr = tbl._tbl.tblPr
+    w = tblPr.find(qn("w:tblW"))
+    if w is None:
+        w = OxmlElement("w:tblW")
+        tblPr.append(w)
+    w.set(qn("w:w"), tw(sum(widths_mm)))
+    w.set(qn("w:type"), "dxa")
+    if tblPr.find(qn("w:tblLayout")) is None:
+        lay = OxmlElement("w:tblLayout")
+        lay.set(qn("w:type"), "fixed")
+        tblPr.append(lay)
+    for gc, mm in zip(tbl._tbl.tblGrid.findall(qn("w:gridCol")), widths_mm):
+        gc.set(qn("w:w"), tw(mm))
+    for row in tbl.rows:
+        for c, mm in zip(row.cells, widths_mm):
+            c.width = Mm(mm)
+    kids = list(tblPr)
+    for k in kids:
+        tblPr.remove(k)
+    rank = lambda el: TBLPR_ORDER.index(el.tag.split("}")[1]) if el.tag.split("}")[1] in TBLPR_ORDER else 99
+    for k in sorted(kids, key=rank):
+        tblPr.append(k)
+
+
 def keep_together(tbl):
     """표가 단·쪽 사이에서 나뉘지 않게 마지막 행을 뺀 모든 행의 문단을 '다음 문단과 함께'로 둔다."""
     for row in tbl.rows[:-1]:
@@ -314,6 +349,7 @@ def build(N: dict, out: str) -> None:
             if i == 0:
                 cell_shade(cell, "E7E9EB")
     keep_together(st_)
+    fix_table_width(st_, [14, 70])
     para(doc, [""], size=4)
     figure(doc, os.path.join(FIG, "ui_goldset.png"), 84, "그림 2 골드셋 검수 화면 (실제 판정 장면)",
            "Fig. 2 Gold-set annotation interface")
@@ -343,6 +379,7 @@ def build(N: dict, out: str) -> None:
             if i == 0:
                 cell_shade(cell, "E7E9EB")
     keep_together(tbl)
+    fix_table_width(tbl, widths)
     para(doc, [f"* 같은 표시량({T1['load']:.2f}장)에서 보간한 값. 골드 Top-1은 정답이 있는 판정 {m['n_nonempty']}장 기준"],
          align=WD_ALIGN_PARAGRAPH.LEFT, size=7.5, ea=GOTHIC, latin="Arial", before=1, after=4, line=1.05)
     body(doc, [f"제안 모델은 같은 표시량에서 위험의 {m['recall_at_load']:.1f}%를 포착해 규칙({b2['recall_at_load']:.1f}~"
