@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>colloquium diagrams</title>
+<style>
+/* Edge 헤드리스로 #poster, #paper를 각각 캡처한다 (make_diagrams.py). 쿼리 ?d=poster|paper */
+html, body { margin: 0; background: #fff; }
+body { font-family: "Malgun Gothic", "맑은 고딕", sans-serif; }
+svg { display: block; }
+svg text { font-family: "Malgun Gothic", "맑은 고딕", sans-serif; fill: #14181c; }
+.t { font-weight: 700; }
+.s { fill: #4a545c; }
+.m { fill: #5a646c; }
+.box { fill: #ffffff; stroke: #14181c; stroke-width: 1.6; }
+.soft { fill: #eef1f3; stroke: #c9d1d6; stroke-width: 1.4; }
+.acc { fill: #e2f0f0; stroke: #0d6b73; stroke-width: 2.2; }
+.sig { fill: #f7e7e1; stroke: #b8422a; stroke-width: 2.2; }
+.ln { stroke: #14181c; stroke-width: 1.8; fill: none; }
+.lnm { stroke: #5a646c; stroke-width: 1.6; fill: none; stroke-dasharray: 7 5; }
+.rule { stroke: #c9d1d6; stroke-width: 1.2; fill: none; }
+.hide { display: none; }
+</style>
+</head>
+<body>
+<!-- ===================== 포스터용 (가로) ===================== -->
+<svg id="poster" width="1200" height="500" viewBox="0 0 1200 500" class="hide">
+  <defs>
+    <marker id="a1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#14181c"/></marker>
+    <marker id="a2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#5a646c"/></marker>
+  </defs>
+  <path d="M400 62 V28 H1050 V176" class="lnm" marker-end="url(#a2)"/>
+  <text x="725" y="20" text-anchor="middle" font-size="19" class="m">같은 규칙으로 바로 예측하면 = 비교 대상 B2 · B2c</text>
+
+  <rect x="6" y="180" width="182" height="170" rx="6" class="soft"/>
+  <text x="97" y="216" text-anchor="middle" font-size="25" class="t">nuScenes</text>
+  <text x="97" y="246" text-anchor="middle" font-size="18" class="s">850 장면</text>
+  <text x="97" y="272" text-anchor="middle" font-size="18" class="s">34,149 프레임</text>
+  <text x="97" y="298" text-anchor="middle" font-size="18" class="s">카메라 6대·3D 박스</text>
+  <text x="97" y="324" text-anchor="middle" font-size="18" class="s">CAN · 지도</text>
+
+  <rect x="225" y="62" width="350" height="140" rx="6" class="box"/>
+  <text x="400" y="96" text-anchor="middle" font-size="24" class="t">① 의사 라벨 생성</text>
+  <text x="400" y="128" text-anchor="middle" font-size="18" class="s">TTC·최접근 거리 → 화면별 위험도</text>
+  <text x="400" y="155" text-anchor="middle" font-size="18" class="s">지도 기반 기동 판정 · 슬롯 규칙</text>
+  <text x="400" y="182" text-anchor="middle" font-size="18" class="s">사람 검수 2회 (20장 + 16장)</text>
+
+  <rect x="615" y="80" width="240" height="104" rx="6" class="box"/>
+  <text x="735" y="120" text-anchor="middle" font-size="24" class="t">라벨 34,149장</text>
+  <text x="735" y="152" text-anchor="middle" font-size="18" class="s">보조 뷰 0~2장</text>
+  <text x="735" y="175" text-anchor="middle" font-size="18" class="s">평균 0.47장</text>
+
+  <text x="227" y="228" font-size="17" class="m">라벨 경로 · 정답(GT) 사용 허용</text>
+  <line x1="223" y1="238" x2="857" y2="238" class="rule" stroke-dasharray="4 5"/>
+
+  <rect x="225" y="252" width="350" height="88" rx="6" class="box"/>
+  <text x="400" y="288" text-anchor="middle" font-size="24" class="t">② 영상 특징 캐시</text>
+  <text x="400" y="320" text-anchor="middle" font-size="18" class="s">MobileNetV3 · 화면당 576차원</text>
+
+  <rect x="225" y="358" width="350" height="110" rx="6" class="sig"/>
+  <text x="400" y="392" text-anchor="middle" font-size="24" class="t">검출 오류 시뮬레이터</text>
+  <text x="400" y="423" text-anchor="middle" font-size="18" class="s">누락·오검출·위치 오차·카메라 고장</text>
+  <text x="400" y="450" text-anchor="middle" font-size="18" class="s">학습 증강과 평가에 같은 코드</text>
+  <text x="227" y="492" font-size="17" class="m">입력 경로 · 실전처럼 손상된 값</text>
+
+  <rect x="615" y="252" width="240" height="216" rx="6" class="acc"/>
+  <text x="735" y="288" text-anchor="middle" font-size="24" class="t">③ 융합 모델</text>
+  <text x="735" y="320" text-anchor="middle" font-size="18" class="s">카메라 토큰 6</text>
+  <text x="735" y="345" text-anchor="middle" font-size="18" class="s">+ CAN 토큰 1</text>
+  <text x="735" y="372" text-anchor="middle" font-size="18" class="s">Transformer 2층</text>
+  <text x="735" y="399" text-anchor="middle" font-size="18" class="s">채널별 GRU · 과거 2초</text>
+  <text x="735" y="426" text-anchor="middle" font-size="18" class="s">화면별 시그모이드</text>
+  <text x="735" y="453" text-anchor="middle" font-size="18" class="s">매개변수 0.46M</text>
+
+  <rect x="895" y="180" width="299" height="288" rx="6" class="box"/>
+  <text x="1045" y="218" text-anchor="middle" font-size="24" class="t">④ 평가</text>
+  <text x="1045" y="254" text-anchor="middle" font-size="18" class="s">같은 표시량의 위험 포착률</text>
+  <text x="1045" y="283" text-anchor="middle" font-size="18" class="s">골드셋 Top-1 (사람 판정)</text>
+  <text x="1045" y="312" text-anchor="middle" font-size="18" class="s">강건성: 오류 유형 × 강도</text>
+  <text x="1045" y="341" text-anchor="middle" font-size="18" class="s">ablation A1~A5</text>
+  <line x1="920" y1="364" x2="1170" y2="364" class="rule"/>
+  <text x="1045" y="396" text-anchor="middle" font-size="18" class="s">비교: B1 고정</text>
+  <text x="1045" y="423" text-anchor="middle" font-size="18" class="s">B2·B2c 규칙 · B3 영상만</text>
+  <text x="1045" y="450" text-anchor="middle" font-size="18" class="s">B4 단일 프레임</text>
+
+  <path d="M188 225 H206 V132 H223" class="ln" marker-end="url(#a1)"/>
+  <path d="M188 296 H223" class="ln" marker-end="url(#a1)"/>
+  <path d="M188 330 H206 V413 H223" class="ln" marker-end="url(#a1)"/>
+  <path d="M575 132 H613" class="ln" marker-end="url(#a1)"/>
+  <path d="M735 184 V250" class="ln" marker-end="url(#a1)"/>
+  <text x="745" y="222" font-size="17" class="m">학습 정답</text>
+  <path d="M575 296 H595 V318 H613" class="ln" marker-end="url(#a1)"/>
+  <path d="M575 413 H595 V390 H613" class="ln" marker-end="url(#a1)"/>
+  <path d="M855 360 H893" class="ln" marker-end="url(#a1)"/>
+  <text x="874" y="350" text-anchor="middle" font-size="17" class="m">예측</text>
+</svg>
+
+<!-- ===================== 논문용 (세로, 단 폭) ===================== -->
+<svg id="paper" width="440" height="540" viewBox="0 0 440 540" class="hide">
+  <defs>
+    <marker id="b1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#14181c"/></marker>
+  </defs>
+  <rect x="10" y="8" width="420" height="58" rx="5" class="soft"/>
+  <text x="220" y="32" text-anchor="middle" font-size="16" class="t">nuScenes · 850 장면 · 34,149 프레임</text>
+  <text x="220" y="54" text-anchor="middle" font-size="13.5" class="s">카메라 6대 · 3D 정답 박스 · CAN · 지도</text>
+
+  <text x="118" y="88" font-size="13" class="m">라벨 경로 (GT 허용)</text>
+  <text x="325" y="88" font-size="13" class="m">입력 경로</text>
+
+  <rect x="10" y="100" width="196" height="132" rx="5" class="box"/>
+  <text x="108" y="124" text-anchor="middle" font-size="15" class="t">① 의사 라벨 생성</text>
+  <text x="108" y="148" text-anchor="middle" font-size="13" class="s">TTC·최접근 거리</text>
+  <text x="108" y="166" text-anchor="middle" font-size="13" class="s">→ 화면별 위험도</text>
+  <text x="108" y="188" text-anchor="middle" font-size="13" class="s">지도 기반 기동 판정</text>
+  <text x="108" y="210" text-anchor="middle" font-size="13" class="s">슬롯 규칙 · 사람 검수</text>
+
+  <rect x="220" y="100" width="190" height="60" rx="5" class="box"/>
+  <text x="315" y="124" text-anchor="middle" font-size="15" class="t">② 영상 특징</text>
+  <text x="315" y="146" text-anchor="middle" font-size="13" class="s">MobileNetV3 · 576차원</text>
+
+  <rect x="220" y="172" width="190" height="60" rx="5" class="sig"/>
+  <text x="315" y="196" text-anchor="middle" font-size="15" class="t">검출 오류 주입</text>
+  <text x="315" y="218" text-anchor="middle" font-size="13" class="s">누락·오검출·위치·고장</text>
+
+  <rect x="10" y="262" width="196" height="52" rx="5" class="box"/>
+  <text x="108" y="285" text-anchor="middle" font-size="15" class="t">라벨 34,149장</text>
+  <text x="108" y="304" text-anchor="middle" font-size="13" class="s">보조 뷰 0~2장</text>
+
+  <rect x="10" y="346" width="420" height="80" rx="5" class="acc"/>
+  <text x="220" y="372" text-anchor="middle" font-size="15" class="t">③ 융합 모델 (0.46M, 과거 2초)</text>
+  <text x="220" y="394" text-anchor="middle" font-size="13" class="s">카메라 토큰 6 + CAN 토큰 1 → Transformer</text>
+  <text x="220" y="413" text-anchor="middle" font-size="13" class="s">→ 채널별 GRU → 화면별 시그모이드</text>
+
+  <rect x="10" y="458" width="420" height="74" rx="5" class="box"/>
+  <text x="220" y="482" text-anchor="middle" font-size="15" class="t">④ 평가 (B1 · B2 · B2c · B3 · B4와 비교)</text>
+  <text x="220" y="503" text-anchor="middle" font-size="13" class="s">같은 표시량 위험 포착률 · 골드셋 Top-1</text>
+  <text x="220" y="521" text-anchor="middle" font-size="13" class="s">강건성(오류 유형 × 강도) · ablation</text>
+
+  <path d="M108 66 V98" class="ln" marker-end="url(#b1)"/>
+  <path d="M315 66 V98" class="ln" marker-end="url(#b1)"/>
+  <path d="M108 232 V260" class="ln" marker-end="url(#b1)"/>
+  <path d="M108 314 V344" class="ln" marker-end="url(#b1)"/>
+  <text x="116" y="335" font-size="12.5" class="m">학습 정답</text>
+  <path d="M315 232 V344" class="ln" marker-end="url(#b1)"/>
+  <text x="323" y="292" font-size="12.5" class="m">손상된 위험도</text>
+  <path d="M410 130 H424 V344" class="ln" marker-end="url(#b1)"/>
+  <path d="M220 426 V456" class="ln" marker-end="url(#b1)"/>
+</svg>
+<script>
+  const d = new URLSearchParams(location.search).get("d") || "poster";
+  document.getElementById(d).classList.remove("hide");
+</script>
+</body>
+</html>
