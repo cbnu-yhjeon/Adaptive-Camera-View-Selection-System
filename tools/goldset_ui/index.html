@@ -85,7 +85,7 @@ background:var(--surface);color:var(--ink);border:1px solid var(--rule)}
 <header>
   <h1>골드셋 검수</h1>
   <div class="prog"><i id="prog"></i></div>
-  <span class="cnt">완료 <b id="ndone">0</b>/<b id="ntot">0</b> · 강조 불필요 <b id="nnone">0</b> · 애매 <b id="nhmm">0</b></span>
+  <span class="cnt">완료 <b id="ndone">0</b>/<b id="ntot">0</b> · 강조 불필요 <b id="nnone">0</b> · 애매 <b id="nhmm">0</b> · 건너뜀 <b id="nskip">0</b></span>
   <span class="savest" id="savest">저장 확인 중…</span>
   <button id="btnLoad">결과 불러오기</button>
   <input type="file" id="fileIn" accept=".json,application/json" hidden>
@@ -137,7 +137,8 @@ background:var(--surface);color:var(--ink);border:1px solid var(--rule)}
     <b>현재 프레임 시점에</b> 무엇을 확인해야 하는지로 판단해 주세요.</p>
   <ul>
     <li><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> 윗줄(좌전·전방·우전), <kbd>4</kbd><kbd>5</kbd><kbd>6</kbd> 아랫줄(좌후·후방·우후) — 켜고 끄기. 화면을 눌러도 됩니다</li>
-    <li><kbd>0</kbd> 강조 불필요 — 볼 것이 없다는 판정(미판정과 구분됩니다)</li>
+    <li><kbd>0</kbd> 강조 불필요 — 볼 것이 없다는 판정. <b>그냥 넘어가면 강조 불필요가 아니라 미판정으로 남습니다</b>
+      (미판정 장면에서 다음으로 가면 한 번 경고합니다)</li>
     <li><kbd>H</kbd> 애매 표시 · <kbd>Enter</kbd> 또는 <kbd>→</kbd> 다음 · <kbd>←</kbd> 이전</li>
     <li><kbd>[</kbd> <kbd>]</kbd> 이전·이후 프레임 보기(과거 1초 ~ 미래 <span class="fs">10</span>초) — 판정은 언제나 <b>현재 프레임 기준</b>입니다</li>
   </ul>
@@ -269,6 +270,11 @@ background:var(--surface);color:var(--ink);border:1px solid var(--rule)}
     $("ndone").textContent = done.length;
     $("nnone").textContent = done.filter(x => A[x.token].none).length;
     $("nhmm").textContent = ITEMS.filter(x => A[x.token] && A[x.token].hmm).length;
+    // 건너뜀 = 가장 뒤에 판정한 장면보다 앞인데 판정이 없는 장면 (키 0 없이 넘어간 것)
+    let last = -1;
+    ITEMS.forEach((x, i) => { if (A[x.token] && A[x.token].done) last = i; });
+    $("nskip").textContent = ITEMS.slice(0, last + 1).filter(x => !(A[x.token] && A[x.token].done)).length;
+    $("nskip").style.color = $("nskip").textContent !== "0" ? "var(--signal)" : "";
     $("prog").style.width = (100 * done.length / ITEMS.length) + "%";
     let exported = 0;
     try { exported = parseInt(localStorage.getItem(BKEY) || "0", 10) || 0; } catch (_) {}
@@ -293,7 +299,21 @@ background:var(--surface);color:var(--ink);border:1px solid var(--rule)}
     touch(a); save(); render();
   }
   function markNone() { const a = cur(); a.sel = []; a.none = true; a.done = true; touch(a); save(); render(); }
-  function go(d) { idx = Math.max(0, Math.min(ITEMS.length - 1, idx + d)); fi = null; render(); }
+  // 판정 없이 앞으로 넘어가면 '강조 불필요'가 아니라 미판정으로 남는다(2026-10 사고: 108장이 이렇게 빠졌다).
+  // 그래서 미판정 장면에서 앞으로 갈 때는 한 번 경고하고, 같은 장면에서 한 번 더 누르면 넘어간다.
+  let skipWarned = null;
+  function go(d) {
+    const a = A[ITEMS[idx].token];
+    if (d > 0 && !(a && a.done) && skipWarned !== idx) {
+      skipWarned = idx;
+      const st = $("state");
+      st.className = "state todo";
+      st.innerHTML = "⚠ 판정하지 않았습니다 — 볼 것이 없으면 <kbd>0</kbd>, 그래도 넘기려면 한 번 더";
+      return;
+    }
+    skipWarned = null;
+    idx = Math.max(0, Math.min(ITEMS.length - 1, idx + d)); fi = null; render();
+  }
 
   document.addEventListener("keydown", (e) => {
     if (e.target === $("note")) { if (e.key === "Enter") { $("note").blur(); go(1); } return; }
