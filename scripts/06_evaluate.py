@@ -92,6 +92,15 @@ def load_gold(path, cand_path="data/goldset/candidates_v1.json"):
         m = im.get(t) or cand.get(t, {})
         out[t] = dict(set=set(int(c) for c in chs), weight=float(m.get("weight", 1.0)),
                       stratum=m.get("stratum", "?"), hmm=bool(m.get("hmm", False)))
+    # 역확률 가중치 = 층 크기 / 그 층에서 실제로 판정된 장수. 저장된 가중치는 '층 크기 / 추출 수(100)'라
+    # 판정하지 못한 장면이 있으면 그 층이 덜 반영된다.
+    sizes = {it["stratum"]: it["n_stratum"] for it in cand.values() if "n_stratum" in it}
+    n_lab = {}
+    for v in out.values():
+        n_lab[v["stratum"]] = n_lab.get(v["stratum"], 0) + 1
+    for v in out.values():
+        if v["stratum"] in sizes:
+            v["weight"] = sizes[v["stratum"]] / n_lab[v["stratum"]]
     return out
 
 
