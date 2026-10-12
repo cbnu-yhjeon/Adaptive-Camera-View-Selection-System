@@ -221,11 +221,11 @@ python -m pytest tests/ -q
 | models · 학습 루프 | 채널별 sigmoid + focal BCE, macro-AP 모델 선택, 지시등 입력 (M4) |
 | `baselines/rule_based.py` | B1·B2(오라클 기동)·B2c(과거만) — M5 |
 | `scripts/06_evaluate.py` | 공통 평가 + `--curve` 운영 곡선(같은 표시량 비교) — M5·M6 |
-| `scripts/06b_goldset_sample.py` · `tools/goldset_ui/` | 골드셋 300장 층화 추출 + 검수 UI — M6 (사용자 라벨링 대기) |
+| `scripts/06b_goldset_sample.py` · `tools/goldset_ui/` | 골드셋 300장 층화 추출 + 검수 UI — **M6 완료** (285/300장 판정, 2026-10-13) |
 | `configs/` B3·B4·A1·A2·A4·A5 | `inherit:` 상속 설정 — M7 |
-| `scripts/07_robustness.py` | 유형별(누락·오검출·위치·카메라 고장) 강건성, 같은 표시량의 포착률 — M7 |
-| `scripts/07b_ablation.py` | A1~A5·B3·T=10 변형을 같은 표시량에서 비교 → `results/ablation.md` — M7 |
-| `scripts/08_make_figures.py` · `08b_paper_numbers.py` · `run_final.sh` | 그림 2 · 논문 수치 · 최종 일괄 생성 — M8 (골드셋 완료 대기) |
+| `scripts/07_robustness.py` | 유형별(누락·오검출·위치·카메라 고장) 강건성(같은 표시량 포착률 · 골드 Top-1) — **M7 완료** |
+| `scripts/07b_ablation.py` | A1~A5·B3·T=10 변형을 같은 표시량에서 비교 → `results/ablation.md` — **M7 완료** |
+| `scripts/08_make_figures.py` · `08b_paper_numbers.py` · `run_final.sh` | 그림 2 · 논문 수치 · 최종 일괄 생성 — **M8 완료** (`results/paper_numbers.md`) |
 | `data/interpolation.py` (2Hz→12Hz) | 선택 항목, 미구현 |
 
 ## 🗂️ 데이터셋

@@ -170,10 +170,51 @@ def sec_setup():
             f"위험 정의 TTC<{lb.get('hazard_ttc')}s ∧ DCA<{lb.get('d_hazard')} m", ""]
 
 
+def sec_claims():
+    """주장별 결론 — 2026-10-13 결정(명세 E-4, 1번): 주장 3은 열화 기울기가 아니라 '수준 차이'로 서술한다."""
+    ev_ = {m: jload(f"results/eval/{m}_test_noisy-medium.json") for m in METHODS + ["label"]}
+    rob = jload("results/robustness/robustness_test.json")
+    if not (ev_.get("model") and "gold" in ev_["model"] and rob):
+        return ["## 7. 주장별 결론\n", "_미생성 — 골드셋 채점 결과(표 1)와 강건성 결과가 필요하다_\n"]
+    u = lambda m: ev_[m]["gold"]["unweighted"]
+    w = lambda m: ev_[m]["gold"]["weighted"]
+    out = ["## 7. 주장별 결론 (결과 파일에서 계산)\n"]
+    # 주장 1 — 의사 라벨과 사람 판단의 일치
+    if ev_.get("label"):
+        out.append(f"- **주장 1 (의사 라벨)**: 사람 판단과 Top-1 {pct(w('label')['top1'])}(가중)·{pct(u('label')['top1'])}(비가중), "
+                   f"Top-2 {pct(w('label')['top2'])}. 단 사람이 '강조 불필요'로 본 장면의 {pct(1 - w('label')['quiet'])}에서 "
+                   "라벨이 화면을 켠다 — 위험 정의가 사람의 주의 기준보다 넓다.")
+    # 주장 2 — 융합·시간 모델
+    m, b3, b4 = ev_["model"], ev_["b3"], ev_["b4"]
+    out.append(f"- **주장 2 (융합·시간 모델)**: 영상 단일(B3) 대비 같은 표시량 포착률 "
+               f"{m['recall_at_load'] - b3['recall_at_load']:+.1f}%p, 골드 Top-1(비가중) "
+               f"{100 * (u('model')['top1'] - u('b3')['top1']):+.1f}%p. 단일 프레임(B4) 대비 flicker "
+               f"{b4['flicker']:.3f} → {m['flicker']:.3f}, 포착률 {m['recall_at_load'] - b4['recall_at_load']:+.1f}%p, "
+               f"골드 Top-1(비가중) {100 * (u('model')['top1'] - u('b4')['top1']):+.1f}%p — 시간 모델은 안정성과 위험 포착을 "
+               "개선하지만 사람 기준 Top-1 향상은 확인되지 않는다.")
+    # 주장 3 — 같은 정보 조건의 규칙(B2c) 대비, 손상 조건 전반의 수준 차이
+    rows = [r for r in rob["results"] if r["level"] in ("clean", "heavy")]
+    gd = [100 * (r["gold"]["model"]["top1_unweighted"] - r["gold"]["B2c"]["top1_unweighted"]) for r in rows]
+    rd = [r["at_load"]["model"]["recall"] - r["at_load"]["B2c"]["recall"] for r in rows]
+    clean = next(r for r in rows if r["level"] == "clean")
+    deg = lambda name: [100 * (r["gold"][name]["top1_unweighted"] - clean["gold"][name]["top1_unweighted"])
+                        for r in rows if r["level"] == "heavy"]
+    a, b = ev_["model"]["gold"].get("top1_hit", {}), ev_["b2c"]["gold"].get("top1_hit", {})
+    only_m = sum(a[t] and not b[t] for t in a); only_c = sum(b[t] and not a[t] for t in a)
+    out.append(f"- **주장 3 (불완전 입력)**: clean과 4가지 손상(heavy) 모든 조건에서 제안 모델의 골드 Top-1(비가중)이 "
+               f"같은 정보 조건의 규칙 B2c보다 **{min(gd):.1f}~{max(gd):.1f}%p 높다**. 같은 표시량 위험 포착률 차이는 "
+               f"{min(rd):+.1f}~{max(rd):+.1f}%p로 대등하다. 열화 폭(clean→heavy, 골드 Top-1)은 제안 "
+               f"{min(deg('model')):+.1f}~{max(deg('model')):+.1f}%p, B2c {min(deg('B2c')):+.1f}~{max(deg('B2c')):+.1f}%p로 "
+               f"**차이가 관찰되지 않는다** — 강건성은 열화 기울기가 아니라 수준 차이로 서술한다(2026-10-13 결정). "
+               f"짝비교(noisy-medium, 정답 있는 {u('model')['n_nonempty']}장): 제안만 맞힘 {only_m} / B2c만 {only_c}, "
+               f"McNemar p={ev.mcnemar_exact(only_m, only_c):.3f}.")
+    return out + [""]
+
+
 def main() -> int:
     lines = ["# 논문 수치 모음\n",
              "`scripts/08b_paper_numbers.py`가 결과 파일에서 생성한다 — 손으로 고치지 말고 다시 생성할 것.\n"]
-    for part in (sec_data(None), sec_can(), sec_table1(), sec_ablation(), sec_robust(), sec_setup()):
+    for part in (sec_data(None), sec_can(), sec_table1(), sec_ablation(), sec_robust(), sec_setup(), sec_claims()):
         lines += part
     os.makedirs("results", exist_ok=True)
     with open("results/paper_numbers.md", "w", encoding="utf-8") as f:
