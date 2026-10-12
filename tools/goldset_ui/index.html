@@ -20,6 +20,10 @@ h1{font-size:18px;margin:0}
 .prog i{display:block;height:100%;background:var(--accent);width:0}
 .cnt{font-family:var(--m);font-size:13px;color:var(--muted)}
 .cnt b{color:var(--ink)}
+.savest{font-family:var(--m);font-size:12px;color:var(--muted)}
+.savest.ok{color:var(--accent)}
+.savest.bad{color:#fff;background:var(--signal);padding:2px 8px;font-weight:700}
+.banner{padding:8px 12px;margin-bottom:10px;background:var(--signal-bg);border:1px solid var(--signal);font-size:13px}
 button{font:inherit;font-size:13px;padding:5px 12px;border:1px solid var(--rule);
 background:var(--surface);color:var(--ink);cursor:pointer}
 button:hover{border-color:var(--accent)}
@@ -82,9 +86,13 @@ background:var(--surface);color:var(--ink);border:1px solid var(--rule)}
   <h1>골드셋 검수</h1>
   <div class="prog"><i id="prog"></i></div>
   <span class="cnt">완료 <b id="ndone">0</b>/<b id="ntot">0</b> · 강조 불필요 <b id="nnone">0</b> · 애매 <b id="nhmm">0</b></span>
+  <span class="savest" id="savest">저장 확인 중…</span>
+  <button id="btnLoad">결과 불러오기</button>
+  <input type="file" id="fileIn" accept=".json,application/json" hidden>
   <button id="btnCopy">결과 복사</button>
   <button id="btnSave">결과 저장(.json)</button>
 </header>
+<div class="banner" id="banner" hidden></div>
 
 <div class="bar">
   <span class="meta" id="meta"></span>
@@ -133,7 +141,10 @@ background:var(--surface);color:var(--ink);border:1px solid var(--rule)}
     <li><kbd>H</kbd> 애매 표시 · <kbd>Enter</kbd> 또는 <kbd>→</kbd> 다음 · <kbd>←</kbd> 이전</li>
     <li><kbd>[</kbd> <kbd>]</kbd> 이전·이후 프레임 보기(과거 1초 ~ 미래 <span class="fs">10</span>초) — 판정은 언제나 <b>현재 프레임 기준</b>입니다</li>
   </ul>
-  <p>판정은 브라우저에 자동 저장됩니다. 다 끝나면 <b>결과 저장</b>으로 JSON을 받거나 <b>결과 복사</b>로 붙여넣어 주세요.
+  <p>판정은 브라우저에 자동 저장되고, 맨 위에 마지막 저장 시각이 표시됩니다. 빨간 경고가 뜨면 저장이 안 되는 상태이니
+    바로 <b>결과 저장</b>으로 파일을 받아 두세요. <b>시크릿 창에서는 창을 닫으면 판정이 사라집니다.</b>
+    20장마다 <b>결과 저장</b>으로 파일 백업을 권합니다(파일 이름에 판정 수와 시각이 들어갑니다).
+    다른 브라우저나 PC에서 이어 하려면 그 파일을 <b>결과 불러오기</b>로 읽으면 됩니다.
     라벨·모델의 답은 일부러 보여주지 않습니다 — 독립적인 판정이어야 평가가 순환하지 않습니다.</p>
 </details>
 </div>
@@ -153,8 +164,43 @@ background:var(--surface);color:var(--ink);border:1px solid var(--rule)}
               CAM_BACK_LEFT: "좌후측방", CAM_BACK: "후방", CAM_BACK_RIGHT: "우후측방"};
   const KEY = "goldset_" + G.meta.version + "_" + G.meta.split + "_" + G.meta.seed + "_" + ITEMS.length;
   const load = () => { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { return {}; } };
-  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(A)); } catch (e) {} };
+  const BKEY = KEY + "_exported";          // 마지막으로 파일 저장했을 때의 완료 수
   let A = load();
+  let lastSaved = null, saveFailed = false;
+
+  // 다른 탭·불러온 파일과 합치기 — 항목마다 더 최근에 바꾼 쪽(ts)을 남긴다.
+  // 탭 두 개가 각자 메모리의 판정 전체를 쓰면 늦게 쓴 탭이 다른 탭의 판정을 지운다.
+  function merge(from) {
+    let n = 0;
+    for (const [t, b] of Object.entries(from || {})) {
+      const a = A[t];
+      if (!a || (b.ts || 0) > (a.ts || 0)) { A[t] = b; n++; }
+    }
+    return n;
+  }
+  // 저장은 실패해도 화면이 계속 진행되므로, 다시 읽어 확인하고 실패하면 눈에 띄게 알린다.
+  // (2026-10 사고: 시크릿 창 등 저장이 남지 않는 곳에서 100장 가까이 검수한 뒤 판정이 사라졌다)
+  function save() {
+    try {
+      merge(load());
+      const v = JSON.stringify(A);
+      localStorage.setItem(KEY, v);
+      if (localStorage.getItem(KEY) !== v) throw new Error("readback");
+      lastSaved = new Date(); saveFailed = false;
+    } catch (e) { saveFailed = true; }
+    showSave();
+  }
+  function showSave() {
+    const el = $("savest");
+    if (saveFailed) { el.className = "savest bad"; el.textContent = "⚠ 브라우저 저장 실패 — 지금 '결과 저장'으로 파일을 받아 두세요"; }
+    else if (lastSaved) { el.className = "savest ok"; el.textContent = "브라우저 저장됨 " + lastSaved.toLocaleTimeString(); }
+    else { el.className = "savest"; el.textContent = "브라우저 저장 가능"; }
+  }
+  const touch = (a) => { a.ts = Date.now(); return a; };
+  window.addEventListener("storage", (e) => {
+    if (e.key !== KEY || !e.newValue) return;
+    try { if (merge(JSON.parse(e.newValue))) render(); } catch (_) {}
+  });
   let idx = 0, fi = null;
 
   const $ = (id) => document.getElementById(id);
@@ -224,6 +270,11 @@ background:var(--surface);color:var(--ink);border:1px solid var(--rule)}
     $("nnone").textContent = done.filter(x => A[x.token].none).length;
     $("nhmm").textContent = ITEMS.filter(x => A[x.token] && A[x.token].hmm).length;
     $("prog").style.width = (100 * done.length / ITEMS.length) + "%";
+    let exported = 0;
+    try { exported = parseInt(localStorage.getItem(BKEY) || "0", 10) || 0; } catch (_) {}
+    const gap = done.length - exported;
+    $("banner").hidden = gap < 20;
+    $("banner").textContent = `마지막 파일 저장 이후 ${gap}장을 더 판정했습니다. '결과 저장(.json)'으로 백업해 주세요 — 브라우저 저장은 시크릿 창이나 기록 삭제로 사라질 수 있습니다.`;
   }
 
   function cur() {
@@ -239,9 +290,9 @@ background:var(--surface);color:var(--ink);border:1px solid var(--rule)}
     a.sel.sort();
     a.none = false;
     a.done = a.sel.length > 0;
-    save(); render();
+    touch(a); save(); render();
   }
-  function markNone() { const a = cur(); a.sel = []; a.none = true; a.done = true; save(); render(); }
+  function markNone() { const a = cur(); a.sel = []; a.none = true; a.done = true; touch(a); save(); render(); }
   function go(d) { idx = Math.max(0, Math.min(ITEMS.length - 1, idx + d)); fi = null; render(); }
 
   document.addEventListener("keydown", (e) => {
@@ -249,14 +300,14 @@ background:var(--surface);color:var(--ink);border:1px solid var(--rule)}
     const n = parseInt(e.key, 10);
     if (n >= 1 && n <= 6) { toggle(CAMS.indexOf(GRID[n - 1])); e.preventDefault(); return; }
     if (e.key === "0") { markNone(); return; }
-    if (e.key === "h" || e.key === "H") { const a = cur(); a.hmm = !a.hmm; save(); render(); return; }
+    if (e.key === "h" || e.key === "H") { const a = cur(); a.hmm = !a.hmm; touch(a); save(); render(); return; }
     if (e.key === "ArrowRight" || e.key === "Enter") { go(1); e.preventDefault(); return; }
     if (e.key === "ArrowLeft") { go(-1); e.preventDefault(); return; }
     if (e.key === "[") { fi = Math.max(0, (fi ?? 0) - 1); render(); return; }
     if (e.key === "]") { fi = Math.min(ITEMS[idx].frames.length - 1, (fi ?? 0) + 1); render(); return; }
   });
-  $("hmm").onchange = () => { cur().hmm = $("hmm").checked; save(); render(); };
-  $("note").oninput = () => { cur().note = $("note").value; save(); };
+  $("hmm").onchange = () => { touch(cur()).hmm = $("hmm").checked; save(); render(); };
+  $("note").oninput = () => { touch(cur()).note = $("note").value; save(); };
   $("btnPrev").onclick = () => go(-1);
   $("btnNext").onclick = () => go(1);
 
@@ -275,11 +326,43 @@ background:var(--surface);color:var(--ink);border:1px solid var(--rule)}
             gold, item_meta: meta};
   }
   $("btnSave").onclick = () => {
-    const blob = new Blob([JSON.stringify(result(), null, 1)], {type: "application/json"});
+    const r = result();
+    const blob = new Blob([JSON.stringify(r, null, 1)], {type: "application/json"});
     const a = document.createElement("a");
+    const d = new Date(), p2 = (x) => String(x).padStart(2, "0");
+    const when = `${d.getFullYear()}${p2(d.getMonth() + 1)}${p2(d.getDate())}-${p2(d.getHours())}${p2(d.getMinutes())}`;
     a.href = URL.createObjectURL(blob);
-    a.download = "goldset_v1.json";
+    a.download = `goldset_v1_${r.meta.n_done}of${ITEMS.length}_${when}.json`;   // 덮어쓰지 않고 판정 수가 보이게
     document.body.appendChild(a); a.click(); a.remove();
+    try { localStorage.setItem(BKEY, String(r.meta.n_done)); } catch (_) {}
+    render();
+  };
+  // 결과 불러오기 — 저장해 둔 파일로 다른 브라우저·PC에서 이어서 검수한다.
+  // 이미 판정한 장면은 그대로 두고, 판정이 없는 장면만 채운다.
+  $("btnLoad").onclick = () => $("fileIn").click();
+  $("fileIn").onchange = async (ev) => {
+    const f = ev.target.files[0];
+    ev.target.value = "";
+    if (!f) return;
+    let d;
+    try { d = JSON.parse(await f.text()); } catch (e) { alert("JSON 파일을 읽지 못했습니다."); return; }
+    const m = d.meta || {};
+    if (!d.gold || m.version !== G.meta.version || m.split !== G.meta.split || m.seed !== G.meta.seed) {
+      alert("이 골드셋의 결과 파일이 아닙니다 (version·split·seed가 다름)."); return;
+    }
+    const im = d.item_meta || {}, ts = Date.parse(m.saved_at) || 1;
+    const known = new Set(ITEMS.map(it => it.token));
+    let added = 0, kept = 0;
+    for (const [t, sel] of Object.entries(d.gold)) {
+      if (!known.has(t)) continue;
+      if (A[t] && A[t].done) { kept++; continue; }
+      A[t] = {sel: sel.slice().sort(), done: true, none: sel.length === 0,
+              hmm: !!(im[t] && im[t].hmm), note: (im[t] && im[t].note) || "", ts};
+      added++;
+    }
+    save();
+    idx = firstTodo(); fi = null; render();
+    alert(`${added}장을 불러왔습니다.` + (kept ? ` 이미 판정한 ${kept}장은 그대로 두었습니다.` : ""));
   };
   $("btnCopy").onclick = async () => {
     const t = JSON.stringify(result());
@@ -288,6 +371,10 @@ background:var(--surface);color:var(--ink);border:1px solid var(--rule)}
     setTimeout(() => $("btnCopy").textContent = "결과 복사", 1200);
   };
 
+  // 시작할 때 이 브라우저가 실제로 저장할 수 있는지 확인한다
+  try { localStorage.setItem(KEY + "_probe", "1"); localStorage.removeItem(KEY + "_probe"); }
+  catch (e) { saveFailed = true; }
+  showSave();
   idx = firstTodo();
   render();
 })();
