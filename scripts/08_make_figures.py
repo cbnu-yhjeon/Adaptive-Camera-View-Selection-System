@@ -8,8 +8,10 @@ TURN · LANE_CHANGE · REVERSE 상황마다 성공 2 + 실패 1 사례를 고르
   상황      의사 라벨의 기동으로 나눈다(판정 근거가 아니라 묶음 기준).
   입력      표 1의 공정 비교 조건 noisy(medium). 모델 임계값은 val에서 라벨 표시량에 맞춘다.
 
-골드셋에 후진(REVERSE) 장면이 없으면 그 상황은 test 분할 전체에서 고르고, 정답 칸에
-의사 라벨을 대신 표시한다(그림에 '골드 없음 — 의사 라벨 기준'으로 적는다).
+골드셋에 그 상황이 없으면 test 분할 전체에서 고르고 정답 칸에 의사 라벨을 대신 표시한다
+(그림에 '골드 없음 — 의사 라벨 기준'으로 적는다). 평가 분할에 아예 없는 상황은 그리지 않고
+cases.json에 이유를 남긴다 — 후진은 trainval 전체 8프레임(scene-0731·0945)이 모두 학습 분할이라
+학습한 장면을 결과로 보여주게 된다.
 선택은 토큰 순서로 결정적이다(재실행해도 같은 사례).
 
 출력: results/fig2/fig2_{상황}.png · results/fig2/cases.json
@@ -111,7 +113,11 @@ def pick_cases(env, pred, gold, split):
                 if sc in used or sum(c[0] == kind for c in chosen) >= k:
                     continue
                 chosen.append((kind, t)); used.add(sc)
-        cases[sit] = dict(source=source, n_pool=len(g_toks), items=[
+        note = None
+        if not g_toks:
+            n_all = int(L["maneuver"].isin(mvs).sum())
+            note = f"평가 분할({split})에 이 상황이 없다 — trainval 전체 {n_all}프레임, 모두 다른 분할"
+        cases[sit] = dict(source=source, n_pool=len(g_toks), note=note, items=[
             dict(kind=k, token=t, answer=answer(t), maneuver=str(L.loc[t, "maneuver"]), **pred[t]) for k, t in chosen])
     return cases
 
@@ -192,7 +198,7 @@ def main() -> int:
     for sit, info in cases.items():
         ok = draw(env, sit, info, os.path.join(args.out_dir, f"fig2_{sit}.png"))
         print(f"  {sit:12s} 기준 {info['source']:6s} 후보 {info['n_pool']:4d}  사례 "
-              + ", ".join(f"{x['kind']}" for x in info["items"]) + ("" if ok else "  (사례 없음)"))
+              + ", ".join(f"{x['kind']}" for x in info["items"]) + ("" if ok else f"  (그리지 않음: {info['note']})"))
     with open(os.path.join(args.out_dir, "cases.json"), "w", encoding="utf-8") as f:
         json.dump(dict(split=args.split, condition="noisy-medium", ckpt=ckpt, threshold=th,
                        gold=args.gold if env.gold else None, n_gold=len(env.gold or {}), cases=cases),

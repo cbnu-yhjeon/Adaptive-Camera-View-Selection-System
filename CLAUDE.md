@@ -653,6 +653,8 @@ GT 객체 리스트에 다음을 적용해 위험도 벡터를 재계산:
 ## M8 — 정성 결과 + 논문 반영 자료 (1일) — 스크립트 완료 (`scripts/run_final.sh`), 골드셋 대기
 - [ ] `08_make_figures.py`: TURN/REVERSE/LANE_CHANGE 상황별 성공 2 + 실패 1 사례를
       제안/B2/골드 정답 나란히 배치한 그림 (그림 2용) → `results/fig2/`.
+      **REVERSE는 그릴 수 없다** — trainval 전체 8프레임(scene-0731·0945)이 모두 train 분할이라
+      평가 분할에 없다. 논문에는 후진을 평가하지 못한 한계로 적는다(2026-10-12 확인).
 - [ ] `results/paper_numbers.md`: 표 1 + ablation + 강건성 핵심 수치 + 실험 설정 요약
       (논문 2.4~2.5절에 그대로 옮길 수 있는 형태).
 - ✅ 전체 재현 커맨드 목록(`README.md`) 작성.
