@@ -131,6 +131,8 @@ def main() -> int:
     # mini 스모크 테스트는 trainval 분할에서 val이 비므로 mini 전용 분할을 쓴다.
     ap.add_argument("--splits", default=None)
     ap.add_argument("--version", default=None, help="base.yaml의 version 덮어쓰기")
+    ap.add_argument("--limit_samples", type=int, default=None,
+                    help="드라이런 — train·val을 각각 N개로 줄여 파이프라인만 확인(명세 A.3)")
     args = ap.parse_args()
 
     base, lab, tc = load_cfgs(args.config)
@@ -146,6 +148,13 @@ def main() -> int:
     epochs = args.epochs or tr.get("epochs", 100)
 
     fc, train_ds, val_ds = build_datasets(base, lab, tc, args)
+    if args.limit_samples:
+        # 결과는 '{exp}_dryrun'에 둔다 — 같은 폴더에 두면 평가가 최신 실행으로 드라이런을 집는다
+        tc["exp_name"] = tc.get("exp_name", "exp") + "_dryrun"
+        # 여러 scene이 섞이도록 균등 간격으로 고른다(앞에서 N개면 scene 한두 개뿐이다)
+        for ds in (train_ds, val_ds):
+            step = max(1, len(ds.flat) // args.limit_samples)
+            ds.flat = ds.flat[::step][:args.limit_samples]
     print(f"[학습] exp={tc.get('exp_name')} | train {len(train_ds)} / val {len(val_ds)} "
           f"| device={device} | epochs={epochs}")
 

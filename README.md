@@ -164,43 +164,59 @@
 | `proposed.py` | 채널 토큰 6개 + CAN 토큰 1개 → Transformer(2층·4헤드·d=128) → 채널별 GRU → Head1(뷰) / Head2(레이아웃). Head1은 **채널별 독립 sigmoid**(다중 선택 0~2장). 손실은 focal BCE + KL(soft) + layout CE + temporal consistency. 모델 선택은 임계값 무관한 macro-AP. **ablation은 별도 모델이 아니라 같은 코드의 플래그**(`use_can` · `use_risk` · `use_transformer` · `use_gru`)로 구성 |
 | `metrics.py` | Top-1, 복수 정답 Top-k, Macro-F1, scene 시간순 flicker rate |
 
-### 실행 순서
+### 실행 순서 (전체 재현)
+
+기본 데이터 버전은 `configs/base.yaml`의 `v1.0-trainval`. 모든 수치는 아래 스크립트가 `results/`에 쓴 파일에서 나온다.
 
 ```bash
-# 0) 데이터 배치 검증
-python scripts/00_check_data.py --version v1.0-mini
+# 0) 데이터 배치 검증 · 탐색
+python scripts/00_check_data.py
+python scripts/01_explore_data.py
 
-# 1) 탐색 — scene별 keyframe 수, CAN 스냅숏
-python scripts/01_explore_data.py --version v1.0-mini
+# 1) 의사 라벨 → data/labels_v1.0-trainval.parquet, 라벨 검증 수치
+python scripts/02_generate_labels.py
+python scripts/02b_operating_curve.py          # 운영 곡선 → results/operating_curve.json
+python scripts/02c_label_report.py             # 위험·기동·지시등 일치 → results/label_report.json
+python scripts/03_visualize_labels.py --n 20   # 검수 그림 → results/label_viz/  (M2 승인 게이트)
 
-# 2) 의사 라벨 생성 → data/labels_{version}.parquet
-python scripts/02_generate_labels.py --version v1.0-mini
+# 2) 캐시 + 입력 검증
+python scripts/04_build_cache.py               # 백본 특징 · 위험 기여 · CAN 특징
+python scripts/02d_can_check.py                # 속도·지시등 검증 → results/can_check.json
 
-# 3) 검수용 시각화 20장 → results/label_viz/   ← 사용자 승인 게이트 (M2)
-python scripts/03_visualize_labels.py --n 20
+# 3) 학습 — 긴 학습 전에는 드라이런(결과는 {exp}_dryrun에 저장)
+python scripts/05_train.py --limit_samples 100 --epochs 2
+for c in train_proposed train_b3_img_only train_b4_single_frame \
+         ablation_a1_no_can ablation_a2_no_risk ablation_a4_no_xview ablation_a5_no_temporal exp_t10; do
+  python scripts/05_train.py --config configs/$c.yaml
+done
 
-# 4) 백본 특징 · 위험 기여 캐시 + 로더 검증
-python scripts/04_build_cache.py --version v1.0-mini
+# 4) 강건성 · ablation (같은 표시량에서 비교)
+A2=results/ablation_a2_no_risk/<실행>/best.ckpt
+python scripts/07_robustness.py --split val  --extra_ckpt $A2
+python scripts/07_robustness.py --split val  --config configs/exp_t10.yaml --tag t10 --extra_ckpt $A2
+python scripts/07b_ablation.py --split val
+python scripts/07b_ablation.py --split test    # → results/ablation.md
 
-# 4b) CAN 입력 검증 — 모델이 받는 속도·지시등을 원자료와 대조 → results/can_check.json
-python scripts/02d_can_check.py
+# 5) 골드셋 — 후보 추출 + 검수 화면 → 사용자가 직접 라벨링 (M6 게이트)
+python scripts/06b_goldset_sample.py           # tools/goldset_ui/ 를 브라우저로 열어 검수
+#    검수 화면의 '결과 저장' 파일 → data/goldset_v1.json
 
-# 5) 학습
-python scripts/05_train.py --config configs/train_proposed.yaml
-python scripts/05_train.py --config configs/train_proposed.yaml --limit_samples 100   # 드라이런
+# 6) 최종 산출물 일괄 생성: 표 1(본·gt 부록) · 강건성(골드 Top-1) · 그림 2 · 논문 수치
+bash scripts/run_final.sh data/goldset_v1.json
+#    → results/table1.md · table1_gt.md · robustness/robustness_test.* · fig2/ · paper_numbers.md
 
 # 테스트
 python -m pytest tests/ -q
 ```
 
-> mini 스모크 테스트는 `--version v1.0-mini --splits splits/scene_split_mini.json`.
+> mini 스모크 테스트는 각 스크립트에 `--version v1.0-mini --splits splits/scene_split_mini.json`.
 > 분할 파일을 새로 만드는 `scripts/make_split.py`는 **최초 1회용**이며 다시 실행하지 않는다.
 
 ### 구현 현황
 
 | 계층 | 상태 |
 |---|---|
-| utils · data · labeling | 구현 완료 — 유닛테스트 62개(pytest). **M2 승인** (1차 20장 2026-10-04, 2차 표적 16장 2026-10-06, 맵 기준) |
+| utils · data · labeling | 구현 완료 — 유닛테스트 71개(pytest). **M2 승인** (1차 20장 2026-10-04, 2차 표적 16장 2026-10-06, 맵 기준) |
 | 특징·데이터 캐시 | trainval 특징 캐시(204,894장, 473 MB) · 기여 캐시(CAN 7종, 지시등 점멸 보정 2026-10-06) — **M3 완료** |
 | models · 학습 루프 | 채널별 sigmoid + focal BCE, macro-AP 모델 선택, 지시등 입력 (M4) |
 | `baselines/rule_based.py` | B1·B2(오라클 기동)·B2c(과거만) — M5 |
@@ -209,7 +225,7 @@ python -m pytest tests/ -q
 | `configs/` B3·B4·A1·A2·A4·A5 | `inherit:` 상속 설정 — M7 |
 | `scripts/07_robustness.py` | 유형별(누락·오검출·위치·카메라 고장) 강건성, 같은 표시량의 포착률 — M7 |
 | `scripts/07b_ablation.py` | A1~A5·B3·T=10 변형을 같은 표시량에서 비교 → `results/ablation.md` — M7 |
-| `scripts/08_make_figures.py` | 미구현 — M8 |
+| `scripts/08_make_figures.py` · `08b_paper_numbers.py` · `run_final.sh` | 그림 2 · 논문 수치 · 최종 일괄 생성 — M8 (골드셋 완료 대기) |
 | `data/interpolation.py` (2Hz→12Hz) | 선택 항목, 미구현 |
 
 ## 🗂️ 데이터셋
