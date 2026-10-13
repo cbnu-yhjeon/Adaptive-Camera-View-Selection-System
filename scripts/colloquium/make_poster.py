@@ -254,9 +254,10 @@ def build(N: dict, template: str, out: str) -> None:
     ], size=20, color=MUTED, name="목적 캡션")
 
     # ================= 문제정의 =================
-    cards = [("64%", TEAL, "동시 감시 화면 16대일 때 이상 탐지율 (4대 83%) ¹"),
-             ("26.9~62.4초", TEAL, "현장 CCTV 요원이 카메라를 손으로 바꾸는 주기 ²"),
-             (f"{L['hazard_pct']:.1f}%", RUST, "실제 위험이 있는 프레임 비율 — 나머지는 강조할 것이 없음")]
+    # 근거는 원격 운전을 직접 다룬 연구만 쓴다(2026-10-13 — CCTV 감시 연구 Tickner 1973·Stainer 2013 제외)
+    cards = [("14%↓", TEAL, "카메라 시점만 바꿔도 줄어든 원격 운전 과업 시간 ¹"),
+             (f"{L['hazard_pct']:.1f}%", RUST, "실제 위험이 있는 프레임 비율 — 나머지는 강조할 것이 없음"),
+             (f"{a1['precision']:.1f}%", RUST, "항상 1장을 강조할 때 정밀도 — 대부분 헛경보")]
     cw, gap, cy, chh = 128, 9, 598, 88
     for i, (big, col, lab) in enumerate(cards):
         x = LX + i * (cw + gap)
@@ -267,18 +268,18 @@ def build(N: dict, template: str, out: str) -> None:
         textbox(s, x + 6, cy + 43, cw - 12, 42, [{"runs": [(lab, {})], "align": PP_ALIGN.CENTER}], size=20, color=INK,
                 name=f"문제 카드 설명 {i + 1}")
     textbox(s, LX, 698, LW, 122, [
-        {"runs": [("자율주행은 모든 조건에서 운행하지 못해 원격 운전이 상용화에 필수³⁻⁵ — 그러나 차량과 떨어진 오퍼레이터는 ", {}),
+        {"runs": [("자율주행은 모든 조건에서 운행하지 못해 원격 운전이 상용화에 필수²⁻⁴ — 그러나 차량과 떨어진 오퍼레이터는 ", {}),
                   ("영상에만 의존해 상황인식이 낮다", {"bold": True})], "bullet": True, "after": 6},
-        {"runs": [("고정 배치는 한정된 주의를 6개 화면에 똑같이 나눈다 → ", {}), ("상황에 따라 재배분", {"bold": True})], "bullet": True, "after": 6},
-        {"runs": [(f"항상 1장을 켜면 정밀도 {a1['precision']:.1f}% (대부분 헛경보) → ", {}), ("볼 것이 없으면 0장", {"bold": True})], "bullet": True, "after": 6},
+        {"runs": [("화면을 더 보여 줘도 원격 운전자의 상황인식은 나아지지 않는다⁵ → ", {}),
+                  ("골라서 강조하고, 볼 것이 없으면 0장", {"bold": True})], "bullet": True, "after": 6},
         {"runs": [("원격주행 뷰 선택 정답 데이터가 없고 실제 검출은 불완전하다 → ", {}),
                   ("의사 라벨 + 손상 입력에서도 버티는 학습 모델", {"bold": True})], "bullet": True, "after": 6},
-        {"runs": [("기존 적응형 연구는 전송 품질⁶·GUI 정보 요소 수⁷를 바꾼다 → ", {}), ("어느 카메라를 강조할지", {"bold": True}),
-                  ("는 다루지 않았다", {})], "bullet": True},
+        {"runs": [("상황에 맞춘 동적 GUI가 고정 GUI보다 우수⁶하고 위험 표시는 위험 지각을 돕는다⁷ — 그러나 ", {}),
+                  ("어느 카메라를 강조할지", {"bold": True}), ("는 다루지 않았다", {})], "bullet": True},
     ], size=26, name="문제 본문")
     textbox(s, LX, 830, LW, 30, [
-        "¹ Tickner & Poulton, Ergonomics, 1973   ² Stainer et al., Front. Hum. Neurosci., 2013 (관찰 2명)   ³ Goodall, TR Part A, 2020",
-        "⁴ Tener & Lanir, CHI 2022   ⁵ Zhao et al., IEEE T-IV, 2024   ⁶ Hofbauer et al., IEEE VTC2022-Spring   ⁷ Wolf et al., MTI 9(8), 2025",
+        "¹ Musicant et al., Sensors, 2024   ² Goodall, TR Part A, 2020   ³ Tener & Lanir, CHI 2022   ⁴ Zhao et al., IEEE T-IV, 2024",
+        "⁵ Boker & Lanir, AutomotiveUI 2023   ⁶ Wolf et al., MTI 9(8), 2025   ⁷ Srinivasan et al., AHFE 2024",
     ], size=16, color=MUTED, name="문제 출처")
 
     # ================= 연구방법 =================

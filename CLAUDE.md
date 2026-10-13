@@ -14,6 +14,8 @@
 
 - 원격주행 관제는 6채널 카메라를 고정 레이아웃으로 표시 → 오퍼레이터 인지 부하 증가.
   근거(2026-09 문헌 조사):
+  ※ ①② 는 원격 운전이 아니라 **CCTV 감시 연구**다(교도소 모의 영상, 경찰 관제실 요원 2명). 차량 조종·상황인식을
+    다루지 않아 2026-10-13부터 콜로키움 논문·포스터에서 **제외**했다 — 아래 '원격 운전 표시 방식의 근거'로 대체.
   ① 다중 화면 감시 성능 저하 — 동시 감시 화면 4대 83% / 9대 84% / 16대 64%.
      Tickner, A.H., Poulton, E.C. "Monitoring up to 16 Synthetic Television Pictures Showing
      a Great Deal of Movement." Ergonomics 16(4):381-401, 1973. DOI 10.1080/00140137308924529
@@ -54,6 +56,24 @@
   - 난제: "challenges stemming mostly from the physical disconnect of the remote operator" (Tener & Lanir),
     낮은 상황인식을 핵심 난제로 꼽음(Zhao, 원격 운전만 다룬 서베이라 본 연구 전제와 가장 정확히 맞는다).
   - 쓰지 않은 것: Mutzenich et al. 2021(완전 무인차의 원격 개입 — 원격 *지원* 쪽이라 범위가 흐려지고 위와 겹침).
+- **원격 운전 표시 방식의 근거** (2026-10-13 원문 초록 확인, 논문 서론 둘째 문단·포스터 문제정의에 인용 —
+  모두 원격 운전/원격 조종을 직접 다룬 연구):
+  - 상황인식은 영상으로 형성: "situational awareness is primarily built through the remote operator's visual
+    perception" — Wolf et al. 2025 (아래 '관제 UI 현황'의 MTI 9(8):78; 문장은 arXiv 2504.21563 초록에서 확인).
+  - 영상을 더 띄워도 나아지지 않음: 전방 영상에 버드아이 뷰를 더해도 "adding a BEV does not improve the situation
+    awareness of the tele-driver", 일부는 "more difficult for the user to perceive some important environmental
+    features" — Boker, A., Lanir, J. "Bird's Eye View Effect on Situational Awareness in Remote Driving." Adjunct Proc.
+    AutomotiveUI '23, pp. 36-41. DOI 10.1145/3581961.3609878 (adjunct 단편, 초록에 참가자 수 없음).
+  - 상황 적응형이 고정보다 우수: 원격 운전 단계에 따라 표시 요소 수를 바꾸는 동적 GUI가 "significantly outperforming
+    the static version in both usability and task completion time" (클릭더미 N=36) — Wolf et al. 2025. 지금까지는
+    '정보 요소만 바꿨다'는 한계로만 썼는데, 적응형 표시 > 고정 표시를 원격 운전에서 직접 보인 근거이기도 하다.
+  - 위험을 영상에서 짚어 주면 지각이 쉬움: 자율주행 셔틀 원격 조종 영상에서 바운딩 박스로 지각 난이도↓(p=.001),
+    갑작스러운 위험에 경고 표시 추가 시 추가↓(p=.002), 위험도 판단은 차이 없음(p=.610), N=37 — Srinivasan, S.P.,
+    Tribulowski, P., Lindner, A. "Evaluation of Different HMIs to Improve Operator Hazard Perception and User Experience
+    in Teleoperation of Automated Shuttles." Advances in Human Factors of Transportation (AHFE 2024), pp. 161-171.
+    DOI 10.54941/ahfe1005206 (주관적 난이도만 — 운전 수행 아님).
+  - 표현 변경만으로 워크로드 변화: Musicant et al. 2024 (위 ④).
+  - 빈틈: 위 연구들은 시점·정보 요소·위험 표시를 바꿨고, **어느 카메라를 강조할지를 상황에 따라 고르는 문제**는 없다.
 - **산업 운용 형태** (Majstorović, D., Hoffmann, S., Pfab, F., Schimpe, A., Wolf, M.-M.,
   Diermeyer, F. "Survey on Teleoperation Concepts for Automated Vehicles." IEEE SMC 2022,
   pp. 1290-1296, DOI 10.1109/SMC53654.2022.9945267 / Bogdoll 등 2022): 원격 운전(직접 제어·공유 제어·
