@@ -29,3 +29,6 @@ tools/goldset_ui/manifest.js
 
 # 실행 로그 (결과는 results/에 metrics.json으로 남는다)
 logs/
+
+# 테스트 프로그램 산출물 — tools/demo/export.py가 다시 만든다 (업로드 영상 프레임 포함)
+results/demo/

@@ -1,0 +1,102 @@
+# 테스트 프로그램 (tools/demo) — 학습된 모델을 nuScenes 장면·업로드 영상에 돌려 강조 UI로 재생한다.
+# 체크포인트는 표 1·ablation(results/table1.md, results/ablation.md)에 쓴 것을 그대로 쓴다.
+# 임계값 τ는 평가와 같은 방식으로 val에서 라벨 표시량에 맞춘다(06_evaluate.py) — results/demo/thresholds.json.
+
+out_dir: results/demo
+thumb_dir: cache/demo_thumbs
+thumb_width: 640            # 화면 표시용 축소 폭(px). 모델 입력은 원본에서 224×224로 뽑는다
+host: 127.0.0.1             # 로컬 전용 — 업로드 영상이 외부로 나가지 않는다
+port: 8765
+
+upload:
+  key_hz: 2.0               # 모델 입력 주기 = nuScenes keyframe (학습과 같은 0.5초 간격)
+  display_fps: 10           # 재생용 프레임 추출 주기 (key_hz의 정수배)
+  max_seconds: 300
+  max_bytes: 4000000000
+
+methods:
+  model:
+    name: 제안
+    ckpt: results/proposed/20261007_013727/best.ckpt
+    risk_source: noisy      # 표 1 공정 비교 조건 — GT에 검출 오류를 주입한 위험도
+    noise: medium
+  model_gt:
+    name: 제안 (GT 위험도)
+    ckpt: results/proposed/20261007_013727/best.ckpt
+    risk_source: gt
+    noise: clean
+  model_none:
+    name: 제안 (위험도 0)
+    ckpt: results/proposed/20261007_013727/best.ckpt
+    risk_source: none       # 검출기가 없을 때 — 학습 때 본 적 없는 조건이라 참고용
+    noise: clean
+  a2:
+    name: A2 위험도 입력 없음
+    ckpt: results/ablation_a2_no_risk/20261006_025406/best.ckpt
+    risk_source: none
+    noise: clean
+  b3:
+    name: B3 영상 단일
+    ckpt: results/b3_img_only/20261007_010524/best.ckpt
+    risk_source: none
+    noise: clean
+  b2c:
+    name: B2c 규칙(과거만)
+    rule: causal            # 라벨 뷰 정책 + 과거 2초 궤적으로 추정한 기동 — 모델과 같은 정보 조건
+    risk_source: noisy
+    noise: medium
+  b2c_none:
+    name: B2c 규칙(검출 없음)
+    rule: causal
+    risk_source: none       # 위험도 0 — 기동 슬롯(안전 기본값)만 남는다
+
+sources:
+  split_test:
+    title: test 분할
+    note: 학습에 쓰지 않은 127개 scene. GT가 있어 실제 위험 객체·의사 라벨·골드 정답과 대조할 수 있다.
+    version: v1.0-trainval
+    split: test
+    methods: [model, model_gt, a2, b3, b2c]
+    default: model
+  v1_test:
+    title: v1.0-test
+    note: 공식 시험 세트 150개 scene — 학습·평가 어디에도 쓰지 않았다. 주석이 비공개라 위험도 입력이 없다.
+    version: v1.0-test
+    methods: [a2, b3, model_none, b2c_none]
+    default: a2
+  v1_test_long:
+    title: v1.0-test 기록
+    note: 공식 시험 세트의 주행 기록(log) 15개를 통째로 재생한다. 끊김 없이 이어지는 scene은 이어 붙이고(최장 100초) 공개되지 않은 구간은 '끊김'으로 건너뛴다. 모두 처음 보는 데이터, 12 Hz.
+    version: v1.0-test
+    max_gap_s: 1.0          # 다음 scene이 이 시간 안에 이어지면 끊김 없는 주행으로 본다 (모델 창도 이어짐)
+    methods: [a2, b3, model_none, b2c_none]
+    default: a2
+  trainval_long:
+    title: trainval 기록
+    note: 주행 기록 68개를 통째로(최대 34 scene ≈ 11분). 약 70%가 학습에 쓴 장면이라 구간마다 분할을 표시하고, 요약 지표는 test 구간만 센다.
+    version: v1.0-trainval
+    max_gap_s: 1.0
+    eval_split: test        # 요약 지표를 셀 구간 — 학습·검증 장면은 모델이 본 데이터다
+    methods: [model, model_gt, a2, b3, b2c]
+    default: model
+  upload:
+    title: 영상 업로드
+    note: 6채널 영상(또는 2×3 모자이크 1개). CAN·검출이 없으므로 영상만 쓰는 모델이 기본이다.
+    methods: [b3, a2, model_none]
+    default: b3
+
+# 전시 모드 (tools/demo/exhibit.html, /exhibit) — 관람객용 자동 순환 화면.
+# 장면은 tools/demo/exhibit_build.py가 test 분할에서 자동으로 고르고, 수치는 results/colloquium/numbers.json에서만 읽는다.
+exhibit:
+  source: split_test        # 학습에 쓰지 않은 장면만 보여준다
+  method: model             # 표 1의 제안 모델 (noisy-medium 위험도)
+  clip_max_s: 12            # 장면 하나의 최대 길이
+  clip_min_s: 7             # 이보다 짧은 장면은 관람객이 따라가기 어렵다
+  lead_s: 2.5               # 사건 앞에 붙이는 여유 (선제 전환을 보여주려면 사건 전부터 시작해야 한다)
+  tail_s: 1.5
+  min_hit: 0.6              # 사건 구간에서 맞는 화면을 강조한 keyframe 비율 하한
+  per_kind: 2               # 종류별 최대 장면 수
+  quiet_min_s: 8            # '강조 불필요' 장면 — 보조 뷰 0장이 이어지는 최소 길이
+  idle_resume_s: 45         # 관람객 조작 후 자동 순환으로 돌아가기까지
+  card_s: 9                 # 설명 카드 표시 시간
+  playback: 1.0             # 재생 속도

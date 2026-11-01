@@ -1,0 +1,506 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>적응형 카메라 뷰 선택</title>
+<link rel="icon" href="data:,">
+<!-- 전시 모드 — tools/demo/exhibit_build.py가 만든 results/demo/exhibit.json을 자동 순환 재생한다.
+     외부 자원 없이 동작한다(전시장 네트워크를 가정하지 않는다). -->
+<style>
+:root{
+  --console:#18202a; --panel:#212b37; --panel-2:#2a3644; --line:#34414f;
+  --ink:#eaf0f5; --muted:#91a0b0; --dim:#5d6b7a;
+  --heading:#5cc8e6;      /* 진행 방향 — 상시 표시 */
+  --attn:#f2b134;         /* AI 강조 — 차량 경고등의 호박색 */
+  --attn-glow:rgba(242,177,52,.35);
+  --hazard:#ff5a6e;
+  --f:"Pretendard","Malgun Gothic","맑은 고딕","Apple SD Gothic Neo","Noto Sans KR",system-ui,sans-serif;
+  --u:clamp(10px,0.9vw,18px);  /* 화면 크기에 비례하는 기본 단위 */
+}
+:root[data-theme="light"]{
+  --console:#e9edf1; --panel:#f7f9fb; --panel-2:#dfe5eb; --line:#c6d0d9;
+  --ink:#16202a; --muted:#516170; --dim:#8695a3;
+  --heading:#0f7f9c; --attn:#b97700; --attn-glow:rgba(185,119,0,.28); --hazard:#c8243a;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--console);color:var(--ink);font:calc(var(--u)*1.25)/1.5 var(--f);word-break:keep-all;
+  overflow:hidden;font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased}
+body.idle{cursor:none}
+.stage{position:fixed;inset:0;display:grid;grid-template-columns:1fr calc(var(--u)*26);
+  grid-template-rows:auto 1fr auto;gap:calc(var(--u)*1.2) calc(var(--u)*1.6);padding:calc(var(--u)*1.6) calc(var(--u)*2)}
+
+/* 상단: 지금 무슨 상황이고 AI가 무엇을 했는가 */
+.head{grid-column:1/2;grid-row:1;display:flex;align-items:flex-end;gap:calc(var(--u)*2);min-height:calc(var(--u)*6.4)}
+.situ{font-size:calc(var(--u)*3.2);font-weight:800;letter-spacing:-.02em;line-height:1.1;white-space:nowrap}
+.why{color:var(--muted);font-size:calc(var(--u)*1.35);max-width:30em;padding-bottom:.2em;flex:1}
+.now{flex:none;align-self:flex-end;font-size:calc(var(--u)*1.25);
+  color:var(--ink);background:var(--panel);border-left:4px solid var(--attn);padding:.35em .9em;
+  transition:border-color .2s}
+.now.none{border-left-color:var(--dim);color:var(--muted)}
+
+/* 6채널 관제 화면 */
+.grid{grid-column:1/2;grid-row:2;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(2,1fr);
+  gap:calc(var(--u)*.7);min-height:0}
+.tile{position:relative;background:#000;overflow:hidden;outline:3px solid transparent;outline-offset:-3px;
+  transition:outline-color .25s,filter .35s}
+.tile img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+.tile .name{position:absolute;left:0;top:0;background:rgba(10,14,19,.72);color:#e8eef3;
+  font-size:calc(var(--u)*1.05);padding:.2em .7em;font-weight:600}
+.tile .tag{position:absolute;right:0;top:0;font-size:calc(var(--u)*1.05);font-weight:800;padding:.2em .7em;display:none}
+.tile .warn{position:absolute;left:0;bottom:0;font-size:calc(var(--u)*1);font-weight:700;padding:.2em .7em;
+  background:var(--hazard);color:#fff;display:none}
+.tile.haz .warn{display:block}
+.grid.ai .tile.primary{outline-color:var(--heading)}
+.grid.ai .tile.primary .tag{display:block;background:var(--heading);color:#04161d}
+.grid.ai .tile.on{outline:calc(var(--u)*.45) solid var(--attn);outline-offset:calc(var(--u)*-.45);
+  box-shadow:0 0 calc(var(--u)*2.2) var(--attn-glow);z-index:1}
+.grid.ai .tile.on .tag{display:block;background:var(--attn);color:#1f1500}
+.grid.ai .tile.rest{filter:brightness(.55) saturate(.7)}
+.grid:not(.ai) .tile.haz .warn{display:none}
+
+/* 오른쪽 계기판 */
+.side{grid-column:2/3;grid-row:1/3;display:flex;flex-direction:column;gap:calc(var(--u)*.9);min-height:0;overflow:hidden}
+.box{background:var(--panel);padding:calc(var(--u)*1.1) calc(var(--u)*1.2)}
+.box h3{margin:0 0 .5em;font-size:calc(var(--u)*1.05);font-weight:600;color:var(--muted)}
+.radar svg{width:100%;height:auto;max-height:34vh;display:block;margin:0 auto}
+.wedge{fill:var(--panel-2);stroke:var(--line);stroke-width:1;transition:fill .25s}
+.wedge.primary{fill:color-mix(in srgb,var(--heading) 45%,var(--panel-2))}
+.wedge.on{fill:var(--attn)}
+.haz-dot{fill:var(--hazard)}
+.car{fill:var(--ink)}
+.ego-l{fill:var(--muted);font-size:13px;font-family:var(--f)}
+.legend{display:flex;flex-wrap:wrap;gap:.4em 1.1em;margin-top:.5em;font-size:calc(var(--u)*.95);color:var(--muted)}
+.legend i{display:inline-block;width:.85em;height:.85em;margin-right:.35em;vertical-align:-.08em}
+.vehicle{display:grid;grid-template-columns:auto 1fr;gap:.25em 1em;align-items:baseline}
+.vehicle .v{font-size:calc(var(--u)*2.1);font-weight:800;letter-spacing:-.02em}
+.vehicle .v small{font-size:.45em;font-weight:500;color:var(--muted);margin-left:.2em}
+.vehicle .k{color:var(--muted);font-size:calc(var(--u)*1)}
+.sig{display:flex;gap:.6em;font-weight:800;font-size:calc(var(--u)*1.4)}
+.sig span{color:var(--dim)}
+.sig span.lit{color:var(--attn)}
+.bars{display:grid;grid-template-columns:auto 1fr;gap:.45em .8em;align-items:center;font-size:calc(var(--u)*1)}
+.bar{position:relative;height:calc(var(--u)*.9);background:var(--panel-2)}
+.bar b{position:absolute;left:0;top:0;bottom:0;background:var(--muted);transition:width .25s}
+.bar.on b{background:var(--attn)}
+.bar.primary b{background:var(--heading)}
+.bar i{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--ink)}
+.note{font-size:calc(var(--u)*.9);color:var(--dim);margin-top:.6em}
+
+/* 하단: 장면 목록 + 출처 */
+.foot{grid-column:1/3;grid-row:3;display:flex;align-items:center;gap:calc(var(--u)*1.4)}
+.steps{display:flex;gap:calc(var(--u)*.4);flex-wrap:wrap}
+.steps button{font:inherit;font-size:calc(var(--u)*.95);border:0;background:var(--panel);color:var(--muted);
+  padding:.35em .8em;cursor:pointer;position:relative;overflow:hidden}
+.steps button.card{color:var(--dim)}
+.steps button.cur{color:var(--ink);background:var(--panel-2)}
+.steps button .pg{position:absolute;left:0;bottom:0;height:3px;background:var(--attn)}
+.steps button:focus-visible,.ctrl button:focus-visible{outline:2px solid var(--heading);outline-offset:2px}
+.src{flex:1;text-align:right;color:var(--dim);font-size:calc(var(--u)*.9);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.ctrl{display:flex;gap:calc(var(--u)*.4)}
+.ctrl button{font:inherit;font-size:calc(var(--u)*.95);border:1px solid var(--line);background:transparent;color:var(--muted);
+  padding:.3em .8em;cursor:pointer}
+.ctrl button[aria-pressed="false"]{color:var(--dim)}
+.paused-mark{position:fixed;right:calc(var(--u)*2);top:calc(var(--u)*.4);background:var(--panel-2);
+  color:var(--ink);padding:.3em 1em;font-size:calc(var(--u)*1);display:none;z-index:5}
+body.paused .paused-mark{display:block}
+
+/* 설명 카드 — 장면 사이에 화면 전체를 덮는다 */
+.card-layer{position:fixed;inset:0;background:var(--console);display:none;z-index:4;
+  padding:calc(var(--u)*5) calc(var(--u)*7) calc(var(--u)*6)}
+.card-layer.show{display:block;animation:fade .5s ease-out}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+@media (prefers-reduced-motion:reduce){.card-layer.show{animation:none}.tile,.wedge,.bar b{transition:none}}
+.card{height:100%;display:flex;flex-direction:column;justify-content:center;max-width:none}
+.card h1{font-size:calc(var(--u)*5.2);line-height:1.12;letter-spacing:-.035em;margin:0 0 .35em;font-weight:800;max-width:15em}
+.card h2{font-size:calc(var(--u)*3.4);line-height:1.18;letter-spacing:-.03em;margin:0 0 .6em;font-weight:800;max-width:24em}
+.card p.lead{font-size:calc(var(--u)*1.7);color:var(--muted);margin:0;max-width:34em}
+.card .who{margin-top:calc(var(--u)*3);color:var(--dim);font-size:calc(var(--u)*1.2)}
+.facts{display:grid;grid-template-columns:repeat(3,1fr);gap:calc(var(--u)*3);margin-top:calc(var(--u)*1)}
+.fact .n{font-size:calc(var(--u)*4.6);font-weight:800;letter-spacing:-.04em;line-height:1}
+.fact .n small{font-size:.4em;font-weight:600;margin-left:.1em}
+.fact .t{font-size:calc(var(--u)*1.35);margin-top:.6em;max-width:19em}
+.fact .c{font-size:calc(var(--u)*1.05);color:var(--muted);margin-top:.5em;max-width:22em}
+.fact.attn .n{color:var(--attn)}
+.fine{position:absolute;left:calc(var(--u)*7);right:calc(var(--u)*7);bottom:calc(var(--u)*3);color:var(--dim);font-size:calc(var(--u)*1)}
+.mini{display:grid;grid-template-columns:repeat(3,calc(var(--u)*8));gap:calc(var(--u)*.5);margin-top:calc(var(--u)*3)}
+.mini span{aspect-ratio:16/9;background:var(--panel-2);display:flex;align-items:center;justify-content:center;
+  font-size:calc(var(--u)*.95);color:var(--muted)}
+.mini.after span.p{outline:3px solid var(--heading);outline-offset:-3px}
+.mini.after span.a{outline:5px solid var(--attn);outline-offset:-5px;color:var(--ink)}
+.mini.after span.r{opacity:.45}
+.pair{display:flex;gap:calc(var(--u)*6);align-items:flex-end}
+.pair .cap{font-size:calc(var(--u)*1.2);color:var(--muted);margin-top:.6em}
+.flow{display:grid;grid-template-columns:1fr auto 1.1fr auto 1fr;gap:calc(var(--u)*1.6);align-items:stretch;margin-top:calc(var(--u)*1)}
+.flow .col{background:var(--panel);padding:calc(var(--u)*1.6)}
+.flow .col h4{margin:0 0 .6em;font-size:calc(var(--u)*1.6)}
+.flow .col ul{margin:0;padding-left:1.1em;color:var(--muted);font-size:calc(var(--u)*1.25)}
+.flow .col li{margin:.25em 0}
+.flow .col.out{box-shadow:inset 0 5px 0 var(--attn)}
+.flow .arrow{align-self:center;color:var(--dim);font-size:calc(var(--u)*3)}
+.empty{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;
+  gap:1em;color:var(--muted);font-size:calc(var(--u)*1.5);text-align:center;padding:2em}
+.empty code{color:var(--ink);background:var(--panel);padding:.2em .5em}
+.hidden{display:none!important}
+
+@media (max-width:900px){
+  body{overflow:auto}
+  .stage{position:static;grid-template-columns:1fr;grid-template-rows:auto}
+  .head,.grid,.side,.foot{grid-column:1;grid-row:auto}
+  .head{flex-wrap:wrap}
+  .side{grid-row:auto}
+  .grid{aspect-ratio:16/6}
+  .facts,.flow{grid-template-columns:1fr}
+  .flow .arrow{display:none}
+  .card-layer{overflow:auto;padding:24px 16px}
+  .fine{position:static;margin-top:2em}
+}
+</style>
+</head>
+<body>
+<div class="paused-mark">일시 정지 — 잠시 후 자동으로 이어집니다</div>
+
+<main class="stage" id="stage">
+  <div class="head"><div class="situ" id="situ">—</div><div class="why" id="why"></div><div class="now" id="now"></div></div>
+  <section class="grid ai" id="grid" aria-label="6채널 카메라 관제 화면"></section>
+  <aside class="side">
+    <div class="box radar">
+      <h3>차량 위에서 본 카메라 6대</h3>
+      <svg id="radar" viewBox="0 0 300 300" role="img" aria-label="카메라 화각 다이어그램"></svg>
+      <div class="legend">
+        <span><i style="background:var(--heading)"></i>진행 방향 (항상 표시)</span>
+        <span><i style="background:var(--attn)"></i>AI 강조</span>
+        <span><i style="background:var(--hazard);border-radius:50%"></i>실제 위험</span>
+      </div>
+    </div>
+    <div class="box">
+      <h3>차량 신호</h3>
+      <div class="vehicle">
+        <span class="k">속도</span><span class="v" id="speed">—</span>
+        <span class="k">방향지시등</span><span class="sig"><span id="sigL">◀ 좌</span><span id="sigR">우 ▶</span></span>
+      </div>
+    </div>
+    <div class="box">
+      <h3>AI가 매긴 화면별 중요도</h3>
+      <div class="bars" id="bars"></div>
+      <div class="note" id="tauNote"></div>
+    </div>
+  </aside>
+  <footer class="foot">
+    <nav class="steps" id="steps" aria-label="순서"></nav>
+    <div class="src" id="src"></div>
+    <div class="ctrl">
+      <button id="bAI" aria-pressed="true" title="H">AI 강조</button>
+      <button id="bPause" title="Space">일시 정지</button>
+      <button id="bFull" title="F">전체 화면</button>
+    </div>
+  </footer>
+</main>
+
+<div class="card-layer" id="cardLayer"></div>
+<div class="empty hidden" id="empty"></div>
+
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+// 채널 순서는 src/utils/constants.CAMERAS와 같다: 0 전방 1 우전 2 우후 3 후방 4 좌후 5 좌전
+const KO = ["전방","오른쪽 앞","오른쪽 뒤","후방","왼쪽 뒤","왼쪽 앞"];
+const GRID = [5,0,1,4,3,2];                 // 관제 화면 배치 (연구용 화면과 같다)
+const YAW = [0,-55,-110,180,110,55];        // 차량 기준 대략의 카메라 방향(도, 왼쪽 +)
+const FOV = [70,70,70,110,70,70];
+const MAN = {STRAIGHT:"직진",TURN_LEFT:"좌회전",TURN_RIGHT:"우회전",LANE_CHANGE_LEFT:"왼쪽 차선 변경",
+  LANE_CHANGE_RIGHT:"오른쪽 차선 변경",REVERSE:"후진",STOP:"정지"};
+const WHY = {
+  turn_left:"돌기 전부터, 돌아 들어갈 왼쪽 앞 화면을 먼저 강조합니다.",
+  turn_right:"돌기 전부터, 돌아 들어갈 오른쪽 앞 화면을 먼저 강조합니다.",
+  lane_left:"넘어갈 차로의 뒤쪽을 강조합니다.",
+  lane_right:"넘어갈 차로의 뒤쪽을 강조합니다.",
+  hazard:"진행 방향 밖에서 가까워지는 물체가 있는 화면을 강조합니다.",
+  quiet:"위험도 기동도 없으면 아무 화면도 강조하지 않습니다. 주의를 아끼는 것도 역할입니다.",
+};
+const LOC = {"boston-seaport":"보스턴","singapore-onenorth":"싱가포르 원노스",
+  "singapore-queenstown":"싱가포르 퀸스타운","singapore-hollandvillage":"싱가포르 홀랜드빌리지"};
+
+let EX = null, SEQ = [], si = 0, D = null, frames = [], t = 0, last = 0, paused = false, ai = true,
+    endHold = 0, cardEnd = 0, lastFi = -1, idleTimer = null, cursorTimer = null;
+const SCENES = {};
+const tiles = [];
+
+// ------------------------------------------------------------------ 순서
+function buildSeq(){
+  const c = EX.clips.map((x, i) => ({type:"clip", i}));
+  const cards = ["title","problem","method","results"].map(k => ({type:"card", k}));
+  // 제목·문제 → 장면 2개 → 방법 → 장면 3개 → 결과 → 나머지 장면
+  SEQ = [cards[0], cards[1], ...c.slice(0,2), cards[2], ...c.slice(2,5), cards[3], ...c.slice(5)];
+}
+function stepLabel(s){
+  if (s.type === "card") return {title:"소개",problem:"문제",method:"방법",results:"결과"}[s.k];
+  return EX.clips[s.i].title;
+}
+function drawSteps(){
+  $("steps").innerHTML = SEQ.map((s, i) =>
+    `<button class="${s.type === "card" ? "card" : ""}${i === si ? " cur" : ""}" data-i="${i}">${stepLabel(s)}${i === si ? '<span class="pg" id="pg"></span>' : ""}</button>`).join("");
+}
+
+async function go(i){
+  si = (i + SEQ.length) % SEQ.length;
+  drawSteps();
+  const s = SEQ[si];
+  if (s.type === "card"){
+    showCard(s.k);
+    cardEnd = performance.now() + EX.cfg.card_s * 1000;
+    return;
+  }
+  $("cardLayer").classList.remove("show");
+  const c = EX.clips[s.i];
+  D = await scene(c.file);
+  frames = D.frames.filter(f => f.t >= c.t0 - 1e-3 && f.t < c.t1);
+  if (!frames.length) frames = D.frames.filter(f => f.k >= c.k0 && f.k <= c.k1);
+  t = frames[0].t; endHold = 0; lastFi = -1;
+  $("situ").textContent = c.title;
+  $("why").textContent = WHY[c.kind] || "";
+  $("src").textContent = `${LOC[c.location] || c.location}, ${c.scene} (학습에 쓰지 않은 장면)`;
+  preload(0, 18);
+  render();
+}
+
+async function scene(file){
+  if (!SCENES[file]) SCENES[file] = fetch(file).then(r => r.json());
+  return SCENES[file];
+}
+
+// ------------------------------------------------------------------ 카드
+function fmt(x){ return Number(x).toLocaleString("ko-KR"); }
+function showCard(k){
+  const N = EX.numbers, L = $("cardLayer");
+  const mini = (cls, roles) => `<div class="mini ${cls}">${GRID.map(ch =>
+    `<span class="${roles[ch] || ""}">${KO[ch]}</span>`).join("")}</div>`;
+  let h = "";
+  if (k === "title") h = `
+    <h1>지금, 어느 카메라를 봐야 할까요?</h1>
+    <p class="lead">원격 운전자는 멀리 떨어진 차량의 카메라 6대를 화면으로 보며 운전합니다.
+      이 시스템은 주행 상황을 읽고 <b>지금 가장 중요한 화면</b>을 골라 강조합니다.</p>
+    <div class="who">원격주행을 위한 딥러닝 기반 적응형 카메라 뷰 선택 시스템</div>`;
+  else if (k === "problem") h = `
+    <h2>6개 화면이 늘 똑같이 켜져 있습니다.<br>위험은 그중 일부 순간, 한두 화면에만 있습니다.</h2>
+    <p class="lead">실제 위험(5초 안에 3 m 이내로 다가오는 물체)이 있는 순간은 전체 주행의
+      <b>${N.hazard_pct}%</b>뿐입니다. 나머지 시간에도 모든 화면이 같은 무게로 주의를 나눠 갖습니다.</p>
+    <div class="pair">
+      <div>${mini("", {})}<div class="cap">지금의 관제 화면 — 모두 같은 무게</div></div>
+      <div>${mini("after", {0:"p",5:"a",1:"r",2:"r",3:"r",4:"r"})}<div class="cap">이 시스템 — 진행 방향은 항상, 필요한 화면만 강조</div></div>
+    </div>`;
+  else if (k === "method") h = `
+    <h2>영상, 차량 신호, 주변 물체를 함께 보고 고릅니다</h2>
+    <div class="flow">
+      <div class="col"><h4>입력 (과거 ${N.seq_s}초)</h4><ul>
+        <li>카메라 6대의 영상</li><li>차량 신호 — 속도, 조향, 방향지시등</li><li>주변 물체의 접근 위험도</li></ul></div>
+      <div class="arrow" aria-hidden="true">›</div>
+      <div class="col"><h4>모델</h4><ul>
+        <li>화면끼리 정보를 주고받는 Transformer</li><li>시간 흐름을 기억하는 GRU</li>
+        <li>파라미터 ${N.params_m}M — 가볍게</li></ul></div>
+      <div class="arrow" aria-hidden="true">›</div>
+      <div class="col out"><h4>출력</h4><ul>
+        <li>강조할 화면 0~2장</li><li>진행 방향 화면은 항상 표시</li><li>필요 없으면 아무것도 강조하지 않음</li></ul></div>
+    </div>
+    <p class="lead" style="margin-top:1.6em">정답 데이터가 따로 없어서, nuScenes 주행 데이터
+      ${fmt(N.n_keyframes)}프레임의 3D 물체 정보와 차량 기록으로 "봐야 할 화면"을 자동으로 만들어 학습했습니다.</p>`;
+  else if (k === "results") h = `
+    <h2>학습에 쓰지 않은 주행 ${EX.n_scenes}개 장면, ${fmt(N.n_test)}프레임에서 확인했습니다</h2>
+    <div class="facts">
+      <div class="fact attn"><div class="n">${N.model.recall}<small>%</small></div>
+        <div class="t">실제 위험 물체가 화면에 들어온 비율 — 평균 <b>${N.model.mean_aux}장</b>만 강조하고도</div>
+        <div class="c">진행 방향 화면 하나만 볼 때는 ${N.fixed.recall}%</div></div>
+      <div class="fact"><div class="n">+${N.img_only.gain_at_load}<small>%p</small></div>
+        <div class="t">같은 수의 화면을 강조할 때, 영상만 보는 모델보다 높은 위험 포착률</div>
+        <div class="c">영상만 보면 ${N.img_only.recall_at_load}% — 차량 신호와 위험도를 함께 봐야 합니다</div></div>
+      <div class="fact"><div class="n">+${N.claim3.gold_diff[0]}~${N.claim3.gold_diff[1]}<small>%p</small></div>
+        <div class="t">물체 검출이 불완전할 때, 같은 정보를 쓰는 규칙보다 사람 판단과 더 자주 일치</div>
+        <div class="c">연구자가 직접 고른 정답 ${N.n_gold}장 기준, 검출 누락·오검출·위치 오차·카메라 고장 모든 조건</div></div>
+    </div>
+    <div class="fine">이 시스템은 충돌 경보기가 아니라 주의를 나누는 장치입니다 — 강조한 화면 중 실제 위험이 있던 비율은 ${N.model.precision}%이고,
+      나머지는 곧 진입할 방향처럼 미리 봐 둘 화면입니다. 시뮬레이션 기반 오프라인 평가이며, 운전자 실험은 하지 않았습니다.</div>`;
+  L.innerHTML = `<div class="card">${h}</div>`;
+  L.classList.remove("show"); void L.offsetWidth; L.classList.add("show");
+}
+
+// ------------------------------------------------------------------ 화면
+function buildTiles(){
+  $("grid").innerHTML = "";
+  for (const ch of GRID){
+    const el = document.createElement("div");
+    el.className = "tile";
+    el.innerHTML = `<img alt="${KO[ch]} 카메라"><span class="name">${KO[ch]}</span><span class="tag"></span><span class="warn">실제 위험</span>`;
+    $("grid").appendChild(el);
+    tiles.push({ch, el, img:el.querySelector("img"), tag:el.querySelector(".tag"), src:null});
+  }
+  $("bars").innerHTML = [0,5,1,4,2,3].map(ch =>
+    `<span>${KO[ch]}</span><div class="bar" id="bar${ch}"><b></b><i></i></div>`).join("");
+}
+
+function wedgePath(a, fov, r0, r1){
+  const p = (ang, r) => { const rad = ang * Math.PI / 180; return [150 - r * Math.sin(rad), 150 - r * Math.cos(rad)]; };
+  const a0 = a - fov / 2, a1 = a + fov / 2;
+  const [x0,y0] = p(a0, r0), [x1,y1] = p(a0, r1), [x2,y2] = p(a1, r1), [x3,y3] = p(a1, r0);
+  const big = fov > 180 ? 1 : 0;
+  return `M${x0},${y0} L${x1},${y1} A${r1},${r1} 0 ${big} 0 ${x2},${y2} L${x3},${y3} A${r0},${r0} 0 ${big} 1 ${x0},${y0}Z`;
+}
+function buildRadar(){
+  let s = "";
+  for (let c = 0; c < 6; c++) s += `<path class="wedge" id="w${c}" d="${wedgePath(YAW[c], FOV[c] - 6, 34, 128)}"/>`;
+  for (let c = 0; c < 6; c++){
+    const rad = YAW[c] * Math.PI / 180;
+    s += `<circle class="haz-dot hidden" id="h${c}" cx="${150 - 104 * Math.sin(rad)}" cy="${150 - 104 * Math.cos(rad)}" r="9"/>`;
+  }
+  s += `<rect class="car" x="138" y="128" width="24" height="44" rx="6"/><path d="M142 134 L150 126 L158 134Z" fill="var(--console)"/>`;
+  s += `<text class="ego-l" x="150" y="16" text-anchor="middle">앞</text>`;
+  $("radar").innerHTML = s;
+}
+
+function curFrame(){
+  let lo = 0;
+  for (let i = 0; i < frames.length; i++){ if (frames[i].t <= t + 1e-6) lo = i; else break; }
+  return lo;
+}
+function preload(from, n){
+  for (let i = from; i < Math.min(frames.length, from + n); i++)
+    for (const u of frames[i].img) if (u){ const im = new Image(); im.src = u; }
+}
+
+function render(){
+  if (!D || !frames.length || SEQ[si].type !== "clip") return;
+  const fi = curFrame(), f = frames[fi], k = D.keyframes[f.k], m = k.m[EX.method];
+  const sel = new Set(m.sel), haz = new Set(k.hazard || []);
+  const any = sel.size > 0;
+  for (const tl of tiles){
+    const u = f.img[tl.ch];
+    if (u && u !== tl.src){ tl.src = u; tl.img.src = u; }
+    const prim = tl.ch === k.primary, on = sel.has(tl.ch);
+    tl.el.classList.toggle("primary", prim);
+    tl.el.classList.toggle("on", on);
+    tl.el.classList.toggle("rest", !prim && !on && any);
+    tl.el.classList.toggle("haz", haz.has(tl.ch));
+    tl.tag.textContent = prim ? "진행 방향" : on ? "AI 강조" : "";
+  }
+  for (let c = 0; c < 6; c++){
+    $("w"+c).setAttribute("class", "wedge" + (ai && c === k.primary ? " primary" : "") + (ai && sel.has(c) ? " on" : ""));
+    $("h"+c).classList.toggle("hidden", !(ai && haz.has(c)));
+    const b = $("bar"+c), p = Math.max(0, Math.min(1, m.p[c]));
+    b.className = "bar" + (c === k.primary ? " primary" : ai && sel.has(c) ? " on" : "");
+    b.querySelector("b").style.width = c === k.primary ? "100%" : `${p * 100}%`;
+    b.querySelector("i").style.left = `${D.methods[EX.method].tau * 100}%`;
+    b.querySelector("i").style.display = c === k.primary ? "none" : "";
+  }
+  $("tauNote").textContent = `세로선(${D.methods[EX.method].tau.toFixed(2)})을 넘으면 강조합니다. 진행 방향은 항상 표시.`;
+  const now = $("now");
+  if (!ai){ now.textContent = "AI 강조 꺼짐 — 지금의 관제 화면"; now.className = "now none"; }
+  else if (any){ now.textContent = `AI 강조: ${[...sel].map(c => KO[c]).join(", ")}`; now.className = "now"; }
+  else { now.textContent = `강조 없음 — ${KO[k.primary]}만 봅니다`; now.className = "now none"; }
+  const c = k.can;
+  $("speed").innerHTML = c ? `${(c.speed * 3.6).toFixed(0)}<small>km/h</small>` : "—";
+  $("sigL").className = c && c.left ? "lit" : ""; $("sigR").className = c && c.right ? "lit" : "";
+  const pg = $("pg");
+  if (pg) pg.style.width = `${Math.min(100, (t - frames[0].t) / (frames[frames.length - 1].t - frames[0].t + 0.1) * 100)}%`;
+  if (fi !== lastFi){ lastFi = fi; preload(fi + 6, 6); }
+}
+
+// ------------------------------------------------------------------ 시간
+function tick(now){
+  const dt = Math.min(0.1, (now - last) / 1000); last = now;
+  const s = SEQ[si];
+  if (!paused){
+    if (s.type === "card"){
+      const pg = $("pg");
+      if (pg) pg.style.width = `${100 - Math.max(0, cardEnd - now) / (EX.cfg.card_s * 10)}%`;
+      if (now >= cardEnd) go(si + 1);
+    } else if (D && frames.length){
+      const end = frames[frames.length - 1].t;
+      if (t < end){ t = Math.min(end, t + dt * EX.cfg.playback); render(); }
+      else if (!endHold) endHold = now + 1500;
+      else if (now >= endHold) go(si + 1);
+    }
+  }
+  requestAnimationFrame(tick);
+}
+
+function setPaused(p){
+  paused = p;
+  document.body.classList.toggle("paused", p);
+  $("bPause").textContent = p ? "재생" : "일시 정지";
+  if (!p && SEQ[si].type === "card") cardEnd = performance.now() + EX.cfg.card_s * 1000;
+}
+function touched(){
+  // 관람객이 조작하면 잠시 멈췄다가 아무도 만지지 않으면 자동 순환으로 돌아간다
+  clearTimeout(idleTimer);
+  idleTimer = setTimeout(() => setPaused(false), EX.cfg.idle_resume_s * 1000);
+}
+function setAI(on){
+  ai = on;
+  $("grid").classList.toggle("ai", on);
+  $("bAI").setAttribute("aria-pressed", String(on));
+  $("bAI").textContent = on ? "AI 강조 켜짐" : "AI 강조 꺼짐";
+  render();
+}
+function full(){
+  if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen?.();
+}
+
+function wire(){
+  $("steps").addEventListener("click", e => {
+    const b = e.target.closest("button"); if (!b) return;
+    go(+b.dataset.i); touched();
+  });
+  $("bPause").onclick = () => { setPaused(!paused); touched(); };
+  $("bAI").onclick = () => { setAI(!ai); touched(); };
+  $("bFull").onclick = full;
+  $("cardLayer").onclick = () => { go(si + 1); touched(); };
+  document.addEventListener("keydown", e => {
+    if (e.key === " "){ e.preventDefault(); setPaused(!paused); }
+    else if (e.key === "ArrowRight") go(si + 1);
+    else if (e.key === "ArrowLeft") go(si - 1);
+    else if (e.key === "h" || e.key === "H") setAI(!ai);
+    else if (e.key === "f" || e.key === "F") full();
+    else if (e.key === "0" || e.key === "Home") go(0);
+    else if (e.key === "t" || e.key === "T"){
+      const r = document.documentElement; r.dataset.theme = r.dataset.theme === "light" ? "" : "light";
+    } else return;
+    touched();
+  });
+  document.addEventListener("mousemove", () => {
+    document.body.classList.remove("idle");
+    clearTimeout(cursorTimer); cursorTimer = setTimeout(() => document.body.classList.add("idle"), 3000);
+  });
+}
+
+async function main(){
+  try {
+    const r = await fetch("data/exhibit.json", {cache:"no-store"});
+    if (!r.ok) throw new Error(r.status);
+    EX = await r.json();
+  } catch (e){
+    $("stage").classList.add("hidden");
+    $("empty").classList.remove("hidden");
+    $("empty").innerHTML = `전시 장면이 아직 준비되지 않았습니다.<br>터미널에서 <code>.venv/bin/python tools/demo/exhibit_build.py</code>를 실행한 뒤 새로 고치세요.`;
+    return;
+  }
+  if (!EX.clips.length){
+    $("stage").classList.add("hidden"); $("empty").classList.remove("hidden");
+    $("empty").textContent = "조건을 만족하는 장면이 없습니다 — configs/demo.yaml의 exhibit 설정을 확인하세요.";
+    return;
+  }
+  buildTiles(); buildRadar(); buildSeq(); wire(); setAI(true);
+  // 장면 파일은 미리 받아 둔다 (전환 때 멈추지 않게)
+  for (const c of EX.clips) scene(c.file);
+  // ?step=4&at=3&pause=1 — 특정 단계·시점에서 시작 (현장 안내, 화면 확인용)
+  const q = new URLSearchParams(location.search);
+  await go(+(q.get("step") || 0));
+  if (q.has("at") && SEQ[si].type === "clip"){ t = frames[0].t + +q.get("at"); render(); }
+  if (q.get("pause") === "1") setPaused(true);
+  if (q.get("ai") === "0") setAI(false);
+  last = performance.now();
+  requestAnimationFrame(tick);
+}
+main();
+</script>
+</body>
+</html>

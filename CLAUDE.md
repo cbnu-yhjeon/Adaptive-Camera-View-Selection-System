@@ -242,6 +242,9 @@ project/
 │   ├── 07_robustness.py
 │   └── 08_make_figures.py
 ├── tools/goldset_ui/          # M6 골드셋 검수 뷰어
+├── tools/demo/                # 테스트 프로그램 — nuScenes 장면·업로드 영상에 모델을 돌려 강조 UI로 재생
+│                              #   (configs/demo.yaml, 선택은 06_evaluate와 같은 τ·Dataset 경로 → 표 1과 일치)
+│                              #   전시 모드 /exhibit — exhibit_build.py가 장면 자동 선정·수치는 numbers.json만
 └── results/
 ```
 

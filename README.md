@@ -113,6 +113,7 @@
 │   ├── models/    proposed
 │   └── eval/      metrics
 ├── scripts/       00~05 파이프라인 + 문서·슬라이드 생성
+├── tools/         goldset_ui(골드셋 검수) · demo(테스트 프로그램)
 ├── tests/         geometry · labeling · noise_seeding
 ├── docs/          research-proposal.html (연구계획서 원본)
 ├── cache/         백본 특징 · 위험 기여 (gitignore)
@@ -207,6 +208,21 @@ bash scripts/run_final.sh data/goldset_v1.json
 
 # 테스트
 python -m pytest tests/ -q
+
+# 7) 테스트 프로그램 — 학습 모델을 nuScenes 장면·업로드 영상에 돌려 강조 UI로 재생
+python tools/demo/export.py --source split_test   # test 분할 127 scene (+ val에서 τ 자동 계산)
+python tools/demo/export.py --source v1_test      # 공식 v1.0-test 150 scene (메타·카메라 blob 필요)
+python tools/demo/export.py --source v1_test_long # v1.0-test 주행 기록 15개 통째로(최대 ~8분, 이어지는 scene은 모델 창도 이어짐)
+python tools/demo/export.py --source trainval_long  # trainval 주행 기록 68개(최대 ~11분) — 학습 장면 섞임, 요약은 test 구간만
+python tools/demo/server.py                       # → http://127.0.0.1:8765
+python tools/demo/make_sample_video.py --scene scene-0002 --version v1.0-trainval --keyframes  # 업로드 시험 영상
+
+# 8) 전시 모드 — 관람객용 자동 순환 화면 (소개 → 문제 → 장면 → 방법 → 결과, 손대지 않으면 계속 돈다)
+bash tools/demo/run_exhibit.sh                    # 한 번에: 장면 준비(없을 때만) → 서버 → Windows 브라우저 키오스크 전체 화면
+                                                  #   --window 일반 창 · --rebuild 장면 다시 선정 · --no-browser 서버만 · Ctrl+C 종료
+                                                  #   Windows에선 tools/demo/run_exhibit.bat 더블클릭 (바탕화면에 복사해도 된다)
+# 수동: python tools/demo/exhibit_build.py → python tools/demo/server.py → http://127.0.0.1:8765/exhibit
+#   조작: F 전체 화면 · Space 정지 · ←/→ 이동 · H AI 강조 끄기 · T 밝은 화면 · 0 처음으로
 ```
 
 > mini 스모크 테스트는 각 스크립트에 `--version v1.0-mini --splits splits/scene_split_mini.json`.
@@ -226,6 +242,8 @@ python -m pytest tests/ -q
 | `scripts/07_robustness.py` | 유형별(누락·오검출·위치·카메라 고장) 강건성(같은 표시량 포착률 · 골드 Top-1) — **M7 완료** |
 | `scripts/07b_ablation.py` | A1~A5·B3·T=10 변형을 같은 표시량에서 비교 → `results/ablation.md` — **M7 완료** |
 | `scripts/08_make_figures.py` · `08b_paper_numbers.py` · `run_final.sh` | 그림 2 · 논문 수치 · 최종 일괄 생성 — **M8 완료** (`results/paper_numbers.md`) |
+| `tools/demo/exhibit*` | 전시 모드 — 장면은 `exhibit_build.py`가 기준(`configs/demo.yaml` `exhibit`)으로 자동 선정, 수치는 `results/colloquium/numbers.json`에서만 읽음. 차선변경은 모델 일치율이 낮아 기준 미달로 빠진다 |
+| `tools/demo/` | 테스트 프로그램 — test 분할(GT·골드 대조)·v1.0-test(미사용 데이터, 12 Hz)·영상 업로드(6개 파일/모자이크, CAN CSV 선택). 선택이 표 1과 일치(5,108 keyframe), 무손실 영상 업로드는 직접 경로와 40/40 일치 |
 | `data/interpolation.py` (2Hz→12Hz) | 선택 항목, 미구현 |
 
 ## 🗂️ 데이터셋
