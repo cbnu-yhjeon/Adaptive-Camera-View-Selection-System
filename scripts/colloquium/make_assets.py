@@ -289,7 +289,8 @@ def chart_robust(N, kind):
     fig, ax = plt.subplots(figsize=(w * MM, h * MM))
     G = N["robust"]["gold"]
     conds = [("all", "clean"), ("miss", "누락"), ("fp", "오검출"), ("pos", "위치\n오차"), ("drop", "카메라\n고장")]
-    meths = [("B2", "B2 (미래 기동)", GRAY), ("B2c", "B2c (과거만)", AMBER), ("model", "제안 모델", TEAL)]
+    # 범례에 B2·B2c 코드를 쓰지 않는다 — 논문 본문이 코드를 정의하지 않는다(2026-10-18 심사 지적)
+    meths = [("B2", "규칙 (미래 기동)", GRAY), ("B2c", "규칙 (과거만)", AMBER), ("model", "제안 모델", TEAL)]
     x = np.arange(len(conds))
     bw = 0.26
     for i, (k, lab, c) in enumerate(meths):
